@@ -199,7 +199,7 @@ Flickable {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         visible: root.projection !== "years"
-        iconText: root.expanded ? "󰁍" : "󰁌"
+        iconText: root.expanded ? "󰁄" : "󰁌"
         tooltipText: root.expanded ? "Return to current view" : "Show the whole horizon"
         foreground: root.foreground
         fontFamily: root.fontFamily
