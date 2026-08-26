@@ -57,8 +57,8 @@ rather than twelve repeated abbreviations.
   row is placed within that capacity rather than hard-coding two rows on each
   side. Projection changes preserve the temporal starting point.
 - Tiny `M →` and `Y ↓` cues disclose the horizontal and vertical dimensions.
-  Hovering either cue accents its corresponding scale; only `M →` is an
-  action, switching between Weeks and Months.
+  Hovering anywhere along either axis accents its corresponding scale; only
+  the tiny `M →` cue is an action, switching between Weeks and Months.
   The viewport's first, current, and last ages are labelled alongside every
   visible five-year landmark. Wheel and keyboard navigation slide the
   attention window one life-year at a time, and returning to now restores the
@@ -85,8 +85,13 @@ rather than twelve repeated abbreviations.
   avoiding a flash back to the present between adjacent cells. Hover receives
   a crisp outline distinct from the filled present cell; V1 does not imply a
   click action or persistent selection.
-- Faint current-row and current-column attention bands meet at the present
-  cell. Quiet edge arrows communicate whether earlier or later rows remain.
+- Present retains accent ticks on both axes while hover adds foreground ticks
+  without replacing them. When both points share an axis coordinate, the one
+  accent tick remains rather than drawing competing labels in one place.
+  Hairline guides connect each point only upward to the horizontal axis and
+  leftward to the vertical axis; they never continue into later columns or
+  lower ages. Quiet edge arrows communicate whether earlier or later rows
+  remain.
 
 Scales provide orientation. Hover provides precision:
 
