@@ -45,15 +45,16 @@ groups are calendar months.
 - Lived cells are softly filled.
 - The current cell is the only accent.
 - Future cells are quietly outlined.
-- Weeks and Months open as a bounded temporal viewport around now. The
-  current life-year sits slightly above center so the panel retains history
-  for orientation while showing more of the finite future.
+- Compact mode is one shared five-life-year attention window: two life-years
+  before the current one, the current life-year, and two after. Weeks and
+  Months render those five years as rows; Years renders the same interval as
+  five centered year cells. Projection changes preserve the interval.
 - The absolute age axis remains visible while the viewport moves. Wheel and
-  keyboard navigation explore earlier or later rows; returning to now restores
-  the default framing.
-- Years remains the compact whole-horizon overview.
-- A quiet expand action reveals the complete configured horizon in the same
-  anchored surface. It is a contemplative view, not the panel default.
+  keyboard navigation slide the attention window one life-year at a time;
+  returning to now restores the default framing.
+- A quiet zoom-out action reveals the complete configured horizon for every
+  projection in the same anchored surface. It is a contemplative overview,
+  not the panel default.
 - All compact projections inhabit one fixed panel and Canvas frame. Collapsed
   Months and Years grids are centered within it, so projection changes do not
   move the surrounding interface.

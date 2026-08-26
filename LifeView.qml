@@ -13,20 +13,22 @@ Flickable {
   property string fontFamily: Style.font.family
   property string projection: "weeks"
   property bool expanded: false
-  property int compactRowCount: 24
-  property int windowRowStart: 0
+  property int compactYearSpan: 5
+  property int windowYearStart: 0
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
-  readonly property int totalRows: Math.max(1, Math.ceil((cells ? cells.length : 0) / columns()))
-  readonly property int visibleRowCount: expanded || projection === "years"
-    ? totalRows
-    : Math.min(compactRowCount, totalRows)
-  readonly property int visibleRowStart: expanded || projection === "years"
+  readonly property int totalLifeYears: Math.max(1, Math.ceil(horizonWeeks / 52))
+  readonly property int visibleYearCount: expanded
+    ? totalLifeYears
+    : Math.min(compactYearSpan, totalLifeYears)
+  readonly property int visibleYearStart: expanded
     ? 0
-    : Math.max(0, Math.min(totalRows - visibleRowCount, windowRowStart))
-  readonly property bool canPanEarlier: !expanded && projection !== "years" && visibleRowStart > 0
-  readonly property bool canPanLater: !expanded && projection !== "years"
-    && visibleRowStart + visibleRowCount < totalRows
+    : Math.max(0, Math.min(totalLifeYears - visibleYearCount, windowYearStart))
+  readonly property int visibleRowCount: expanded
+    ? Math.max(1, Math.ceil((cells ? cells.length : 0) / columns()))
+    : (projection === "years" ? 1 : visibleYearCount)
+  readonly property bool canPanEarlier: !expanded && visibleYearStart > 0
+  readonly property bool canPanLater: !expanded && visibleYearStart + visibleYearCount < totalLifeYears
 
   property var cells: []
   property int hoveredIndex: -1
@@ -39,15 +41,19 @@ Flickable {
   contentHeight: contentColumn.implicitHeight
   interactive: expanded && contentHeight > height
 
-  function refreshCells() {
+  function refreshCells(resetWindow) {
     cells = Model.projectionCells(projection, birthKey, today, horizonWeeks)
     hoveredIndex = -1
-    resetToNow()
+    if (resetWindow) resetToNow()
+    else if (!expanded)
+      windowYearStart = Math.max(0, Math.min(totalLifeYears - visibleYearCount, windowYearStart))
     lifeCanvas.requestPaint()
   }
 
   function columns() {
-    return projection === "weeks" ? 52 : projection === "months" ? 12 : 10
+    if (projection === "weeks") return 52
+    if (projection === "months") return 12
+    return expanded ? 10 : visibleYearCount
   }
 
   function gap() {
@@ -75,7 +81,9 @@ Flickable {
   // inside it instead of changing the panel's geometry under the pointer.
   function compactGridHeight() {
     var size = weekCellSize()
-    return compactRowCount * size + Math.max(0, compactRowCount - 1) * Style.space(2)
+    var calendarHeight = compactYearSpan * size + Math.max(0, compactYearSpan - 1) * Style.space(2)
+    var yearHeight = Math.max(Style.space(22), size * 2.5)
+    return Math.max(calendarHeight, yearHeight)
   }
 
   function gridOriginX() {
@@ -88,33 +96,29 @@ Flickable {
     return lifeCanvas.topGutter + Math.max(0, (compactGridHeight() - gridHeight()) / 2)
   }
 
-  function currentRow() {
-    for (var i = 0; i < cells.length; i++) {
-      if (cells[i].status === "current") return Math.floor(i / columns())
-    }
-    return cells.length > 0 ? totalRows - 1 : 0
+  function currentLifeYear() {
+    return Math.max(0, Math.min(totalLifeYears - 1, Math.floor(stats.currentWeek / 52)))
   }
 
   function defaultWindowStart() {
-    return Model.temporalViewportStart(currentRow(), totalRows, compactRowCount)
+    return Model.temporalViewportStart(currentLifeYear(), totalLifeYears, compactYearSpan)
   }
 
   function resetToNow() {
-    windowRowStart = defaultWindowStart()
+    windowYearStart = defaultWindowStart()
     contentY = 0
     hoveredIndex = -1
     lifeCanvas.requestPaint()
   }
 
   function panRows(delta) {
-    if (expanded || projection === "years") return
-    windowRowStart = Math.max(0, Math.min(totalRows - visibleRowCount, visibleRowStart + delta))
+    if (expanded) return
+    windowYearStart = Math.max(0, Math.min(totalLifeYears - visibleYearCount, visibleYearStart + delta))
     hoveredIndex = -1
     lifeCanvas.requestPaint()
   }
 
   function toggleExpanded() {
-    if (projection === "years") return
     expanded = !expanded
     contentY = 0
     hoveredIndex = -1
@@ -123,8 +127,31 @@ Flickable {
 
   function setProjection(value) {
     if (projection === value) return
-    if (value === "years") expanded = false
     projection = value
+  }
+
+  function firstVisibleIndex() {
+    if (expanded) return 0
+    if (projection === "weeks") return visibleYearStart * 52
+    if (projection === "months") return visibleYearStart * 12
+    return visibleYearStart
+  }
+
+  function lastVisibleIndex() {
+    if (expanded) return cells.length
+    var count = projection === "weeks"
+      ? visibleYearCount * 52
+      : projection === "months" ? visibleYearCount * 12 : visibleYearCount
+    return Math.min(cells.length, firstVisibleIndex() + count)
+  }
+
+  function currentGridRow() {
+    var first = firstVisibleIndex()
+    var last = lastVisibleIndex()
+    for (var i = first; i < last; i++) {
+      if (cells[i].status === "current") return Math.floor((i - first) / columns())
+    }
+    return -1
   }
 
   function hitTest(x, y) {
@@ -135,8 +162,8 @@ Flickable {
     var column = Math.floor(localX / stride)
     var localRow = Math.floor(localY / stride)
     if (localX - column * stride > cellSize() || localY - localRow * stride > cellSize()) return -1
-    var index = (visibleRowStart + localRow) * columns() + column
-    return index >= 0 && index < cells.length ? index : -1
+    var index = firstVisibleIndex() + localRow * columns() + column
+    return index >= firstVisibleIndex() && index < lastVisibleIndex() ? index : -1
   }
 
   function currentCell() {
@@ -155,6 +182,9 @@ Flickable {
     } else if (projection === "months") {
       for (var quarter = 0; quarter < 4; quarter++)
         marks.push({ position: quarter * 3 + 1, label: "Q" + (quarter + 1) })
+    } else if (!expanded) {
+      for (var visibleYear = 0; visibleYear < visibleYearCount; visibleYear++)
+        marks.push({ position: visibleYear, label: "Y" + (visibleYearStart + visibleYear + 1) })
     } else {
       for (var year = 0; year < 10; year++)
         marks.push({ position: year, label: "Y" + (year + 1) })
@@ -162,17 +192,17 @@ Flickable {
     return marks
   }
 
-  onProjectionChanged: refreshCells()
-  onBirthKeyChanged: refreshCells()
-  onTodayChanged: refreshCells()
-  onHorizonWeeksChanged: refreshCells()
+  onProjectionChanged: refreshCells(false)
+  onBirthKeyChanged: refreshCells(true)
+  onTodayChanged: refreshCells(true)
+  onHorizonWeeksChanged: refreshCells(true)
   onExpandedChanged: {
     hoveredIndex = -1
     contentY = 0
     lifeCanvas.requestPaint()
   }
   onWidthChanged: lifeCanvas.requestPaint()
-  Component.onCompleted: refreshCells()
+  Component.onCompleted: refreshCells(true)
 
   Column {
     id: contentColumn
@@ -222,9 +252,8 @@ Flickable {
       PanelActionButton {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        visible: root.projection !== "years"
         iconText: root.expanded ? "󰁄" : "󰁌"
-        tooltipText: root.expanded ? "Return to current view" : "Show the whole horizon"
+        tooltipText: root.expanded ? "Return to attention window" : "Zoom out to the whole horizon"
         foreground: root.foreground
         fontFamily: root.fontFamily
         onClicked: root.toggleExpanded()
@@ -287,7 +316,7 @@ Flickable {
         id: nowButton
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        visible: !root.expanded && root.projection !== "years" && root.visibleRowStart !== root.defaultWindowStart()
+        visible: !root.expanded && root.visibleYearStart !== root.defaultWindowStart()
         iconText: "󰑐"
         tooltipText: "Return to now"
         foreground: root.foreground
@@ -331,29 +360,33 @@ Flickable {
         ctx.textAlign = "right"
         var rowStep = root.projection === "years" ? 1 : 5
         for (var localRow = 0; localRow < root.visibleRowCount; localRow++) {
-          var absoluteRow = root.visibleRowStart + localRow
-          var age = root.projection === "years" ? absoluteRow * 10 : absoluteRow
-          if (absoluteRow % rowStep === 0)
+          var absoluteRow = root.expanded
+            ? localRow
+            : (root.projection === "years" ? root.visibleYearStart : root.visibleYearStart + localRow)
+          var age = root.projection === "years" && root.expanded ? absoluteRow * 10 : absoluteRow
+          if (absoluteRow % rowStep === 0 || !root.expanded)
             ctx.fillText(String(age), originX - Style.space(6), originY + localRow * stride + size / 2)
         }
 
         // The current row is the viewport's attention band. It remains quiet
         // enough to preserve the one-cell accent while making "now" legible
         // as the default focal depth of the sliding window.
-        var nowRow = root.currentRow() - root.visibleRowStart
-        if (nowRow >= 0 && nowRow < root.visibleRowCount) {
+        var nowRow = root.currentGridRow()
+        if (nowRow >= 0 && nowRow < root.visibleRowCount
+            && (root.projection !== "years" || root.expanded)) {
           var bandAccent = Style.selectedStateColor(root.foreground, Color.accent)
           ctx.fillStyle = Qt.rgba(bandAccent.r, bandAccent.g, bandAccent.b, 0.055)
           ctx.fillRect(originX - Style.space(2), originY + nowRow * stride - Style.space(1),
             root.gridWidth() + Style.space(4), size + Style.space(2))
         }
 
-        var firstIndex = root.visibleRowStart * columns
-        var lastIndex = Math.min(root.cells.length, (root.visibleRowStart + root.visibleRowCount) * columns)
+        var firstIndex = root.firstVisibleIndex()
+        var lastIndex = root.lastVisibleIndex()
         for (var i = firstIndex; i < lastIndex; i++) {
           var cell = root.cells[i]
-          var column = i % columns
-          var cellRow = Math.floor(i / columns) - root.visibleRowStart
+          var localIndex = i - firstIndex
+          var column = localIndex % columns
+          var cellRow = Math.floor(localIndex / columns)
           var x = originX + column * stride
           var y = originY + cellRow * stride
           var accent = Style.selectedStateColor(root.foreground, Color.accent)
@@ -377,22 +410,29 @@ Flickable {
           }
         }
 
-        // Small edge cues disclose that compact Weeks/Months is a movable
+        // Small edge cues disclose that compact mode is a movable
         // viewport rather than a cropped dataset. Absolute ages stay the
         // primary orientation; these only indicate continuation.
         ctx.textAlign = "center"
         ctx.fillStyle = Qt.darker(root.foreground, 1.9)
-        if (root.canPanEarlier)
-          ctx.fillText("↑", width - rightGutter / 2, originY + size / 2)
-        if (root.canPanLater)
-          ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - size / 2)
+        if (root.projection === "years" && !root.expanded) {
+          if (root.canPanEarlier)
+            ctx.fillText("←", originX - Style.space(12), originY + size / 2)
+          if (root.canPanLater)
+            ctx.fillText("→", originX + root.gridWidth() + Style.space(12), originY + size / 2)
+        } else {
+          if (root.canPanEarlier)
+            ctx.fillText("↑", width - rightGutter / 2, originY + size / 2)
+          if (root.canPanLater)
+            ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - size / 2)
+        }
       }
 
       WheelHandler {
-        enabled: !root.expanded && root.projection !== "years"
+        enabled: !root.expanded
         onWheel: function(event) {
           if (event.angleDelta.y === 0) return
-          root.panRows(event.angleDelta.y > 0 ? -3 : 3)
+          root.panRows(event.angleDelta.y > 0 ? -1 : 1)
         }
       }
 

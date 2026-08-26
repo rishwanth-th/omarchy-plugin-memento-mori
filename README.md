@@ -15,8 +15,8 @@ then click the LIFE rail to enter the finite timeline.
   action, and format cycling;
 - uses exactly 4,000 weeks as the default horizon;
 - supports local Weeks, Months, and Years projections of the same date span;
-- keeps Weeks and Months glanceable with a current-focused temporal viewport,
-  while Years provides the whole-horizon overview;
+- keeps every projection glanceable through the same current-focused
+  five-life-year attention window;
 - reveals the complete cell grid through a quiet expand action;
 - distinguishes lived, current, and future cells;
 - resolves every hovered cell to its life-relative position and exact date

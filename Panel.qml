@@ -264,7 +264,7 @@ Panel {
       blocked: root.editingLife
       onMoveRequested: function(dx, dy) {
         if (root.showingLife) {
-          if (dy !== 0) lifeView.panRows(dy * 3)
+          if (dy !== 0) lifeView.panRows(dy)
           return
         }
         if (dx !== 0) root.moveMonth(dx)
