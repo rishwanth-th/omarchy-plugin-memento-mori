@@ -12,7 +12,11 @@ Flickable {
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
   property string projection: "weeks"
-  readonly property int compactCanvasHeight: Style.space(128)
+  readonly property int chromeHeight: titleBar.height + lifeRail.height
+    + lifeStatsLabel.implicitHeight + readoutRow.height + legendRow.implicitHeight
+    + contentColumn.spacing * 5
+  readonly property int compactCanvasHeight: Math.max(Style.space(128),
+    Math.floor(root.height - chromeHeight))
   readonly property int compactYearSpan: fittedCompactYearSpan()
   property int windowYearStart: 0
   property bool axisToggleHovered: false
@@ -244,9 +248,10 @@ Flickable {
   Column {
     id: contentColumn
     width: root.width
-    spacing: Style.space(10)
+    spacing: Style.space(8)
 
     Item {
+      id: titleBar
       width: parent.width
       height: Math.max(backButton.implicitHeight, titleColumn.implicitHeight)
 
@@ -289,6 +294,7 @@ Flickable {
     }
 
     LifeRail {
+      id: lifeRail
       width: parent.width
       foreground: root.foreground
       fontFamily: root.fontFamily
@@ -299,33 +305,49 @@ Flickable {
     }
 
     Text {
+      id: lifeStatsLabel
       width: parent.width
       horizontalAlignment: Text.AlignRight
       text: root.stats.livedWeeks.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " weeks lived · "
         + root.stats.remainingWeeks.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " remaining"
-      color: Qt.darker(root.foreground, 1.6)
+      color: Color.accent
       font.family: root.fontFamily
       font.pixelSize: Style.font.caption
     }
 
     Item {
+      id: readoutRow
       width: parent.width
-      height: Math.max(cellReadout.implicitHeight, readoutActions.implicitHeight, Style.space(18))
+      height: Math.max(intervalReadout.implicitHeight, contextReadout.implicitHeight,
+        nowButton.implicitHeight, Style.space(18))
+
+      readonly property var cell: root.currentCell()
+      readonly property var readout: Model.projectionReadoutParts(cell, root.projection, root.today)
 
       Text {
-        id: cellReadout
-        readonly property var cell: root.currentCell()
+        id: intervalReadout
         anchors.left: parent.left
-        anchors.right: readoutActions.left
+        anchors.right: contextReadout.left
         anchors.rightMargin: Style.space(8)
         anchors.verticalCenter: parent.verticalCenter
-        text: Model.projectionReadout(cell, root.projection, root.today)
+        text: readoutRow.readout ? readoutRow.readout.interval : ""
         color: root.foreground
         font.family: root.fontFamily
         font.pixelSize: Style.font.bodySmall
         elide: Text.ElideRight
+      }
+
+      Text {
+        id: contextReadout
+        anchors.right: readoutActions.left
+        anchors.rightMargin: readoutActions.width > 0 ? Style.space(6) : 0
+        anchors.verticalCenter: parent.verticalCenter
+        text: readoutRow.readout ? readoutRow.readout.context : ""
+        color: root.foreground
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.bodySmall
       }
 
       Row {
@@ -448,13 +470,6 @@ Flickable {
           ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - cellHeight / 2)
       }
 
-      WheelHandler {
-        onWheel: function(event) {
-          if (event.angleDelta.y === 0) return
-          root.panRows(event.angleDelta.y > 0 ? -1 : 1)
-        }
-      }
-
       MouseArea {
         id: gridMouse
         anchors.fill: parent
@@ -481,17 +496,23 @@ Flickable {
         onClicked: function(mouse) {
           if (root.axisToggleContains(mouse.x, mouse.y)) root.toggleProjection()
         }
+        onWheel: function(wheel) {
+          if (wheel.angleDelta.y === 0) return
+          root.panRows(wheel.angleDelta.y > 0 ? -1 : 1)
+          wheel.accepted = true
+        }
       }
     }
 
     Row {
+      id: legendRow
       anchors.horizontalCenter: parent.horizontalCenter
       spacing: Style.space(18)
 
       Repeater {
         model: [
-          { label: "LIVED", opacity: 0.34, accent: false },
-          { label: "NOW", opacity: 1, accent: true },
+          { label: "PAST", opacity: 0.34, accent: false },
+          { label: "PRESENT", opacity: 1, accent: true },
           { label: "FUTURE", opacity: 0.22, accent: false }
         ]
 

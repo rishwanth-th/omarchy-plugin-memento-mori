@@ -61,12 +61,16 @@ rather than twelve repeated abbreviations.
   and returning to now restores the default.
 - The LIFE rail uses the same temporal grammar as the grid: muted lived time,
   a thin accent marker at the exact present boundary, and a recessed future.
-- LIFE is content-sized and dense. Weeks and Months share one fixed Canvas
-  budget, so resolution changes do not resize it. The rail supplies global
-  horizon context while the grid remains a scrollable local window.
+  Its precise lived/remaining count uses that accent hue as the active finite-
+  time readout; tiny five-year ticks and quiet decade labels carry scale.
+- Calendar defines the panel dimensions. Weeks and Months share its exact
+  frame and spend the remaining height on one fixed Canvas budget, so entering
+  LIFE or changing resolution never resizes the widget. The rail supplies
+  global horizon context while the grid remains a scrollable local window.
 - The stable readout above the grid is the single source of hover precision;
-  no second pointer-following tooltip repeats it. It moves from stable to
-  fast-changing information: `AGE 25 · WEEK 5 · 20–26 AUG · CURRENT`.
+  no second pointer-following tooltip repeats it. Exact calendar time stays
+  left (`20–26 AUG 2026 · WEEK 5`), while life-relative context stays right
+  (`AGE 25 · PRESENT`).
 - A faint current-row attention band and quiet edge arrows communicate the
   viewport's default focus and whether earlier or later rows remain.
 

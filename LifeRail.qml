@@ -15,12 +15,12 @@ Item {
   property string tooltipText: "Memento Mori"
 
   readonly property int horizonYears: Math.max(1, Math.ceil(horizonWeeks / 52))
-  readonly property int decadeTickCount: Math.floor(horizonYears / 10) + 1
+  readonly property int yearTickCount: Math.floor(horizonYears / 5) + 1
 
   signal activated()
 
   implicitHeight: Math.max(lifeLabel.implicitHeight,
-    Style.space(showYearScale ? 28 : 16))
+    Style.space(showYearScale ? 24 : 16))
 
   Text {
     id: lifeLabel
@@ -87,15 +87,16 @@ Item {
     visible: root.showYearScale
     anchors.left: track.left
     anchors.right: track.right
-    y: track.y + track.height + Style.space(3)
-    height: Style.space(10)
+    y: track.y + track.height + Style.space(2)
+    height: Style.space(8)
 
     Repeater {
-      model: root.decadeTickCount
+      model: root.yearTickCount
 
       Item {
         required property int index
-        readonly property int year: index * 10
+        readonly property int year: index * 5
+        readonly property bool decade: year % 10 === 0
         x: Math.round(yearScale.width * year / root.horizonYears)
         width: 1
         height: yearScale.height
@@ -103,18 +104,20 @@ Item {
         Rectangle {
           anchors.horizontalCenter: parent.horizontalCenter
           width: Style.spacing.hairline
-          height: Style.space(3)
-          color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.3)
+          height: parent.decade ? Style.space(2) : Style.spacing.hairline
+          color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b,
+            parent.decade ? 0.18 : 0.1)
         }
 
         Text {
           anchors.horizontalCenter: parent.horizontalCenter
           anchors.top: parent.top
           anchors.topMargin: Style.space(2)
+          visible: parent.decade
           text: index === 0 ? "Y 0" : String(parent.year)
-          color: Qt.darker(root.foreground, 1.8)
+          color: Qt.darker(root.foreground, 2)
           font.family: root.fontFamily
-          font.pixelSize: Math.max(7, Style.font.caption - 1)
+          font.pixelSize: Math.max(7, Style.font.caption - 2)
         }
       }
     }

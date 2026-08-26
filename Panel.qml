@@ -58,6 +58,7 @@ Panel {
   readonly property real lifeDonePercent: lifeStats.percent
   property bool editingLife: false
   property string panelPage: "calendar"
+  property real calendarFrameImplicitHeight: 0
   readonly property bool showingLife: panelPage === "life"
 
   // Unset falls through to the locale's own first day, so a fresh install
@@ -95,8 +96,15 @@ Panel {
     // a handoff to a panel that does not manage the flag still leaves it
     // cleared rather than stuck on.
     Qt.callLater(function() {
+      root.rememberCalendarFrame()
       if (root.opened) setCenterHoverRevealSuppressed(true)
     })
+  }
+
+  function rememberCalendarFrame() {
+    if (calendarColumn && calendarColumn.implicitHeight > 0)
+      root.calendarFrameImplicitHeight = Math.max(root.calendarFrameImplicitHeight,
+        calendarColumn.implicitHeight)
   }
 
   function close() {
@@ -213,6 +221,7 @@ Panel {
       root.startEditingLife()
       return
     }
+    root.rememberCalendarFrame()
     root.panelPage = "life"
     Qt.callLater(function() {
       lifeView.resetToNow()
@@ -222,7 +231,10 @@ Panel {
 
   function showCalendar() {
     root.panelPage = "calendar"
-    Qt.callLater(function() { if (keyCatcher) keyCatcher.forceActiveFocus() })
+    Qt.callLater(function() {
+      root.rememberCalendarFrame()
+      if (keyCatcher) keyCatcher.forceActiveFocus()
+    })
   }
 
   function toggleWeekStart() {
@@ -254,11 +266,10 @@ Panel {
     centerOnBar: true
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(560))
-    // LIFE stays content-sized: its fixed Canvas is a movable attention
-    // window rather than a second, full-height panel mode.
-    contentHeight: panel.fittedContentHeight(root.showingLife
-      ? lifeView.contentHeight
-      : calendarColumn.implicitHeight)
+    // Calendar is the size contract for both pages. LIFE spends the recovered
+    // height on its Canvas rather than resizing the anchored widget.
+    contentHeight: panel.fittedContentHeight(Math.max(root.calendarFrameImplicitHeight,
+      calendarColumn.implicitHeight))
 
     PanelKeyCatcher {
       id: keyCatcher

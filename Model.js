@@ -319,18 +319,14 @@ function formatDateRange(start, end) {
   return start.getDate() + " " + months[start.getMonth()] + " " + start.getFullYear() + "–" + end.getDate() + " " + months[end.getMonth()] + " " + end.getFullYear()
 }
 
-// The grid readout moves from stable to fast-changing information. Calendar
-// year is omitted only when the selected interval is in the current calendar
-// year; life-relative position is expressed as AGE plus WEEK/MONTH.
-function compactDateRange(startKey, endKey, today) {
+// The split grid readout keeps exact calendar time (always including year)
+// apart from life-relative AGE and PAST/PRESENT/FUTURE context.
+function compactDateRange(startKey, endKey) {
   var start = dateFromKey(startKey)
   var end = dateFromKey(endKey)
   if (!start || !end) return ""
-  var reference = today instanceof Date ? today : new Date()
   var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-  var suffix = start.getFullYear() === end.getFullYear() && start.getFullYear() === reference.getFullYear()
-    ? ""
-    : " " + end.getFullYear()
+  var suffix = " " + end.getFullYear()
   if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth())
     return start.getDate() + "–" + end.getDate() + " " + months[start.getMonth()] + suffix
   if (start.getFullYear() === end.getFullYear())
@@ -340,16 +336,23 @@ function compactDateRange(startKey, endKey, today) {
 }
 
 function projectionReadout(cell, mode, today) {
+  var parts = projectionReadoutParts(cell, mode, today)
+  if (!parts) return ""
+  return parts.interval + " · " + parts.context
+}
+
+function projectionReadoutParts(cell, mode, today) {
   if (!cell) return ""
   var monthMode = mode === "months"
   var span = monthMode ? 12 : 52
   var offset = Math.max(0, Math.floor(Number(cell.index) || 0))
   var age = Math.floor(offset / span)
   var position = (monthMode ? "MONTH " : "WEEK ") + (offset % span + 1)
-  return "AGE " + age
-    + " · " + position
-    + " · " + compactDateRange(cell.startKey, cell.endKey, today)
-    + " · " + String(cell.status || "").toUpperCase()
+  var statuses = { lived: "PAST", current: "PRESENT", future: "FUTURE" }
+  return {
+    interval: compactDateRange(cell.startKey, cell.endKey) + " · " + position,
+    context: "AGE " + age + " · " + (statuses[cell.status] || String(cell.status || "").toUpperCase())
+  }
 }
 
 function projectionCells(mode, birthKey, today, horizonValue) {
@@ -493,6 +496,7 @@ if (typeof module !== "undefined") {
     formatDateRange: formatDateRange,
     compactDateRange: compactDateRange,
     projectionReadout: projectionReadout,
+    projectionReadoutParts: projectionReadoutParts,
     projectionCells: projectionCells,
     temporalViewportStart: temporalViewportStart,
     monthGrid: monthGrid,
