@@ -319,6 +319,39 @@ function formatDateRange(start, end) {
   return start.getDate() + " " + months[start.getMonth()] + " " + start.getFullYear() + "–" + end.getDate() + " " + months[end.getMonth()] + " " + end.getFullYear()
 }
 
+// The grid readout is status-first and avoids competing year concepts. The
+// calendar year is omitted only when the selected interval is in the current
+// calendar year; life-relative position is expressed as AGE plus WEEK/MONTH.
+function compactDateRange(startKey, endKey, today) {
+  var start = dateFromKey(startKey)
+  var end = dateFromKey(endKey)
+  if (!start || !end) return ""
+  var reference = today instanceof Date ? today : new Date()
+  var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+  var suffix = start.getFullYear() === end.getFullYear() && start.getFullYear() === reference.getFullYear()
+    ? ""
+    : " " + end.getFullYear()
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth())
+    return start.getDate() + "–" + end.getDate() + " " + months[start.getMonth()] + suffix
+  if (start.getFullYear() === end.getFullYear())
+    return start.getDate() + " " + months[start.getMonth()] + "–" + end.getDate() + " " + months[end.getMonth()] + suffix
+  return start.getDate() + " " + months[start.getMonth()] + " " + start.getFullYear()
+    + "–" + end.getDate() + " " + months[end.getMonth()] + " " + end.getFullYear()
+}
+
+function projectionReadout(cell, mode, today) {
+  if (!cell) return ""
+  var monthMode = mode === "months"
+  var span = monthMode ? 12 : 52
+  var offset = Math.max(0, Math.floor(Number(cell.index) || 0))
+  var age = Math.floor(offset / span)
+  var position = (monthMode ? "MONTH " : "WEEK ") + (offset % span + 1)
+  return String(cell.status || "").toUpperCase()
+    + " · " + compactDateRange(cell.startKey, cell.endKey, today)
+    + " · AGE " + age
+    + " · " + position
+}
+
 function projectionCells(mode, birthKey, today, horizonValue) {
   var now = today instanceof Date ? today : new Date()
   var normalizedBirth = parseBirthDate(birthKey, now)
@@ -458,6 +491,8 @@ if (typeof module !== "undefined") {
     addCalendarYears: addCalendarYears,
     lifeStats: lifeStats,
     formatDateRange: formatDateRange,
+    compactDateRange: compactDateRange,
+    projectionReadout: projectionReadout,
     projectionCells: projectionCells,
     temporalViewportStart: temporalViewportStart,
     monthGrid: monthGrid,

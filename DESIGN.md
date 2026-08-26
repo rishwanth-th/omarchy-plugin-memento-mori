@@ -26,7 +26,7 @@ The clock must remain a clock.
 5. A visible back action returns to Calendar; Escape closes the panel.
 
 The LIFE rail is one shared component across Calendar and Memento Mori. It
-always remains week-based, including while Months or Years is selected, so
+always remains week-based, including while Months is selected, so
 the horizon's progress never changes merely because its projection changed.
 
 ## V1 visual grammar
@@ -44,39 +44,39 @@ rather than twelve repeated abbreviations.
   horizontal span. The `M 1–12` scale keeps month precision while stronger
   third-month ticks and breathing room after months 3, 6, and 9 disclose the
   four quarters without reducing the axis to only `Q1–Q4`.
-- Years: 10 columns per decade, with year-in-decade ticks horizontally and
-  decades on the vertical axis.
 - Lived cells are softly filled.
 - The current cell is the only accent.
 - Future cells are quietly outlined.
-- Compact mode is one shared five-life-year attention window: two life-years
-  before the current one, the current life-year, and two after. Weeks and
-  Months render those five years as rows; Years renders the same interval as
-  five centered year cells. Projection changes preserve the interval.
-- The absolute age axis remains visible while the viewport moves. Wheel and
-  keyboard navigation slide the attention window one life-year at a time;
-  returning to now restores the default framing. `AGE` is written once as a
-  quiet vertical legend rather than being repeated beside every tick.
+- Weeks and Months are the only grid resolutions. Years remain legible in the
+  LIFE rail and complete-horizon overview without paying for a third mode.
+  Clicking the tiny `M →` scale cue toggles resolution in place; keyboard
+  shortcuts `1` and `2` remain available without a permanent mode bar.
+- Compact mode allocates a fixed grid-height budget, then derives how many
+  complete life-year rows fit under the active theme and scale. The current
+  row is placed within that capacity rather than hard-coding two rows on each
+  side. Projection changes preserve the temporal starting point.
+- Tiny `M →` and `Y ↓` cues disclose the horizontal and vertical dimensions.
+  Repeated age labels are omitted; the current or hovered age appears once in
+  the precision readout. Wheel and keyboard navigation slide the attention
+  window one life-year at a time, and returning to now restores the default.
 - The LIFE rail uses the same temporal grammar as the grid: muted lived time,
   a thin accent marker at the exact present boundary, and a recessed future.
 - A quiet zoom-out action reveals the complete configured horizon for every
   projection in the same anchored surface. It is a contemplative overview,
   not the panel default.
-- Calendar defines the compact clock frame. All compact projections inhabit
-  that same panel and a fixed Canvas frame, with their content centered inside
-  it, so entering LIFE or changing projection does not move the surrounding
-  interface. Expanded mode likewise uses one full-height frame across Weeks,
-  Months, and Years.
+- Compact LIFE is content-sized and dense. Weeks and Months share one fixed
+  Canvas budget, so resolution changes do not resize it. Expanded mode uses
+  one full-height frame across both resolutions.
 - The stable readout above the grid is the single source of hover precision;
-  no second pointer-following tooltip repeats it.
+  no second pointer-following tooltip repeats it. It leads with status and
+  removes competing year labels: `CURRENT · 20–26 AUG · AGE 25 · WEEK 5`.
 - A faint current-row attention band and quiet edge arrows communicate the
   viewport's default focus and whether earlier or later rows remain.
 
 Scales provide orientation. Hover provides precision:
 
-- Weeks: `Year N · Week M`, exact week interval, status.
-- Months: `Year N · Month M`, exact calendar interval, status.
-- Years: `Year N`, exact birthday-to-birthday interval, status.
+- Weeks: status, exact week interval, age, week-in-life-year.
+- Months: status, exact calendar interval, age, month-in-life-year.
 
 ## Implementation boundary
 

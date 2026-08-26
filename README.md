@@ -14,13 +14,13 @@ then click the LIFE rail to enter the finite timeline.
 - preserves the native clock label, calendar, month navigation, timezone
   action, and format cycling;
 - uses exactly 4,000 weeks as the default horizon;
-- supports local Weeks, Months, and Years projections of the same date span;
-- keeps every projection glanceable through the same current-focused
-  five-life-year attention window;
+- supports local Weeks and Months resolutions of the same date span;
+- fits as many complete life-year rows as the compact grid budget allows,
+  keeping the current interval in focus without a fixed row count;
 - uses one concise unit legend with numbered temporal ticks, while the Months
   projection spans the full axis and retains quiet quarter grouping;
-- preserves the native Calendar frame in compact mode and one stable frame in
-  expanded mode, with an accent rail marker identifying the exact present;
+- keeps compact LIFE dense and one stable frame in expanded mode, with an
+  accent rail marker identifying the exact present;
 - reveals the complete cell grid through a quiet expand action;
 - distinguishes lived, current, and future cells;
 - resolves every hovered cell to its life-relative position and exact date
@@ -63,7 +63,7 @@ omarchy plugin validate .
 The plugin inherits the current native clock implementation and adds:
 
 - `LifeRail.qml` — the shared LIFE progress affordance;
-- `LifeView.qml` — the three projections and Canvas interaction;
+- `LifeView.qml` — the two grid resolutions and Canvas interaction;
 - `Model.js` — clock behavior plus exact date, horizon, and projection math.
 
 The inherited Omarchy clock code remains under its upstream MIT copyright;

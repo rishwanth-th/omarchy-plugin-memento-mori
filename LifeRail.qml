@@ -62,13 +62,13 @@ Item {
     Rectangle {
       // The rail mirrors the grid grammar: lived time is subdued, the exact
       // present is the sole accent, and the remaining horizon recedes.
-      width: Math.max(Style.spacing.hairline * 2, Style.space(2))
-      height: parent.height + Style.space(4)
+      width: Math.max(Style.spacing.hairline * 2, Style.space(3))
+      height: parent.height + Style.space(6)
       x: Math.round(Math.max(0, Math.min(parent.width - width,
         parent.width * Math.max(0, Math.min(1, root.progress)) - width / 2)))
       anchors.verticalCenter: parent.verticalCenter
       radius: width / 2
-      color: Style.selectedStateColor(root.foreground, Color.accent)
+      color: Color.accent
 
       Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
     }

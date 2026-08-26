@@ -13,8 +13,10 @@ Flickable {
   property string fontFamily: Style.font.family
   property string projection: "weeks"
   property bool expanded: false
-  property int compactYearSpan: 5
+  readonly property int compactCanvasHeight: Style.space(128)
+  readonly property int compactYearSpan: fittedCompactYearSpan()
   property int windowYearStart: 0
+  property bool axisToggleHovered: false
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
   readonly property int totalLifeYears: Math.max(1, Math.ceil(horizonWeeks / 52))
@@ -26,7 +28,7 @@ Flickable {
     : Math.max(0, Math.min(totalLifeYears - visibleYearCount, windowYearStart))
   readonly property int visibleRowCount: expanded
     ? Math.max(1, Math.ceil((cells ? cells.length : 0) / columns()))
-    : (projection === "years" ? 1 : visibleYearCount)
+    : visibleYearCount
   readonly property bool canPanEarlier: !expanded && visibleYearStart > 0
   readonly property bool canPanLater: !expanded && visibleYearStart + visibleYearCount < totalLifeYears
 
@@ -51,13 +53,11 @@ Flickable {
   }
 
   function columns() {
-    if (projection === "weeks") return 52
-    if (projection === "months") return 12
-    return expanded ? 10 : visibleYearCount
+    return projection === "months" ? 12 : 52
   }
 
   function gap() {
-    return projection === "years" ? Style.space(5) : projection === "months" ? Style.space(2) : Style.space(1)
+    return projection === "months" ? Style.space(2) : Style.space(1)
   }
 
   function quarterGap() {
@@ -70,7 +70,6 @@ Flickable {
   }
 
   function cellWidth() {
-    if (projection === "years") return Math.max(Style.space(22), weekCellSize() * 2.5)
     if (projection === "months") {
       var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
       return Math.max(Style.space(14),
@@ -80,7 +79,7 @@ Flickable {
   }
 
   function cellHeight() {
-    return projection === "years" ? cellWidth() : weekCellSize()
+    return weekCellSize()
   }
 
   function columnOffset(column) {
@@ -102,13 +101,14 @@ Flickable {
     return visibleRowCount * cellHeight() + Math.max(0, visibleRowCount - 1) * gap()
   }
 
-  // The compact frame is projection-independent. Months and Years collapse
-  // inside it instead of changing the panel's geometry under the pointer.
   function compactGridHeight() {
-    var size = weekCellSize()
-    var calendarHeight = compactYearSpan * size + Math.max(0, compactYearSpan - 1) * Style.space(2)
-    var yearHeight = Math.max(Style.space(22), size * 2.5)
-    return Math.max(calendarHeight, yearHeight)
+    return Math.max(cellHeight(), compactCanvasHeight - lifeCanvas.topGutter - Style.space(2))
+  }
+
+  function fittedCompactYearSpan() {
+    var conservativeGap = Style.space(2)
+    return Math.max(3, Math.min(totalLifeYears,
+      Math.floor((compactGridHeight() + conservativeGap) / (cellHeight() + conservativeGap))))
   }
 
   function gridOriginX() {
@@ -151,22 +151,26 @@ Flickable {
   }
 
   function setProjection(value) {
+    if (value !== "weeks" && value !== "months") return
     if (projection === value) return
     projection = value
+  }
+
+  function toggleProjection() {
+    setProjection(projection === "weeks" ? "months" : "weeks")
   }
 
   function firstVisibleIndex() {
     if (expanded) return 0
     if (projection === "weeks") return visibleYearStart * 52
-    if (projection === "months") return visibleYearStart * 12
-    return visibleYearStart
+    return visibleYearStart * 12
   }
 
   function lastVisibleIndex() {
     if (expanded) return cells.length
     var count = projection === "weeks"
       ? visibleYearCount * 52
-      : projection === "months" ? visibleYearCount * 12 : visibleYearCount
+      : visibleYearCount * 12
     return Math.min(cells.length, firstVisibleIndex() + count)
   }
 
@@ -213,27 +217,24 @@ Flickable {
       for (var month = 0; month < 12; month++)
         marks.push({ position: (month + 0.5) * 52 / 12 - 0.5,
           label: String(month + 1), major: (month + 1) % 3 === 0 })
-    } else if (projection === "months") {
+    } else {
       for (var exactMonth = 0; exactMonth < 12; exactMonth++)
         marks.push({ position: exactMonth, label: String(exactMonth + 1),
           major: (exactMonth + 1) % 3 === 0 })
-    } else if (!expanded) {
-      for (var visibleYear = 0; visibleYear < visibleYearCount; visibleYear++)
-        marks.push({ position: visibleYear, label: String(visibleYearStart + visibleYear + 1), major: false })
-    } else {
-      for (var year = 0; year < 10; year++)
-        marks.push({ position: year, label: String(year + 1), major: false })
     }
     return marks
-  }
-
-  function axisUnit() {
-    return projection === "years" ? "Y" : "M"
   }
 
   function axisMarkX(position) {
     if (projection === "months") return columnOffset(position) + cellWidth() / 2
     return position * (cellWidth() + gap()) + cellWidth() / 2
+  }
+
+  function axisToggleContains(x, y) {
+    var originX = gridOriginX()
+    var originY = gridOriginY()
+    return x >= originX - Style.space(30) && x <= originX - Style.space(2)
+      && y >= originY - Style.space(18) && y <= originY - Style.space(2)
   }
 
   onProjectionChanged: refreshCells(false)
@@ -251,7 +252,6 @@ Flickable {
   Column {
     id: contentColumn
     width: root.width
-    y: root.expanded ? 0 : Math.max(0, (root.height - implicitHeight) / 2)
     spacing: Style.space(10)
 
     Item {
@@ -294,15 +294,6 @@ Flickable {
         }
       }
 
-      PanelActionButton {
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        iconText: root.expanded ? "󰁄" : "󰁌"
-        tooltipText: root.expanded ? "Return to attention window" : "Zoom out to the whole horizon"
-        foreground: root.foreground
-        fontFamily: root.fontFamily
-        onClicked: root.toggleExpanded()
-      }
     }
 
     LifeRail {
@@ -325,59 +316,60 @@ Flickable {
       font.pixelSize: Style.font.caption
     }
 
-    ButtonGroup {
-      anchors.horizontalCenter: parent.horizontalCenter
-      options: [
-        { value: "weeks", label: "WEEKS" },
-        { value: "months", label: "MONTHS" },
-        { value: "years", label: "YEARS" }
-      ]
-      value: root.projection
-      foreground: root.foreground
-      fontFamily: root.fontFamily
-      fontSize: Style.font.caption
-      onChanged: function(value) { root.setProjection(value) }
-    }
-
     Item {
       width: parent.width
-      height: Math.max(cellReadout.implicitHeight, nowButton.implicitHeight, Style.space(18))
+      height: Math.max(cellReadout.implicitHeight, readoutActions.implicitHeight, Style.space(18))
 
       Text {
         id: cellReadout
         readonly property var cell: root.currentCell()
         anchors.left: parent.left
-        anchors.right: nowButton.visible ? nowButton.left : parent.right
-        anchors.rightMargin: nowButton.visible ? Style.space(8) : 0
+        anchors.right: readoutActions.left
+        anchors.rightMargin: Style.space(8)
         anchors.verticalCenter: parent.verticalCenter
-        text: cell ? cell.primary + " · " + cell.secondary : ""
+        text: Model.projectionReadout(cell, root.projection, root.today)
         color: root.foreground
         font.family: root.fontFamily
         font.pixelSize: Style.font.bodySmall
         elide: Text.ElideRight
       }
 
-      PanelActionButton {
-        id: nowButton
+      Row {
+        id: readoutActions
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        visible: !root.expanded && root.visibleYearStart !== root.defaultWindowStart()
-        iconText: "󰑐"
-        tooltipText: "Return to now"
-        foreground: root.foreground
-        fontFamily: root.fontFamily
-        onClicked: root.resetToNow()
+        spacing: 0
+
+        PanelActionButton {
+          id: nowButton
+          visible: !root.expanded && root.visibleYearStart !== root.defaultWindowStart()
+          iconText: "󰑐"
+          tooltipText: "Return to now"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          onClicked: root.resetToNow()
+        }
+
+        PanelActionButton {
+          iconText: root.expanded ? "󰁄" : "󰁌"
+          tooltipText: root.expanded ? "Return to attention window" : "Zoom out to the whole horizon"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          onClicked: root.toggleExpanded()
+        }
       }
     }
 
     Canvas {
       id: lifeCanvas
-      readonly property real leftGutter: Style.space(44)
+      readonly property real leftGutter: Style.space(30)
       readonly property real rightGutter: Style.space(14)
       readonly property real topGutter: Style.space(20)
 
       width: parent.width
-      height: topGutter + (root.expanded ? root.gridHeight() : root.compactGridHeight()) + Style.space(2)
+      height: root.expanded
+        ? topGutter + root.gridHeight() + Style.space(2)
+        : root.compactCanvasHeight
 
       onPaint: {
         var ctx = getContext("2d")
@@ -397,19 +389,10 @@ Flickable {
         ctx.textBaseline = "middle"
         ctx.fillStyle = Qt.darker(root.foreground, 1.8)
         ctx.textAlign = "right"
-        ctx.fillText(root.axisUnit(), originX - Style.space(6), originY - Style.space(10))
-
-        // AGE names the second dimension once, mirroring the concise M/Y
-        // legend above. Compact Years has no vertical age axis, so its one
-        // boundary label carries the unit inline instead.
-        if (root.projection !== "years" || root.expanded) {
-          ctx.save()
-          ctx.translate(originX - Style.space(29), originY + root.gridHeight() / 2)
-          ctx.rotate(-Math.PI / 2)
-          ctx.textAlign = "center"
-          ctx.fillText("AGE", 0, 0)
-          ctx.restore()
-        }
+        ctx.fillStyle = root.axisToggleHovered ? Color.accent : Qt.darker(root.foreground, 1.8)
+        ctx.fillText("M →", originX - Style.space(4), originY - Style.space(10))
+        ctx.fillStyle = Qt.darker(root.foreground, 1.8)
+        ctx.fillText("Y ↓", originX - Style.space(4), originY + cellHeight / 2)
 
         ctx.textAlign = "center"
         for (var a = 0; a < axis.length; a++) {
@@ -419,26 +402,12 @@ Flickable {
           ctx.fillRect(markX, originY - tickHeight, Style.spacing.hairline, tickHeight)
         }
 
-        ctx.textAlign = "right"
-        var rowStep = root.projection === "years" ? 1 : 5
-        for (var localRow = 0; localRow < root.visibleRowCount; localRow++) {
-          var absoluteRow = root.expanded
-            ? localRow
-            : (root.projection === "years" ? root.visibleYearStart : root.visibleYearStart + localRow)
-          var age = root.projection === "years" && root.expanded ? absoluteRow * 10 : absoluteRow
-          if (absoluteRow % rowStep === 0 || !root.expanded) {
-            var ageLabel = root.projection === "years" && !root.expanded ? "AGE " + age : String(age)
-            ctx.fillText(ageLabel, originX - Style.space(6), originY + root.rowOffset(localRow) + cellHeight / 2)
-          }
-        }
-
         // The current row is the viewport's attention band. It remains quiet
         // enough to preserve the one-cell accent while making "now" legible
         // as the default focal depth of the sliding window.
         var nowRow = root.currentGridRow()
-        if (nowRow >= 0 && nowRow < root.visibleRowCount
-            && (root.projection !== "years" || root.expanded)) {
-          var bandAccent = Style.selectedStateColor(root.foreground, Color.accent)
+        if (nowRow >= 0 && nowRow < root.visibleRowCount) {
+          var bandAccent = Color.accent
           ctx.fillStyle = Qt.rgba(bandAccent.r, bandAccent.g, bandAccent.b, 0.055)
           ctx.fillRect(originX - Style.space(2), originY + root.rowOffset(nowRow) - Style.space(1),
             root.gridWidth() + Style.space(4), cellHeight + Style.space(2))
@@ -453,7 +422,7 @@ Flickable {
           var cellRow = Math.floor(localIndex / columns)
           var x = originX + root.columnOffset(column)
           var y = originY + root.rowOffset(cellRow)
-          var accent = Style.selectedStateColor(root.foreground, Color.accent)
+          var accent = Color.accent
 
           if (cell.status === "lived") {
             ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.34)
@@ -474,22 +443,14 @@ Flickable {
           }
         }
 
-        // Small edge cues disclose that compact mode is a movable
-        // viewport rather than a cropped dataset. Absolute ages stay the
-        // primary orientation; these only indicate continuation.
+        // Small edge cues disclose that compact mode is a movable viewport
+        // rather than a cropped dataset.
         ctx.textAlign = "center"
         ctx.fillStyle = Qt.darker(root.foreground, 1.9)
-        if (root.projection === "years" && !root.expanded) {
-          if (root.canPanEarlier)
-            ctx.fillText("←", originX - Style.space(12), originY + cellHeight / 2)
-          if (root.canPanLater)
-            ctx.fillText("→", originX + root.gridWidth() + Style.space(12), originY + cellHeight / 2)
-        } else {
-          if (root.canPanEarlier)
-            ctx.fillText("↑", width - rightGutter / 2, originY + cellHeight / 2)
-          if (root.canPanLater)
-            ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - cellHeight / 2)
-        }
+        if (root.canPanEarlier)
+          ctx.fillText("↑", width - rightGutter / 2, originY + cellHeight / 2)
+        if (root.canPanLater)
+          ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - cellHeight / 2)
       }
 
       WheelHandler {
@@ -504,8 +465,14 @@ Flickable {
         id: gridMouse
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton
+        acceptedButtons: Qt.LeftButton
+        cursorShape: root.axisToggleHovered ? Qt.PointingHandCursor : Qt.ArrowCursor
         onPositionChanged: function(mouse) {
+          var overToggle = root.axisToggleContains(mouse.x, mouse.y)
+          if (overToggle !== root.axisToggleHovered) {
+            root.axisToggleHovered = overToggle
+            lifeCanvas.requestPaint()
+          }
           var next = root.hitTest(mouse.x, mouse.y)
           if (next !== root.hoveredIndex) {
             root.hoveredIndex = next
@@ -513,8 +480,12 @@ Flickable {
           }
         }
         onExited: {
+          root.axisToggleHovered = false
           root.hoveredIndex = -1
           lifeCanvas.requestPaint()
+        }
+        onClicked: function(mouse) {
+          if (root.axisToggleContains(mouse.x, mouse.y)) root.toggleProjection()
         }
       }
     }
@@ -540,7 +511,7 @@ Flickable {
             anchors.verticalCenter: parent.verticalCenter
             radius: Style.cornerRadius > 0 ? 1 : 0
             color: modelData.accent
-              ? Style.selectedStateColor(root.foreground, Color.accent)
+              ? Color.accent
               : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, modelData.opacity)
           }
 

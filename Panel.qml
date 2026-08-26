@@ -58,7 +58,6 @@ Panel {
   readonly property real lifeDonePercent: lifeStats.percent
   property bool editingLife: false
   property string panelPage: "calendar"
-  property int compactFrameHeight: 0
   readonly property bool showingLife: panelPage === "life"
 
   // Unset falls through to the locale's own first day, so a fresh install
@@ -215,10 +214,6 @@ Panel {
       root.startEditingLife()
       return
     }
-    // Calendar's hidden layout is slightly shorter than its visible layout.
-    // Capture the real card before changing pages so LIFE inherits the exact
-    // native frame under the current theme, scale, and calendar row count.
-    root.compactFrameHeight = panel.contentHeight
     root.panelPage = "life"
     Qt.callLater(function() {
       lifeView.resetToNow()
@@ -261,15 +256,12 @@ Panel {
     centerOnBar: true
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(560))
-    // Calendar defines the compact clock surface. Entering LIFE must feel
-    // like changing pages inside that widget, not replacing it with a smaller
-    // popup. Expanded LIFE deliberately takes one projection-independent
-    // frame so Weeks, Months, and Years cannot resize the card between them.
+    // Compact LIFE is intentionally content-sized. Expanded LIFE takes one
+    // projection-independent frame so Weeks and Months cannot resize the
+    // card between them.
     contentHeight: root.showingLife && lifeView.expanded && panel.availableCardHeight > 0
       ? Math.round(panel.availableCardHeight)
-      : root.showingLife
-        ? Math.max(root.compactFrameHeight, panel.fittedContentHeight(lifeView.contentHeight))
-        : panel.fittedContentHeight(calendarColumn.implicitHeight)
+      : panel.fittedContentHeight(root.showingLife ? lifeView.contentHeight : calendarColumn.implicitHeight)
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -298,7 +290,6 @@ Panel {
           else if (t === "f" || t === "F") lifeView.toggleExpanded()
           else if (t === "1") lifeView.setProjection("weeks")
           else if (t === "2") lifeView.setProjection("months")
-          else if (t === "3") lifeView.setProjection("years")
           return
         }
         if (t === "[") root.moveMonth(-1)
