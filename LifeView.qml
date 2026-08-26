@@ -251,6 +251,7 @@ Flickable {
   Column {
     id: contentColumn
     width: root.width
+    y: root.expanded ? 0 : Math.max(0, (root.height - implicitHeight) / 2)
     spacing: Style.space(10)
 
     Item {
@@ -371,7 +372,7 @@ Flickable {
 
     Canvas {
       id: lifeCanvas
-      readonly property real leftGutter: Style.space(30)
+      readonly property real leftGutter: Style.space(44)
       readonly property real rightGutter: Style.space(14)
       readonly property real topGutter: Style.space(20)
 
@@ -397,6 +398,19 @@ Flickable {
         ctx.fillStyle = Qt.darker(root.foreground, 1.8)
         ctx.textAlign = "right"
         ctx.fillText(root.axisUnit(), originX - Style.space(6), originY - Style.space(10))
+
+        // AGE names the second dimension once, mirroring the concise M/Y
+        // legend above. Compact Years has no vertical age axis, so its one
+        // boundary label carries the unit inline instead.
+        if (root.projection !== "years" || root.expanded) {
+          ctx.save()
+          ctx.translate(originX - Style.space(29), originY + root.gridHeight() / 2)
+          ctx.rotate(-Math.PI / 2)
+          ctx.textAlign = "center"
+          ctx.fillText("AGE", 0, 0)
+          ctx.restore()
+        }
+
         ctx.textAlign = "center"
         for (var a = 0; a < axis.length; a++) {
           var markX = originX + root.axisMarkX(axis[a].position)
@@ -412,8 +426,10 @@ Flickable {
             ? localRow
             : (root.projection === "years" ? root.visibleYearStart : root.visibleYearStart + localRow)
           var age = root.projection === "years" && root.expanded ? absoluteRow * 10 : absoluteRow
-          if (absoluteRow % rowStep === 0 || !root.expanded)
-            ctx.fillText(String(age), originX - Style.space(6), originY + root.rowOffset(localRow) + cellHeight / 2)
+          if (absoluteRow % rowStep === 0 || !root.expanded) {
+            var ageLabel = root.projection === "years" && !root.expanded ? "AGE " + age : String(age)
+            ctx.fillText(ageLabel, originX - Style.space(6), originY + root.rowOffset(localRow) + cellHeight / 2)
+          }
         }
 
         // The current row is the viewport's attention band. It remains quiet

@@ -55,13 +55,18 @@ rather than twelve repeated abbreviations.
   five centered year cells. Projection changes preserve the interval.
 - The absolute age axis remains visible while the viewport moves. Wheel and
   keyboard navigation slide the attention window one life-year at a time;
-  returning to now restores the default framing.
+  returning to now restores the default framing. `AGE` is written once as a
+  quiet vertical legend rather than being repeated beside every tick.
+- The LIFE rail uses the same temporal grammar as the grid: muted lived time,
+  a thin accent marker at the exact present boundary, and a recessed future.
 - A quiet zoom-out action reveals the complete configured horizon for every
   projection in the same anchored surface. It is a contemplative overview,
   not the panel default.
-- All compact projections inhabit one fixed panel and Canvas frame. Collapsed
-  Months and Years grids are centered within it, so projection changes do not
-  move the surrounding interface.
+- Calendar defines the compact clock frame. All compact projections inhabit
+  that same panel and a fixed Canvas frame, with their content centered inside
+  it, so entering LIFE or changing projection does not move the surrounding
+  interface. Expanded mode likewise uses one full-height frame across Weeks,
+  Months, and Years.
 - The stable readout above the grid is the single source of hover precision;
   no second pointer-following tooltip repeats it.
 - A faint current-row attention band and quiet edge arrows communicate the

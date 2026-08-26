@@ -40,6 +40,7 @@ Item {
   }
 
   Rectangle {
+    id: track
     anchors.left: lifeLabel.right
     anchors.right: lifePercent.left
     anchors.leftMargin: Style.space(12)
@@ -53,9 +54,23 @@ Item {
       width: Math.round(parent.width * Math.max(0, Math.min(1, root.progress)))
       height: parent.height
       radius: parent.radius
-      color: Style.selectedStateColor(root.foreground, Color.accent)
+      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.34)
 
       Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+    }
+
+    Rectangle {
+      // The rail mirrors the grid grammar: lived time is subdued, the exact
+      // present is the sole accent, and the remaining horizon recedes.
+      width: Math.max(Style.spacing.hairline * 2, Style.space(2))
+      height: parent.height + Style.space(4)
+      x: Math.round(Math.max(0, Math.min(parent.width - width,
+        parent.width * Math.max(0, Math.min(1, root.progress)) - width / 2)))
+      anchors.verticalCenter: parent.verticalCenter
+      radius: width / 2
+      color: Style.selectedStateColor(root.foreground, Color.accent)
+
+      Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
     }
   }
 

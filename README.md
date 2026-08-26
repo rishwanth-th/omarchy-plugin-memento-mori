@@ -19,6 +19,8 @@ then click the LIFE rail to enter the finite timeline.
   five-life-year attention window;
 - uses one concise unit legend with numbered temporal ticks, while the Months
   projection spans the full axis and retains quiet quarter grouping;
+- preserves the native Calendar frame in compact mode and one stable frame in
+  expanded mode, with an accent rail marker identifying the exact present;
 - reveals the complete cell grid through a quiet expand action;
 - distinguishes lived, current, and future cells;
 - resolves every hovered cell to its life-relative position and exact date

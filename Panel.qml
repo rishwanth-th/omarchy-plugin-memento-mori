@@ -256,7 +256,14 @@ Panel {
     centerOnBar: true
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(560))
-    contentHeight: panel.fittedContentHeight(root.showingLife ? lifeView.contentHeight : calendarColumn.implicitHeight)
+    // Calendar defines the compact clock surface. Entering LIFE must feel
+    // like changing pages inside that widget, not replacing it with a smaller
+    // popup. Expanded LIFE deliberately takes one projection-independent
+    // frame so Weeks, Months, and Years cannot resize the card between them.
+    contentHeight: root.showingLife && lifeView.expanded && panel.availableCardHeight > 0
+      ? Math.round(panel.availableCardHeight)
+      : panel.fittedContentHeight(Math.max(calendarColumn.implicitHeight,
+          root.showingLife ? lifeView.contentHeight : 0))
 
     PanelKeyCatcher {
       id: keyCatcher
