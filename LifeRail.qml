@@ -9,17 +9,23 @@ Item {
   property string fontFamily: Style.font.family
   property real progress: 0
   property real percent: 0
+  property int horizonWeeks: 4000
+  property bool showYearScale: false
   property bool interactive: false
   property string tooltipText: "Memento Mori"
 
+  readonly property int horizonYears: Math.max(1, Math.ceil(horizonWeeks / 52))
+  readonly property int decadeTickCount: Math.floor(horizonYears / 10) + 1
+
   signal activated()
 
-  implicitHeight: Math.max(lifeLabel.implicitHeight, Style.space(16))
+  implicitHeight: Math.max(lifeLabel.implicitHeight,
+    Style.space(showYearScale ? 28 : 16))
 
   Text {
     id: lifeLabel
     anchors.left: parent.left
-    anchors.verticalCenter: parent.verticalCenter
+    y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
     text: "LIFE"
     color: root.interactive && lifeMouse.containsMouse
       ? Style.hoverStateColor(root.foreground, Color.accent)
@@ -32,7 +38,7 @@ Item {
   Text {
     id: lifePercent
     anchors.right: parent.right
-    anchors.verticalCenter: parent.verticalCenter
+    y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
     text: Number(root.percent).toFixed(1).replace(/\.0$/, "") + "%"
     color: root.foreground
     font.family: root.fontFamily
@@ -45,7 +51,9 @@ Item {
     anchors.right: lifePercent.left
     anchors.leftMargin: Style.space(12)
     anchors.rightMargin: Style.space(12)
-    anchors.verticalCenter: parent.verticalCenter
+    y: root.showYearScale
+      ? Math.round((lifeLabel.implicitHeight - height) / 2)
+      : Math.round((root.height - height) / 2)
     height: Style.space(6)
     radius: Style.cornerRadius > 0 ? height / 2 : 0
     color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
@@ -71,6 +79,44 @@ Item {
       color: Color.accent
 
       Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+    }
+  }
+
+  Item {
+    id: yearScale
+    visible: root.showYearScale
+    anchors.left: track.left
+    anchors.right: track.right
+    y: track.y + track.height + Style.space(3)
+    height: Style.space(10)
+
+    Repeater {
+      model: root.decadeTickCount
+
+      Item {
+        required property int index
+        readonly property int year: index * 10
+        x: Math.round(yearScale.width * year / root.horizonYears)
+        width: 1
+        height: yearScale.height
+
+        Rectangle {
+          anchors.horizontalCenter: parent.horizontalCenter
+          width: Style.spacing.hairline
+          height: Style.space(3)
+          color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.3)
+        }
+
+        Text {
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: parent.top
+          anchors.topMargin: Style.space(2)
+          text: index === 0 ? "Y 0" : String(parent.year)
+          color: Qt.darker(root.foreground, 1.8)
+          font.family: root.fontFamily
+          font.pixelSize: Math.max(7, Style.font.caption - 1)
+        }
+      }
     }
   }
 

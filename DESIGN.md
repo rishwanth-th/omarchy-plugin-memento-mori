@@ -47,29 +47,26 @@ rather than twelve repeated abbreviations.
 - Lived cells are softly filled.
 - The current cell is the only accent.
 - Future cells are quietly outlined.
-- Weeks and Months are the only grid resolutions. Years remain legible in the
-  LIFE rail and complete-horizon overview without paying for a third mode.
+- Weeks and Months are the only grid resolutions. Sparse decade ticks keep
+  Years legible in the LIFE rail without paying for a third mode.
   Clicking the tiny `M →` scale cue toggles resolution in place; keyboard
   shortcuts `1` and `2` remain available without a permanent mode bar.
-- Compact mode allocates a fixed grid-height budget, then derives how many
+- The attention window allocates a fixed grid-height budget, then derives how many
   complete life-year rows fit under the active theme and scale. The current
   row is placed within that capacity rather than hard-coding two rows on each
   side. Projection changes preserve the temporal starting point.
 - Tiny `M →` and `Y ↓` cues disclose the horizontal and vertical dimensions.
-  Repeated age labels are omitted; the current or hovered age appears once in
-  the precision readout. Wheel and keyboard navigation slide the attention
-  window one life-year at a time, and returning to now restores the default.
+  Only the viewport's first, current, and last ages are labelled. Wheel and
+  keyboard navigation slide the attention window one life-year at a time,
+  and returning to now restores the default.
 - The LIFE rail uses the same temporal grammar as the grid: muted lived time,
   a thin accent marker at the exact present boundary, and a recessed future.
-- A quiet zoom-out action reveals the complete configured horizon for every
-  projection in the same anchored surface. It is a contemplative overview,
-  not the panel default.
-- Compact LIFE is content-sized and dense. Weeks and Months share one fixed
-  Canvas budget, so resolution changes do not resize it. Expanded mode uses
-  one full-height frame across both resolutions.
+- LIFE is content-sized and dense. Weeks and Months share one fixed Canvas
+  budget, so resolution changes do not resize it. The rail supplies global
+  horizon context while the grid remains a scrollable local window.
 - The stable readout above the grid is the single source of hover precision;
-  no second pointer-following tooltip repeats it. It leads with status and
-  removes competing year labels: `CURRENT · 20–26 AUG · AGE 25 · WEEK 5`.
+  no second pointer-following tooltip repeats it. It moves from stable to
+  fast-changing information: `AGE 25 · WEEK 5 · 20–26 AUG · CURRENT`.
 - A faint current-row attention band and quiet edge arrows communicate the
   viewport's default focus and whether earlier or later rows remain.
 
@@ -84,8 +81,8 @@ Scales provide orientation. Hover provides precision:
 - Exact birth date and horizon override are local widget settings.
 - One `Canvas` renders the dense grid; date, projection, and hit-test math
   remains outside QML object trees where practical.
-- Compact and expanded modes share that Canvas and exact cell collection;
-  changing modes only changes which absolute rows are painted.
+- One fixed Canvas paints only the absolute rows in the current attention
+  window; scrolling changes that window without resizing the panel.
 - V1 may crossfade or reflow between projections, but does not require a
   literal cell-merging animation.
 

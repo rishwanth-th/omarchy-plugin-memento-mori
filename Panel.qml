@@ -104,7 +104,6 @@ Panel {
     // Dismissing the panel mid-edit would otherwise leave the inputs up,
     // waiting behind a closed popup for the next time it opens.
     if (root.editingLife) root.cancelEditingLife()
-    if (lifeView) lifeView.expanded = false
     root.panelPage = "calendar"
     root.controller.hide()
   }
@@ -222,7 +221,6 @@ Panel {
   }
 
   function showCalendar() {
-    lifeView.expanded = false
     root.panelPage = "calendar"
     Qt.callLater(function() { if (keyCatcher) keyCatcher.forceActiveFocus() })
   }
@@ -256,12 +254,11 @@ Panel {
     centerOnBar: true
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(560))
-    // Compact LIFE is intentionally content-sized. Expanded LIFE takes one
-    // projection-independent frame so Weeks and Months cannot resize the
-    // card between them.
-    contentHeight: root.showingLife && lifeView.expanded && panel.availableCardHeight > 0
-      ? Math.round(panel.availableCardHeight)
-      : panel.fittedContentHeight(root.showingLife ? lifeView.contentHeight : calendarColumn.implicitHeight)
+    // LIFE stays content-sized: its fixed Canvas is a movable attention
+    // window rather than a second, full-height panel mode.
+    contentHeight: panel.fittedContentHeight(root.showingLife
+      ? lifeView.contentHeight
+      : calendarColumn.implicitHeight)
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -280,14 +277,12 @@ Panel {
         else root.goToToday()
       }
       onCloseRequested: {
-        if (root.showingLife && lifeView.expanded) lifeView.toggleExpanded()
-        else root.close()
+        root.close()
       }
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) {
         if (root.showingLife) {
           if (t === "t" || t === "T") lifeView.resetToNow()
-          else if (t === "f" || t === "F") lifeView.toggleExpanded()
           else if (t === "1") lifeView.setProjection("weeks")
           else if (t === "2") lifeView.setProjection("months")
           return
@@ -512,6 +507,7 @@ Panel {
               fontFamily: root.contentFontFamily
               progress: root.lifeDone
               percent: root.lifeDonePercent
+              horizonWeeks: root.horizonWeeks
               interactive: true
               tooltipText: "Open Memento Mori"
               onActivated: root.showLife()

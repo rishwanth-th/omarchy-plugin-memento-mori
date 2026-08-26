@@ -319,9 +319,9 @@ function formatDateRange(start, end) {
   return start.getDate() + " " + months[start.getMonth()] + " " + start.getFullYear() + "–" + end.getDate() + " " + months[end.getMonth()] + " " + end.getFullYear()
 }
 
-// The grid readout is status-first and avoids competing year concepts. The
-// calendar year is omitted only when the selected interval is in the current
-// calendar year; life-relative position is expressed as AGE plus WEEK/MONTH.
+// The grid readout moves from stable to fast-changing information. Calendar
+// year is omitted only when the selected interval is in the current calendar
+// year; life-relative position is expressed as AGE plus WEEK/MONTH.
 function compactDateRange(startKey, endKey, today) {
   var start = dateFromKey(startKey)
   var end = dateFromKey(endKey)
@@ -346,10 +346,10 @@ function projectionReadout(cell, mode, today) {
   var offset = Math.max(0, Math.floor(Number(cell.index) || 0))
   var age = Math.floor(offset / span)
   var position = (monthMode ? "MONTH " : "WEEK ") + (offset % span + 1)
-  return String(cell.status || "").toUpperCase()
-    + " · " + compactDateRange(cell.startKey, cell.endKey, today)
-    + " · AGE " + age
+  return "AGE " + age
     + " · " + position
+    + " · " + compactDateRange(cell.startKey, cell.endKey, today)
+    + " · " + String(cell.status || "").toUpperCase()
 }
 
 function projectionCells(mode, birthKey, today, horizonValue) {

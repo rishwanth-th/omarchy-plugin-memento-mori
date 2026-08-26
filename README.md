@@ -19,9 +19,10 @@ then click the LIFE rail to enter the finite timeline.
   keeping the current interval in focus without a fixed row count;
 - uses one concise unit legend with numbered temporal ticks, while the Months
   projection spans the full axis and retains quiet quarter grouping;
-- keeps compact LIFE dense and one stable frame in expanded mode, with an
-  accent rail marker identifying the exact present;
-- reveals the complete cell grid through a quiet expand action;
+- keeps LIFE dense in one stable, scrollable attention window, with an accent
+  rail marker identifying the exact present;
+- carries decade orientation on the LIFE rail instead of adding a third grid
+  mode or full-screen state;
 - distinguishes lived, current, and future cells;
 - resolves every hovered cell to its life-relative position and exact date
   interval;

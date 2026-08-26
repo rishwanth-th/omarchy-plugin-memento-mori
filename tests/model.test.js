@@ -66,7 +66,7 @@ test("hover labels name the selected projection and exact interval", () => {
   assert.equal(year.primary, "Year 1")
 })
 
-test("grid readouts lead with status and avoid competing year labels", () => {
+test("grid readouts move from stable age to fast-changing status", () => {
   const today = localDate(2026, 8, 26)
   const currentWeek = Model.projectionCells("weeks", "2001-08-23", today, 4000)
     .find(cell => cell.status === "current")
@@ -74,10 +74,10 @@ test("grid readouts lead with status and avoid competing year labels", () => {
     .find(cell => cell.startKey.startsWith("2035-"))
 
   assert.match(Model.projectionReadout(currentWeek, "weeks", today),
-    /^CURRENT · .+ · AGE 25 · WEEK /)
+    /^AGE 25 · WEEK \d+ · .+ · CURRENT$/)
   assert.doesNotMatch(Model.projectionReadout(currentWeek, "weeks", today), /YEAR/)
   assert.match(Model.projectionReadout(futureMonth, "months", today),
-    /^FUTURE · .+ 2035 · AGE 33 · MONTH /)
+    /^AGE 33 · MONTH \d+ · .+ 2035 · FUTURE$/)
 })
 
 test("the temporal viewport favors the future and clamps at both ends", () => {
