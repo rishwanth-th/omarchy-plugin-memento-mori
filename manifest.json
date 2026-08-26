@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "rishwanth.memento-mori",
+  "name": "Memento Mori Clock",
+  "version": "0.1.0",
+  "author": "Rishwanth Thottempudi",
+  "description": "Omarchy clock extended with a local Four Thousand Weeks LIFE view",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Memento Mori Clock",
+    "description": "Clock and calendar with a Four Thousand Weeks LIFE view",
+    "category": "Time",
+    "allowMultiple": false
+  }
+}
