@@ -85,6 +85,23 @@ test("grid readouts split exact time from life-relative context", () => {
   })
 })
 
+test("finite-time counts follow the active projection", () => {
+  const today = localDate(2026, 8, 26)
+  const weeks = Model.projectionCells("weeks", "2001-08-23", today, 4000)
+  const months = Model.projectionCells("months", "2001-08-23", today, 4000)
+
+  assert.deepEqual(Model.projectionStats(weeks, "weeks"), {
+    lived: 1304,
+    remaining: 2696,
+    unit: "weeks"
+  })
+  assert.deepEqual(Model.projectionStats(months, "months"), {
+    lived: 300,
+    remaining: 620,
+    unit: "months"
+  })
+})
+
 test("the temporal viewport favors the future and clamps at both ends", () => {
   assert.equal(Model.temporalViewportStart(25, 77, 5), 23)
   assert.equal(Model.temporalViewportStart(30, 77, 24), 21)

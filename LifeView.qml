@@ -22,6 +22,7 @@ Flickable {
   property bool axisToggleHovered: false
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
+  readonly property var projectionStats: Model.projectionStats(cells, projection)
   readonly property int totalLifeYears: Math.max(1, Math.ceil(horizonWeeks / 52))
   readonly property int visibleYearCount: Math.min(compactYearSpan, totalLifeYears)
   readonly property int visibleYearStart: Math.max(0,
@@ -225,16 +226,22 @@ Flickable {
   }
 
   function verticalMarks() {
-    var candidates = [0, currentGridRow(), visibleRowCount - 1]
+    var nowRow = currentGridRow()
+    var candidates = [0, nowRow, visibleRowCount - 1]
+    var firstMultiple = Math.ceil(visibleYearStart / 5) * 5
+    for (var age = firstMultiple; age < visibleYearStart + visibleYearCount; age += 5)
+      candidates.push(age - visibleYearStart)
     var marks = []
     var seen = {}
     for (var i = 0; i < candidates.length; i++) {
       var row = candidates[i]
       if (row < 0 || row >= visibleRowCount || seen[row]) continue
       seen[row] = true
-      marks.push({ row: row, age: visibleYearStart + row,
-        current: row === currentGridRow() })
+      var markAge = visibleYearStart + row
+      marks.push({ row: row, age: markAge,
+        current: row === nowRow, fiveYear: markAge % 5 === 0 })
     }
+    marks.sort(function(a, b) { return a.row - b.row })
     return marks
   }
 
@@ -308,9 +315,9 @@ Flickable {
       id: lifeStatsLabel
       width: parent.width
       horizontalAlignment: Text.AlignRight
-      text: root.stats.livedWeeks.toLocaleString(Qt.locale("en_US"), "f", 0)
-        + " weeks lived · "
-        + root.stats.remainingWeeks.toLocaleString(Qt.locale("en_US"), "f", 0)
+      text: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
+        + " " + root.projectionStats.unit + " lived · "
+        + root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " remaining"
       color: Color.accent
       font.family: root.fontFamily
@@ -320,34 +327,35 @@ Flickable {
     Item {
       id: readoutRow
       width: parent.width
-      height: Math.max(intervalReadout.implicitHeight, contextReadout.implicitHeight,
+      height: Math.max(readoutText.implicitHeight,
         nowButton.implicitHeight, Style.space(18))
 
       readonly property var cell: root.currentCell()
       readonly property var readout: Model.projectionReadoutParts(cell, root.projection, root.today)
 
-      Text {
-        id: intervalReadout
+      Row {
+        id: readoutText
         anchors.left: parent.left
-        anchors.right: contextReadout.left
+        anchors.right: readoutActions.left
         anchors.rightMargin: Style.space(8)
         anchors.verticalCenter: parent.verticalCenter
-        text: readoutRow.readout ? readoutRow.readout.interval : ""
-        color: root.foreground
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.bodySmall
-        elide: Text.ElideRight
-      }
+        spacing: Style.space(18)
 
-      Text {
-        id: contextReadout
-        anchors.right: readoutActions.left
-        anchors.rightMargin: readoutActions.width > 0 ? Style.space(6) : 0
-        anchors.verticalCenter: parent.verticalCenter
-        text: readoutRow.readout ? readoutRow.readout.context : ""
-        color: root.foreground
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.bodySmall
+        Text {
+          id: intervalReadout
+          text: readoutRow.readout ? readoutRow.readout.interval : ""
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+
+        Text {
+          id: contextReadout
+          text: readoutRow.readout ? readoutRow.readout.context : ""
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
       }
 
       Row {
@@ -417,6 +425,10 @@ Flickable {
             : Qt.darker(root.foreground, 1.8)
           ctx.fillText(String(vertical[v].age), originX - Style.space(4),
             originY + root.rowOffset(vertical[v].row) + cellHeight / 2)
+          ctx.fillRect(originX - (vertical[v].fiveYear ? Style.space(3) : Style.space(1)),
+            originY + root.rowOffset(vertical[v].row) + cellHeight / 2,
+            vertical[v].fiveYear ? Style.space(3) : Style.space(1),
+            Style.spacing.hairline)
         }
 
         // The current row is the viewport's attention band. It remains quiet

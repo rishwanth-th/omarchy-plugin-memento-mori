@@ -15,6 +15,8 @@ then click the LIFE rail to enter the finite timeline.
   action, and format cycling;
 - uses exactly 4,000 weeks as the default horizon;
 - supports local Weeks and Months resolutions of the same date span;
+- translates the highlighted lived/remaining count into the active Weeks or
+  Months resolution while the canonical LIFE rail stays week-based;
 - fits as many complete life-year rows as the compact grid budget allows,
   keeping the current interval in focus without a fixed row count;
 - uses one concise unit legend with numbered temporal ticks, while the Months

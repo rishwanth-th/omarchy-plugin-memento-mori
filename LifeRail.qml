@@ -15,7 +15,7 @@ Item {
   property string tooltipText: "Memento Mori"
 
   readonly property int horizonYears: Math.max(1, Math.ceil(horizonWeeks / 52))
-  readonly property int yearTickCount: Math.floor(horizonYears / 5) + 1
+  readonly property int yearTickCount: horizonYears + 1
 
   signal activated()
 
@@ -95,8 +95,9 @@ Item {
 
       Item {
         required property int index
-        readonly property int year: index * 5
+        readonly property int year: index
         readonly property bool decade: year % 10 === 0
+        readonly property bool fiveYear: year % 5 === 0
         x: Math.round(yearScale.width * year / root.horizonYears)
         width: 1
         height: yearScale.height
@@ -104,9 +105,11 @@ Item {
         Rectangle {
           anchors.horizontalCenter: parent.horizontalCenter
           width: Style.spacing.hairline
-          height: parent.decade ? Style.space(2) : Style.spacing.hairline
+          height: parent.decade
+            ? Style.space(3)
+            : (parent.fiveYear ? Style.space(2) : Style.spacing.hairline)
           color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b,
-            parent.decade ? 0.18 : 0.1)
+            parent.decade ? 0.2 : (parent.fiveYear ? 0.11 : 0.045))
         }
 
         Text {
@@ -114,7 +117,7 @@ Item {
           anchors.top: parent.top
           anchors.topMargin: Style.space(2)
           visible: parent.decade
-          text: index === 0 ? "Y 0" : String(parent.year)
+          text: parent.year === 0 ? "Y 0" : String(parent.year)
           color: Qt.darker(root.foreground, 2)
           font.family: root.fontFamily
           font.pixelSize: Math.max(7, Style.font.caption - 2)

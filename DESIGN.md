@@ -28,6 +28,7 @@ The clock must remain a clock.
 The LIFE rail is one shared component across Calendar and Memento Mori. It
 always remains week-based, including while Months is selected, so
 the horizon's progress never changes merely because its projection changed.
+The adjacent lived/remaining count does translate into the active resolution.
 
 ## V1 visual grammar
 
@@ -56,21 +57,23 @@ rather than twelve repeated abbreviations.
   row is placed within that capacity rather than hard-coding two rows on each
   side. Projection changes preserve the temporal starting point.
 - Tiny `M →` and `Y ↓` cues disclose the horizontal and vertical dimensions.
-  Only the viewport's first, current, and last ages are labelled. Wheel and
-  keyboard navigation slide the attention window one life-year at a time,
-  and returning to now restores the default.
+  The viewport's first, current, and last ages are labelled alongside every
+  visible five-year landmark. Wheel and keyboard navigation slide the
+  attention window one life-year at a time, and returning to now restores the
+  default.
 - The LIFE rail uses the same temporal grammar as the grid: muted lived time,
   a thin accent marker at the exact present boundary, and a recessed future.
   Its precise lived/remaining count uses that accent hue as the active finite-
-  time readout; tiny five-year ticks and quiet decade labels carry scale.
+  time readout; quiet decade ticks and labels, shorter five-year ticks, and
+  barely-there annual ticks carry scale without becoming a second grid.
 - Calendar defines the panel dimensions. Weeks and Months share its exact
   frame and spend the remaining height on one fixed Canvas budget, so entering
   LIFE or changing resolution never resizes the widget. The rail supplies
   global horizon context while the grid remains a scrollable local window.
 - The stable readout above the grid is the single source of hover precision;
   no second pointer-following tooltip repeats it. Exact calendar time stays
-  left (`20–26 AUG 2026 · WEEK 5`), while life-relative context stays right
-  (`AGE 25 · PRESENT`).
+  first (`20–26 AUG 2026 · WEEK 5`), followed by life-relative context
+  (`AGE 25 · PRESENT`) in the same flowing line rather than at the card edge.
 - A faint current-row attention band and quiet edge arrows communicate the
   viewport's default focus and whether earlier or later rows remain.
 

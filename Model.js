@@ -355,6 +355,18 @@ function projectionReadoutParts(cell, mode, today) {
   }
 }
 
+function projectionStats(cells, mode) {
+  var intervals = Array.isArray(cells) ? cells : []
+  var lived = 0
+  for (var i = 0; i < intervals.length; i++)
+    if (intervals[i].status === "lived") lived++
+  return {
+    lived: lived,
+    remaining: Math.max(0, intervals.length - lived),
+    unit: mode === "months" ? "months" : "weeks"
+  }
+}
+
 function projectionCells(mode, birthKey, today, horizonValue) {
   var now = today instanceof Date ? today : new Date()
   var normalizedBirth = parseBirthDate(birthKey, now)
@@ -497,6 +509,7 @@ if (typeof module !== "undefined") {
     compactDateRange: compactDateRange,
     projectionReadout: projectionReadout,
     projectionReadoutParts: projectionReadoutParts,
+    projectionStats: projectionStats,
     projectionCells: projectionCells,
     temporalViewportStart: temporalViewportStart,
     monthGrid: monthGrid,
