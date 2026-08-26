@@ -1,86 +1,147 @@
 # Roadmap
 
-V1 establishes the information architecture and interaction grammar. V2 is an
-exploration of motion and tactility—not permission to add product machinery.
-Nothing below is promised until a prototype proves that it improves temporal
-understanding without disturbing the clock.
+V1 establishes the information architecture and interaction grammar. V2 adds
+motion and tactility only where they make temporal structure easier to
+understand. It is not permission to add product machinery.
 
-## Motion principles
+Each V2 idea is an isolated experiment. An experiment graduates into
+[Design philosophy](design.md) only after live review proves its meaning,
+timing, cancellation, and reduced-motion behavior. Rejected experiments stay
+here with a short reason so the same ambiguity is not rediscovered.
 
-- Motion should explain containment, passage, or focus. Decoration alone is
-  not enough.
-- The panel and grid envelope remain fixed throughout every transition.
-- A short interaction should feel responsive before it feels cinematic.
+## Motion contract
+
+- Motion explains containment, passage, focus, or temporal distance.
+  Decoration alone is not enough.
+- The panel frame, Canvas budget, grid envelope, row stride, and present
+  anchor remain fixed throughout every transition.
+- Ordinary feedback should follow Omarchy's short `140–160ms` OutCubic
+  vocabulary. Structural motion may take roughly `320–420ms`, but must feel
+  responsive before it feels cinematic.
+- Every animation is interruptible. A new action cancels stale work and
+  settles into one coherent state rather than building a queue.
 - Repeated opening must not become tedious.
-- Reduced-motion preferences require an immediate, equally coherent state.
-- The present remains the semantic anchor even while another cell is inspected.
-- Playfulness must not become gamification or urgency.
+- Reduced motion resolves immediately to the same semantic endpoint.
+- The present remains the accent and semantic anchor while another interval
+  is inspected or selected.
+- Playfulness must not become gamification, urgency, particles, or bounce for
+  its own sake.
 
-## Candidate experiments
+## Workstream 1 — Weeks ↔ Months semantic morph
 
-### 1. LIFE entrance
+**Status:** first V2 experiment, tracked in DAZ-272.
 
-On first reveal, the LIFE rail could travel from zero through its year ticks
-to the current boundary while the grid resolves from birth to the present.
-This would make elapsed time feel constructed rather than merely displayed.
+Weeks and Months are two resolutions of one exact birth-anchored timeline.
+Their transition should disclose that containment without pretending every
+month contains four weeks.
 
-Questions to prototype:
+### Proposed grammar
 
-- Does a fast sweep explain the scale, or merely delay the answer?
-- Should only the present marker travel while lived fill fades in behind it?
-- Should the entrance run once per session, every opening, or only after
-  configuration changes?
-- Can the grid reveal by life-year or grouped intervals rather than animating
-  thousands of cells individually?
+1. The stable source grid begins fading into exact date-overlap fragments.
+2. Each fragment moves into the proportional part of the destination interval
+   occupied by those same dates.
+3. A week crossing a month boundary may split across two month cells; the
+   reverse transition recombines those fragments into the week.
+4. The stable destination grid resolves over the moving fragments.
+5. Axis precision switches with the destination while panel and viewport
+   geometry remain fixed.
 
-### 2. Weeks-to-Months morph
+### Acceptance
 
-The strongest V2 candidate is a real spatial transition between projections:
-week cells gather into their corresponding month intervals, and the expanded
-month cells inherit their visual mass. Reversing the action should unpack the
-same structure back into weeks.
+- Both directions communicate containment and end on the unchanged V1 grids.
+- No fixed four-week grouping or false calendar semantics.
+- Present, lived, and future states are exact at both endpoints.
+- `M →`, `1`, and `2` use the same transition.
+- Hit-testing pauses only during the short morph.
+- Rapid reversal creates no queued or orphaned animation.
+- Reduced motion can snap to the destination without a different layout.
 
-This prototype must preserve exact birth-anchored date semantics. A visually
-convincing four-week collapse that implies false calendar grouping is worse
-than the stable V1 cross-projection redraw.
+### Reject if
 
-### 3. Present-to-hover relationship
+- Boundary weeks visibly jump to an arbitrary month.
+- The axes, grid, or widget jiggle.
+- The moving fragments read as noise rather than containment.
+- Reversal requires waiting for the previous animation to finish.
 
-Hover could animate a restrained inspection path from the persistent present
-landmark to the hovered cell. Plausible treatments include a guide that draws
-out, a brief traveling point, or a soft interpolation of the foreground
-inspection corner.
+## Workstream 2 — LIFE entrance
 
-The motion must not imply that the present itself moved, and rapid pointer
-movement must not create a swarm of queued animations. Distance-aware duration
-with immediate cancellation is worth testing.
+The LIFE rail may travel from birth through its year ticks to the present,
+with lived fill following behind it. Once the global sweep settles, the local
+present cell and its two guide lines resolve into place.
 
-### 4. Pinned inspection
+The rail should tell the whole-horizon story; the compact viewport should not
+pretend to animate thousands of off-screen cells.
 
-Clicking a cell currently has no meaning. A V2 prototype may test click as a
-temporary pinned inspection so keyboard or pointer movement can leave the
-cell without losing its exact interval.
+### Questions
 
-Pinning earns a place only if it enables a real task such as comparison or
-accessibility. It should not open journaling, milestones, or a detail product
-with no established purpose.
+- Does the sweep explain scale, or merely delay the answer?
+- Should it run once per session, only after configuration changes, or on
+  every opening?
+- Can repeat openings use only a short present-cell settle?
+- Should the lived grid fill by visible life-year rather than individual cell?
 
-### 5. Viewport movement
+### Reject if
 
-Wheel and keyboard navigation could gain a short, cancellable row transition
-and clearer edge response. The experiment should retain one-life-year steps,
-stable dimensions, and exact stopping positions; inertial scrolling would be
-inappropriate if it makes ages harder to land on.
+- Opening LIFE becomes a ceremony the user has to wait through.
+- The current value is unavailable during animation.
+- The viewport implies it contains the whole 4,000-week sweep.
+
+## Workstream 3 — Temporal-distance pin
+
+Clicking a cell may pin a deliberate comparison with the present. The LIFE
+rail would gain a quiet second marker and highlight only the segment between
+now and the selected interval. The existing exact-date readout remains the
+primary label; one concise delta may describe how far behind or ahead the
+selection lies.
+
+This is the purpose that may earn click interaction. Pinning is not a doorway
+to journaling, milestones, or a detail product.
+
+### Questions
+
+- Is the visual segment sufficient, or does a compact `+587 WEEKS` delta help?
+- Does click again clear the pin, with Escape as the keyboard equivalent?
+- Should keyboard inspection move the pin for accessibility?
+- How does a pinned date survive projection changes without changing meaning?
+
+### Reject if
+
+- Pinning merely freezes hover without enabling comparison.
+- A second marker competes with the present accent.
+- The delta creates productivity pressure or countdown urgency.
+
+## Workstream 4 — Hover-guide motion
+
+Hover should draw the foreground coordinate guides from the axes toward the
+inspected cell over a short, cancellable interval. The present accent and its
+guides remain stationary.
+
+A traveling animation directly from the present to every hovered cell is not
+the default direction: it can imply that now moved and becomes noisy under
+rapid pointer motion. Temporal distance belongs to deliberate pinning.
+
+### Reject if
+
+- Exact date feedback waits for the animation.
+- Pointer movement leaves queued trails or stale guides.
+- Hover makes the present appear to move.
+
+## Workstream 5 — Viewport movement
+
+Wheel and keyboard navigation may slide by one exact life-year row using a
+short, cancellable transition and a restrained edge response. It retains
+stable dimensions and exact stopping positions.
+
+Inertial scrolling is intentionally excluded if it makes ages harder to land
+on. This is polish, not core meaning.
 
 ## Evaluation order
 
-1. Prototype the Weeks-to-Months morph because it explains an existing action.
-2. Prototype the LIFE entrance with a strict time budget and reduced-motion
-   fallback.
-3. Test present-to-hover motion only after rapid-hover cancellation is solved.
-4. Explore click-to-pin only after naming the user need it serves.
-5. Add viewport motion last; it is polish, not core meaning.
+1. Weeks ↔ Months semantic morph.
+2. LIFE entrance.
+3. Temporal-distance pin.
+4. Hover-guide motion.
+5. Viewport movement.
 
-Each accepted experiment moves into [Design philosophy](design.md). Rejected
-experiments stay here with a short reason so the same ambiguity does not need
-to be rediscovered.
+Only one workstream may change runtime behavior at a time. Each one receives
+its own live review before the next begins.

@@ -21,6 +21,13 @@ Flickable {
   property bool horizontalAxisHovered: false
   property bool verticalAxisHovered: false
   property bool projectionToggleHovered: false
+  property string morphFromProjection: ""
+  property var morphFromCells: []
+  property var morphSegments: []
+  property real morphProgress: 1
+  property bool preparingMorph: false
+  property bool reducedMotion: false
+  readonly property bool projectionMorphing: morphSegments.length > 0 && morphProgress < 1
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
   readonly property var projectionStats: Model.projectionStats(cells, projection)
@@ -45,6 +52,7 @@ Flickable {
   interactive: false
 
   function refreshCells(resetWindow) {
+    if (!preparingMorph) finishProjectionMorph()
     cells = Model.projectionCells(projection, birthKey, today, horizonWeeks)
     hoveredIndex = -1
     if (resetWindow) resetToNow()
@@ -53,20 +61,32 @@ Flickable {
     lifeCanvas.requestPaint()
   }
 
+  function columnsFor(mode) {
+    return mode === "months" ? 12 : 52
+  }
+
   function columns() {
-    return projection === "months" ? 12 : 52
+    return columnsFor(projection)
+  }
+
+  function columnGapFor(mode) {
+    return mode === "months" ? Style.space(2) : Style.space(1)
   }
 
   function columnGap() {
-    return projection === "months" ? Style.space(2) : Style.space(1)
+    return columnGapFor(projection)
   }
 
   function rowGap() {
     return Style.space(1)
   }
 
+  function quarterGapFor(mode) {
+    return mode === "months" ? Style.space(4) : 0
+  }
+
   function quarterGap() {
-    return projection === "months" ? Style.space(4) : 0
+    return quarterGapFor(projection)
   }
 
   function weekCellSize() {
@@ -74,32 +94,45 @@ Flickable {
     return Math.max(Style.space(3), (available - 51 * Style.space(1)) / 52)
   }
 
-  function cellWidth() {
-    if (projection === "months") {
+  function cellWidthFor(mode) {
+    if (mode === "months") {
       var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
       return Math.max(Style.space(14),
-        (available - 11 * columnGap() - 3 * quarterGap()) / 12)
+        (available - 11 * columnGapFor(mode) - 3 * quarterGapFor(mode)) / 12)
     }
     return weekCellSize()
+  }
+
+  function cellWidth() {
+    return cellWidthFor(projection)
   }
 
   function cellHeight() {
     return weekCellSize()
   }
 
-  function columnOffset(column) {
-    var offset = column * (cellWidth() + columnGap())
-    if (projection === "months") offset += Math.floor(column / 3) * quarterGap()
+  function columnOffsetFor(mode, column) {
+    var offset = column * (cellWidthFor(mode) + columnGapFor(mode))
+    if (mode === "months") offset += Math.floor(column / 3) * quarterGapFor(mode)
     return offset
+  }
+
+  function columnOffset(column) {
+    return columnOffsetFor(projection, column)
   }
 
   function rowOffset(row) {
     return row * (cellHeight() + rowGap())
   }
 
+  function gridWidthFor(mode) {
+    return columnsFor(mode) * cellWidthFor(mode)
+      + Math.max(0, columnsFor(mode) - 1) * columnGapFor(mode)
+      + (mode === "months" ? 3 * quarterGapFor(mode) : 0)
+  }
+
   function gridWidth() {
-    return columns() * cellWidth() + Math.max(0, columns() - 1) * columnGap()
-      + (projection === "months" ? 3 * quarterGap() : 0)
+    return gridWidthFor(projection)
   }
 
   function gridHeight() {
@@ -115,9 +148,13 @@ Flickable {
       Math.floor((compactGridHeight() + rowGap()) / (cellHeight() + rowGap()))))
   }
 
-  function gridOriginX() {
+  function gridOriginXFor(mode) {
     var available = lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter
-    return lifeCanvas.leftGutter + Math.max(0, (available - gridWidth()) / 2)
+    return lifeCanvas.leftGutter + Math.max(0, (available - gridWidthFor(mode)) / 2)
+  }
+
+  function gridOriginX() {
+    return gridOriginXFor(projection)
   }
 
   function gridOriginY() {
@@ -133,6 +170,7 @@ Flickable {
   }
 
   function resetToNow() {
+    finishProjectionMorph()
     windowYearStart = defaultWindowStart()
     contentY = 0
     hoveredIndex = -1
@@ -140,31 +178,93 @@ Flickable {
   }
 
   function panRows(delta) {
+    finishProjectionMorph()
     windowYearStart = Math.max(0, Math.min(totalLifeYears - visibleYearCount, visibleYearStart + delta))
     hoveredIndex = -1
     lifeCanvas.requestPaint()
   }
 
+  function clearProjectionMorph() {
+    morphFromProjection = ""
+    morphFromCells = []
+    morphSegments = []
+    lifeCanvas.requestPaint()
+  }
+
+  function finishProjectionMorph() {
+    if (projectionMorphAnimation.running) projectionMorphAnimation.stop()
+    morphProgress = 1
+    clearProjectionMorph()
+  }
+
   function setProjection(value) {
     if (value !== "weeks" && value !== "months") return
     if (projection === value) return
+
+    finishProjectionMorph()
+    var sourceProjection = projection
+    var sourceCells = cells
+    preparingMorph = true
     projection = value
+    preparingMorph = false
+
+    if (reducedMotion) return
+
+    var sourceColumns = columnsFor(sourceProjection)
+    var targetColumns = columnsFor(projection)
+    var sourceFirst = Math.max(0, firstVisibleIndexFor(sourceProjection) - sourceColumns)
+    var sourceLast = Math.min(sourceCells.length,
+      firstVisibleIndexFor(sourceProjection) + (visibleRowCount + 1) * sourceColumns)
+    var targetFirst = Math.max(0, firstVisibleIndexFor(projection) - targetColumns)
+    var targetLast = Math.min(cells.length,
+      firstVisibleIndexFor(projection) + (visibleRowCount + 1) * targetColumns)
+    var segments = Model.projectionOverlapSegments(sourceCells, cells,
+      sourceFirst, sourceLast, targetFirst, targetLast)
+
+    if (segments.length === 0) return
+    morphFromProjection = sourceProjection
+    morphFromCells = sourceCells
+    morphSegments = segments
+    morphProgress = 0
+    projectionMorphAnimation.start()
   }
 
   function toggleProjection() {
     setProjection(projection === "weeks" ? "months" : "weeks")
   }
 
+  function firstVisibleIndexFor(mode) {
+    return visibleYearStart * columnsFor(mode)
+  }
+
   function firstVisibleIndex() {
-    if (projection === "weeks") return visibleYearStart * 52
-    return visibleYearStart * 12
+    return firstVisibleIndexFor(projection)
+  }
+
+  function lastVisibleIndexFor(mode, intervalCells) {
+    var values = intervalCells || []
+    return Math.min(values.length,
+      firstVisibleIndexFor(mode) + visibleYearCount * columnsFor(mode))
   }
 
   function lastVisibleIndex() {
-    var count = projection === "weeks"
-      ? visibleYearCount * 52
-      : visibleYearCount * 12
-    return Math.min(cells.length, firstVisibleIndex() + count)
+    return lastVisibleIndexFor(projection, cells)
+  }
+
+  function segmentRect(mode, index, startFraction, endFraction) {
+    var columnsInMode = columnsFor(mode)
+    var localIndex = index - firstVisibleIndexFor(mode)
+    var row = Math.floor(localIndex / columnsInMode)
+    var column = localIndex - row * columnsInMode
+    var width = cellWidthFor(mode)
+    var start = Math.max(0, Math.min(1, startFraction))
+    var end = Math.max(start, Math.min(1, endFraction))
+    return {
+      x: gridOriginXFor(mode) + columnOffsetFor(mode, column) + width * start,
+      y: gridOriginY() + rowOffset(row),
+      width: Math.max(Style.spacing.hairline, width * (end - start)),
+      height: cellHeight()
+    }
   }
 
   function currentGridRow() {
@@ -318,7 +418,19 @@ Flickable {
   onTodayChanged: refreshCells(true)
   onHorizonWeeksChanged: refreshCells(true)
   onWidthChanged: lifeCanvas.requestPaint()
+  onMorphProgressChanged: lifeCanvas.requestPaint()
   Component.onCompleted: refreshCells(true)
+
+  NumberAnimation {
+    id: projectionMorphAnimation
+    target: root
+    property: "morphProgress"
+    from: 0
+    to: 1
+    duration: 360
+    easing.type: Easing.InOutCubic
+    onFinished: root.clearProjectionMorph()
+  }
 
   Column {
     id: contentColumn
@@ -425,6 +537,75 @@ Flickable {
 
       width: parent.width
       height: root.compactCanvasHeight
+
+      function paintCell(ctx, cell, rect, opacity, hovered) {
+        if (!cell || !rect || opacity <= 0) return
+        var alpha = Math.max(0, Math.min(1, opacity))
+        var accent = Color.accent
+
+        if (cell.status === "lived") {
+          ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.34 * alpha)
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+        } else if (cell.status === "current") {
+          ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b, alpha)
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+        } else {
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.22 * alpha)
+          ctx.lineWidth = Style.spacing.hairline
+          ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
+            Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
+        }
+
+        if (hovered && alpha >= 0.99) {
+          ctx.strokeStyle = root.foreground
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
+          var inset = ctx.lineWidth / 2
+          ctx.strokeRect(rect.x + inset, rect.y + inset,
+            Math.max(0, rect.width - ctx.lineWidth),
+            Math.max(0, rect.height - ctx.lineWidth))
+        }
+      }
+
+      function paintProjection(ctx, mode, intervalCells, opacity, hoveredIndex) {
+        if (!intervalCells || opacity <= 0) return
+        var first = root.firstVisibleIndexFor(mode)
+        var last = root.lastVisibleIndexFor(mode, intervalCells)
+        for (var index = first; index < last; index++)
+          paintCell(ctx, intervalCells[index], root.segmentRect(mode, index, 0, 1),
+            opacity, index === hoveredIndex)
+      }
+
+      function paintProjectionMorph(ctx) {
+        var t = Math.max(0, Math.min(1, root.morphProgress))
+        var sourceOpacity = Math.max(0, 1 - t * 2)
+        var targetOpacity = Math.max(0, t * 2 - 1)
+        var fragmentOpacity = Math.sin(Math.PI * t) * 0.82
+
+        paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
+          sourceOpacity, -1)
+
+        for (var i = 0; i < root.morphSegments.length; i++) {
+          var segment = root.morphSegments[i]
+          var sourceCell = root.morphFromCells[segment.sourceIndex]
+          var targetCell = root.cells[segment.targetIndex]
+          if (!sourceCell || !targetCell) continue
+          var sourceRect = root.segmentRect(root.morphFromProjection,
+            segment.sourceIndex, segment.sourceStart, segment.sourceEnd)
+          var targetRect = root.segmentRect(root.projection,
+            segment.targetIndex, segment.targetStart, segment.targetEnd)
+          var rect = {
+            x: sourceRect.x + (targetRect.x - sourceRect.x) * t,
+            y: sourceRect.y + (targetRect.y - sourceRect.y) * t,
+            width: sourceRect.width + (targetRect.width - sourceRect.width) * t,
+            height: sourceRect.height + (targetRect.height - sourceRect.height) * t
+          }
+          paintCell(ctx, targetCell, rect, fragmentOpacity, false)
+        }
+
+        paintProjection(ctx, root.projection, root.cells, targetOpacity, -1)
+      }
 
       onPaint: {
         var ctx = getContext("2d")
@@ -537,37 +718,8 @@ Flickable {
             Math.max(0, guideY - originY + Style.space(6)))
         }
 
-        var firstIndex = root.firstVisibleIndex()
-        var lastIndex = root.lastVisibleIndex()
-        for (var i = firstIndex; i < lastIndex; i++) {
-          var cell = root.cells[i]
-          var localIndex = i - firstIndex
-          var column = localIndex % columns
-          var cellRow = Math.floor(localIndex / columns)
-          var x = originX + root.columnOffset(column)
-          var y = originY + root.rowOffset(cellRow)
-          var accent = Color.accent
-
-          if (cell.status === "lived") {
-            ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.34)
-            ctx.fillRect(x, y, cellWidth, cellHeight)
-          } else if (cell.status === "current") {
-            ctx.fillStyle = accent
-            ctx.fillRect(x, y, cellWidth, cellHeight)
-          } else {
-            ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
-            ctx.lineWidth = Style.spacing.hairline
-            ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, cellWidth - 1), Math.max(0, cellHeight - 1))
-          }
-
-          if (i === root.hoveredIndex) {
-            ctx.strokeStyle = root.foreground
-            ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
-            var inset = ctx.lineWidth / 2
-            ctx.strokeRect(x + inset, y + inset,
-              Math.max(0, cellWidth - ctx.lineWidth), Math.max(0, cellHeight - ctx.lineWidth))
-          }
-        }
+        if (root.projectionMorphing) paintProjectionMorph(ctx)
+        else paintProjection(ctx, root.projection, root.cells, 1, root.hoveredIndex)
 
         // Small edge cues disclose that compact mode is a movable viewport
         // rather than a cropped dataset.
@@ -582,6 +734,7 @@ Flickable {
       MouseArea {
         id: gridMouse
         anchors.fill: parent
+        enabled: !root.projectionMorphing
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
         cursorShape: root.projectionToggleHovered ? Qt.PointingHandCursor : Qt.ArrowCursor
