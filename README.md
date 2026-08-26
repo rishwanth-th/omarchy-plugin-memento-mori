@@ -3,6 +3,8 @@
 An Omarchy clock/calendar plugin that completes the native `LIFE` affordance
 with a quiet, local Four Thousand Weeks view.
 
+![Memento Mori LIFE view](assets/preview.png)
+
 The ordinary clock remains ordinary: click it and the familiar Omarchy
 calendar opens. Configure LIFE by double-clicking the calendar's year rail,
 then click the LIFE rail to enter the finite timeline.
