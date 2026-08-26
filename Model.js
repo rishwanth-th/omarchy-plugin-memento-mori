@@ -368,6 +368,18 @@ function projectionCells(mode, birthKey, today, horizonValue) {
   return cells
 }
 
+// Place the current row a little above the middle of a bounded viewport.
+// That keeps enough history for orientation while leaving more of the finite
+// future visible. The result is always clamped at birth and at the horizon.
+function temporalViewportStart(currentRow, totalRows, visibleRows) {
+  var total = Math.max(0, Math.floor(Number(totalRows) || 0))
+  if (total === 0) return 0
+  var visible = Math.max(1, Math.min(total, Math.floor(Number(visibleRows) || 1)))
+  var current = Math.max(0, Math.min(total - 1, Math.floor(Number(currentRow) || 0)))
+  var historyRows = Math.floor(visible * 0.4)
+  return Math.max(0, Math.min(total - visible, current - historyRows))
+}
+
 // Always six rows of seven days. A fixed grid keeps the popup exactly the
 // same height in every month, so stepping through the year never makes the
 // panel jump under the pointer.
@@ -447,6 +459,7 @@ if (typeof module !== "undefined") {
     lifeStats: lifeStats,
     formatDateRange: formatDateRange,
     projectionCells: projectionCells,
+    temporalViewportStart: temporalViewportStart,
     monthGrid: monthGrid,
     stepMonth: stepMonth,
     clockFormats: clockFormats,

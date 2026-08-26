@@ -65,3 +65,10 @@ test("hover labels name the selected projection and exact interval", () => {
   assert.equal(month.primary, "Year 1 · Month 1")
   assert.equal(year.primary, "Year 1")
 })
+
+test("the temporal viewport favors the future and clamps at both ends", () => {
+  assert.equal(Model.temporalViewportStart(30, 77, 24), 21)
+  assert.equal(Model.temporalViewportStart(2, 77, 24), 0)
+  assert.equal(Model.temporalViewportStart(76, 77, 24), 53)
+  assert.equal(Model.temporalViewportStart(3, 8, 24), 0)
+})

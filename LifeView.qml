@@ -12,8 +12,19 @@ Flickable {
   property color foreground: Color.foreground
   property string fontFamily: Style.font.family
   property string projection: "weeks"
+  property bool expanded: false
+  property int compactRowCount: 24
+  property int windowRowStart: 0
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
+  readonly property int totalRows: Math.max(1, Math.ceil((cells ? cells.length : 0) / columns()))
+  readonly property int visibleRowCount: expanded || projection === "years"
+    ? totalRows
+    : Math.min(compactRowCount, totalRows)
+  readonly property int visibleRowStart: expanded || projection === "years"
+    ? 0
+    : Math.max(0, Math.min(totalRows - visibleRowCount, windowRowStart))
+
   property var cells: []
   property int hoveredIndex: -1
   property real hoverX: 0
@@ -25,21 +36,17 @@ Flickable {
   boundsBehavior: Flickable.StopAtBounds
   contentWidth: width
   contentHeight: contentColumn.implicitHeight
-  interactive: contentHeight > height
+  interactive: expanded && contentHeight > height
 
   function refreshCells() {
     cells = Model.projectionCells(projection, birthKey, today, horizonWeeks)
     hoveredIndex = -1
+    resetToNow()
     lifeCanvas.requestPaint()
   }
 
   function columns() {
     return projection === "weeks" ? 52 : projection === "months" ? 12 : 10
-  }
-
-  function rows() {
-    var count = cells ? cells.length : 0
-    return Math.max(1, Math.ceil(count / columns()))
   }
 
   function gap() {
@@ -60,7 +67,46 @@ Flickable {
   }
 
   function gridHeight() {
-    return rows() * cellSize() + Math.max(0, rows() - 1) * gap()
+    return visibleRowCount * cellSize() + Math.max(0, visibleRowCount - 1) * gap()
+  }
+
+  function currentRow() {
+    for (var i = 0; i < cells.length; i++) {
+      if (cells[i].status === "current") return Math.floor(i / columns())
+    }
+    return cells.length > 0 ? totalRows - 1 : 0
+  }
+
+  function defaultWindowStart() {
+    return Model.temporalViewportStart(currentRow(), totalRows, compactRowCount)
+  }
+
+  function resetToNow() {
+    windowRowStart = defaultWindowStart()
+    contentY = 0
+    hoveredIndex = -1
+    lifeCanvas.requestPaint()
+  }
+
+  function panRows(delta) {
+    if (expanded || projection === "years") return
+    windowRowStart = Math.max(0, Math.min(totalRows - visibleRowCount, visibleRowStart + delta))
+    hoveredIndex = -1
+    lifeCanvas.requestPaint()
+  }
+
+  function toggleExpanded() {
+    if (projection === "years") return
+    expanded = !expanded
+    contentY = 0
+    hoveredIndex = -1
+    lifeCanvas.requestPaint()
+  }
+
+  function setProjection(value) {
+    if (projection === value) return
+    if (value === "years") expanded = false
+    projection = value
   }
 
   function hitTest(x, y) {
@@ -69,16 +115,16 @@ Flickable {
     if (localX < 0 || localY < 0 || localX >= gridWidth() || localY >= gridHeight()) return -1
     var stride = cellSize() + gap()
     var column = Math.floor(localX / stride)
-    var row = Math.floor(localY / stride)
-    if (localX - column * stride > cellSize() || localY - row * stride > cellSize()) return -1
-    var index = row * columns() + column
+    var localRow = Math.floor(localY / stride)
+    if (localX - column * stride > cellSize() || localY - localRow * stride > cellSize()) return -1
+    var index = (visibleRowStart + localRow) * columns() + column
     return index >= 0 && index < cells.length ? index : -1
   }
 
   function currentCell() {
     if (hoveredIndex >= 0 && hoveredIndex < cells.length) return cells[hoveredIndex]
     for (var i = 0; i < cells.length; i++) if (cells[i].status === "current") return cells[i]
-    return cells.length > 0 ? cells[Math.min(stats.livedWeeks, cells.length - 1)] : null
+    return cells.length > 0 ? cells[cells.length - 1] : null
   }
 
   function axisColumns() {
@@ -89,7 +135,6 @@ Flickable {
   }
 
   function axisLabel(column) {
-    if (projection === "weeks") return String(column + 1)
     return String(column + 1)
   }
 
@@ -97,6 +142,11 @@ Flickable {
   onBirthKeyChanged: refreshCells()
   onTodayChanged: refreshCells()
   onHorizonWeeksChanged: refreshCells()
+  onExpandedChanged: {
+    hoveredIndex = -1
+    contentY = 0
+    lifeCanvas.requestPaint()
+  }
   onWidthChanged: lifeCanvas.requestPaint()
   Component.onCompleted: refreshCells()
 
@@ -144,6 +194,17 @@ Flickable {
           font.letterSpacing: 1
         }
       }
+
+      PanelActionButton {
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.projection !== "years"
+        iconText: root.expanded ? "󰁍" : "󰁌"
+        tooltipText: root.expanded ? "Return to current view" : "Show the whole horizon"
+        foreground: root.foreground
+        fontFamily: root.fontFamily
+        onClicked: root.toggleExpanded()
+      }
     }
 
     LifeRail {
@@ -177,18 +238,38 @@ Flickable {
       foreground: root.foreground
       fontFamily: root.fontFamily
       fontSize: Style.font.caption
-      onChanged: function(value) { root.projection = value }
+      onChanged: function(value) { root.setProjection(value) }
     }
 
-    Text {
-      readonly property var cell: root.currentCell()
+    Item {
       width: parent.width
-      height: Math.max(implicitHeight, Style.space(18))
-      text: cell ? cell.primary + " · " + cell.secondary : ""
-      color: root.foreground
-      font.family: root.fontFamily
-      font.pixelSize: Style.font.bodySmall
-      elide: Text.ElideRight
+      height: Math.max(cellReadout.implicitHeight, nowButton.implicitHeight, Style.space(18))
+
+      Text {
+        id: cellReadout
+        readonly property var cell: root.currentCell()
+        anchors.left: parent.left
+        anchors.right: nowButton.visible ? nowButton.left : parent.right
+        anchors.rightMargin: nowButton.visible ? Style.space(8) : 0
+        anchors.verticalCenter: parent.verticalCenter
+        text: cell ? cell.primary + " · " + cell.secondary : ""
+        color: root.foreground
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.bodySmall
+        elide: Text.ElideRight
+      }
+
+      PanelActionButton {
+        id: nowButton
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        visible: !root.expanded && root.projection !== "years" && root.visibleRowStart !== root.defaultWindowStart()
+        iconText: "󰑐"
+        tooltipText: "Return to now"
+        foreground: root.foreground
+        fontFamily: root.fontFamily
+        onClicked: root.resetToNow()
+      }
     }
 
     Canvas {
@@ -221,15 +302,19 @@ Flickable {
 
         ctx.textAlign = "right"
         var rowStep = root.projection === "years" ? 1 : 5
-        for (var row = 0; row < root.rows(); row += rowStep) {
-          var age = root.projection === "years" ? row * 10 : row
-          ctx.fillText(String(age), leftGutter - Style.space(6), topGutter + row * stride + size / 2)
+        for (var localRow = 0; localRow < root.visibleRowCount; localRow++) {
+          var absoluteRow = root.visibleRowStart + localRow
+          var age = root.projection === "years" ? absoluteRow * 10 : absoluteRow
+          if (absoluteRow % rowStep === 0)
+            ctx.fillText(String(age), leftGutter - Style.space(6), topGutter + localRow * stride + size / 2)
         }
 
-        for (var i = 0; i < root.cells.length; i++) {
+        var firstIndex = root.visibleRowStart * columns
+        var lastIndex = Math.min(root.cells.length, (root.visibleRowStart + root.visibleRowCount) * columns)
+        for (var i = firstIndex; i < lastIndex; i++) {
           var cell = root.cells[i]
           var column = i % columns
-          var cellRow = Math.floor(i / columns)
+          var cellRow = Math.floor(i / columns) - root.visibleRowStart
           var x = leftGutter + column * stride
           var y = topGutter + cellRow * stride
           var accent = Style.selectedStateColor(root.foreground, Color.accent)
@@ -251,6 +336,14 @@ Flickable {
             ctx.lineWidth = Math.max(1, Style.spacing.hairline)
             ctx.strokeRect(x, y, size, size)
           }
+        }
+      }
+
+      WheelHandler {
+        enabled: !root.expanded && root.projection !== "years"
+        onWheel: function(event) {
+          if (event.angleDelta.y === 0) return
+          root.panRows(event.angleDelta.y > 0 ? -3 : 3)
         }
       }
 

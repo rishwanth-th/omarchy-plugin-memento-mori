@@ -104,6 +104,7 @@ Panel {
     // Dismissing the panel mid-edit would otherwise leave the inputs up,
     // waiting behind a closed popup for the next time it opens.
     if (root.editingLife) root.cancelEditingLife()
+    if (lifeView) lifeView.expanded = false
     root.panelPage = "calendar"
     root.controller.hide()
   }
@@ -214,10 +215,14 @@ Panel {
       return
     }
     root.panelPage = "life"
-    Qt.callLater(function() { if (keyCatcher) keyCatcher.forceActiveFocus() })
+    Qt.callLater(function() {
+      lifeView.resetToNow()
+      if (keyCatcher) keyCatcher.forceActiveFocus()
+    })
   }
 
   function showCalendar() {
+    lifeView.expanded = false
     root.panelPage = "calendar"
     Qt.callLater(function() { if (keyCatcher) keyCatcher.forceActiveFocus() })
   }
@@ -258,15 +263,31 @@ Panel {
       anchors.fill: parent
       blocked: root.editingLife
       onMoveRequested: function(dx, dy) {
-        if (root.showingLife) return
+        if (root.showingLife) {
+          if (dy !== 0) lifeView.panRows(dy * 3)
+          return
+        }
         if (dx !== 0) root.moveMonth(dx)
         if (dy !== 0) root.moveYear(dy)
       }
-      onActivateRequested: if (!root.showingLife) root.goToToday()
-      onCloseRequested: root.close()
+      onActivateRequested: {
+        if (root.showingLife) lifeView.resetToNow()
+        else root.goToToday()
+      }
+      onCloseRequested: {
+        if (root.showingLife && lifeView.expanded) lifeView.toggleExpanded()
+        else root.close()
+      }
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) {
-        if (root.showingLife) return
+        if (root.showingLife) {
+          if (t === "t" || t === "T") lifeView.resetToNow()
+          else if (t === "f" || t === "F") lifeView.toggleExpanded()
+          else if (t === "1") lifeView.setProjection("weeks")
+          else if (t === "2") lifeView.setProjection("months")
+          else if (t === "3") lifeView.setProjection("years")
+          return
+        }
         if (t === "[") root.moveMonth(-1)
         else if (t === "]") root.moveMonth(1)
         else if (t === "{") root.moveYear(-1)

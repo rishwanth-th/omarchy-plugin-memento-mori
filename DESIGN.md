@@ -42,7 +42,15 @@ groups are calendar months.
 - Lived cells are softly filled.
 - The current cell is the only accent.
 - Future cells are quietly outlined.
-- The complete configured horizon remains visible.
+- Weeks and Months open as a bounded temporal viewport around now. The
+  current life-year sits slightly above center so the panel retains history
+  for orientation while showing more of the finite future.
+- The absolute age axis remains visible while the viewport moves. Wheel and
+  keyboard navigation explore earlier or later rows; returning to now restores
+  the default framing.
+- Years remains the compact whole-horizon overview.
+- A quiet expand action reveals the complete configured horizon in the same
+  anchored surface. It is a contemplative view, not the panel default.
 
 Scales provide orientation. Hover provides precision:
 
@@ -56,6 +64,8 @@ Scales provide orientation. Hover provides precision:
 - Exact birth date and horizon override are local widget settings.
 - One `Canvas` renders the dense grid; date, projection, and hit-test math
   remains outside QML object trees where practical.
+- Compact and expanded modes share that Canvas and exact cell collection;
+  changing modes only changes which absolute rows are painted.
 - V1 may crossfade or reflow between projections, but does not require a
   literal cell-merging animation.
 
