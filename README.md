@@ -17,6 +17,8 @@ then click the LIFE rail to enter the finite timeline.
 - supports local Weeks, Months, and Years projections of the same date span;
 - keeps every projection glanceable through the same current-focused
   five-life-year attention window;
+- uses one concise unit legend with numbered temporal ticks, while the Months
+  projection spans the full axis and retains quiet quarter grouping;
 - reveals the complete cell grid through a quiet expand action;
 - distinguishes lived, current, and future cells;
 - resolves every hovered cell to its life-relative position and exact date

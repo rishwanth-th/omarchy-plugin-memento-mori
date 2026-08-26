@@ -31,15 +31,19 @@ the horizon's progress never changes merely because its projection changed.
 
 ## V1 visual grammar
 
-V1 uses uniform cells. It does not insert four-week month gaps or a 4-4-5
+V1 uses uniform sequencing. It does not insert four-week month gaps or a 4-4-5
 cadence: a birth-date-anchored timeline cannot truthfully promise those visual
-groups are calendar months.
+groups are calendar months. A single unit legend names each horizontal scale;
+the tick labels carry only their number so the axis reads as one sentence
+rather than twelve repeated abbreviations.
 
-- Weeks: 52 columns per visual life-year, with twelve proportional life-month
-  ticks across the horizontal axis and age landmarks every five rows. Exact
-  calendar intervals remain in the readout rather than being implied by gaps.
-- Months: 12 exact calendar intervals per life-year, with quarter landmarks
-  across the horizontal axis.
+- Weeks: 52 columns per visual life-year, with an `M` scale and twelve
+  proportional life-month ticks across the horizontal axis. Exact calendar
+  intervals remain in the readout rather than being implied by gaps.
+- Months: 12 exact calendar intervals per life-year expand across the same
+  horizontal span. The `M 1–12` scale keeps month precision while stronger
+  third-month ticks and breathing room after months 3, 6, and 9 disclose the
+  four quarters without reducing the axis to only `Q1–Q4`.
 - Years: 10 columns per decade, with year-in-decade ticks horizontally and
   decades on the vertical axis.
 - Lived cells are softly filled.

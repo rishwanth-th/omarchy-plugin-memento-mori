@@ -60,21 +60,46 @@ Flickable {
     return projection === "years" ? Style.space(5) : projection === "months" ? Style.space(2) : Style.space(1)
   }
 
+  function quarterGap() {
+    return projection === "months" ? Style.space(4) : 0
+  }
+
   function weekCellSize() {
     var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
     return Math.max(Style.space(3), (available - 51 * Style.space(1)) / 52)
   }
 
-  function cellSize() {
-    return projection === "years" ? Math.max(Style.space(22), weekCellSize() * 2.5) : weekCellSize()
+  function cellWidth() {
+    if (projection === "years") return Math.max(Style.space(22), weekCellSize() * 2.5)
+    if (projection === "months") {
+      var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
+      return Math.max(Style.space(14),
+        (available - 11 * gap() - 3 * quarterGap()) / 12)
+    }
+    return weekCellSize()
+  }
+
+  function cellHeight() {
+    return projection === "years" ? cellWidth() : weekCellSize()
+  }
+
+  function columnOffset(column) {
+    var offset = column * (cellWidth() + gap())
+    if (projection === "months") offset += Math.floor(column / 3) * quarterGap()
+    return offset
+  }
+
+  function rowOffset(row) {
+    return row * (cellHeight() + gap())
   }
 
   function gridWidth() {
-    return columns() * cellSize() + Math.max(0, columns() - 1) * gap()
+    return columns() * cellWidth() + Math.max(0, columns() - 1) * gap()
+      + (projection === "months" ? 3 * quarterGap() : 0)
   }
 
   function gridHeight() {
-    return visibleRowCount * cellSize() + Math.max(0, visibleRowCount - 1) * gap()
+    return visibleRowCount * cellHeight() + Math.max(0, visibleRowCount - 1) * gap()
   }
 
   // The compact frame is projection-independent. Months and Years collapse
@@ -158,10 +183,18 @@ Flickable {
     var localX = x - gridOriginX()
     var localY = y - gridOriginY()
     if (localX < 0 || localY < 0 || localX >= gridWidth() || localY >= gridHeight()) return -1
-    var stride = cellSize() + gap()
-    var column = Math.floor(localX / stride)
-    var localRow = Math.floor(localY / stride)
-    if (localX - column * stride > cellSize() || localY - localRow * stride > cellSize()) return -1
+    var rowStride = cellHeight() + gap()
+    var localRow = Math.floor(localY / rowStride)
+    if (localY - localRow * rowStride > cellHeight()) return -1
+    var column = -1
+    for (var candidate = 0; candidate < columns(); candidate++) {
+      var start = columnOffset(candidate)
+      if (localX >= start && localX <= start + cellWidth()) {
+        column = candidate
+        break
+      }
+    }
+    if (column < 0) return -1
     var index = firstVisibleIndex() + localRow * columns() + column
     return index >= firstVisibleIndex() && index < lastVisibleIndex() ? index : -1
   }
@@ -178,18 +211,29 @@ Flickable {
       // Twelve proportional life-month landmarks orient the 52-week row;
       // exact calendar intervals remain in the canonical hover readout.
       for (var month = 0; month < 12; month++)
-        marks.push({ position: (month + 0.5) * 52 / 12 - 0.5, label: "M" + (month + 1) })
+        marks.push({ position: (month + 0.5) * 52 / 12 - 0.5,
+          label: String(month + 1), major: (month + 1) % 3 === 0 })
     } else if (projection === "months") {
-      for (var quarter = 0; quarter < 4; quarter++)
-        marks.push({ position: quarter * 3 + 1, label: "Q" + (quarter + 1) })
+      for (var exactMonth = 0; exactMonth < 12; exactMonth++)
+        marks.push({ position: exactMonth, label: String(exactMonth + 1),
+          major: (exactMonth + 1) % 3 === 0 })
     } else if (!expanded) {
       for (var visibleYear = 0; visibleYear < visibleYearCount; visibleYear++)
-        marks.push({ position: visibleYear, label: "Y" + (visibleYearStart + visibleYear + 1) })
+        marks.push({ position: visibleYear, label: String(visibleYearStart + visibleYear + 1), major: false })
     } else {
       for (var year = 0; year < 10; year++)
-        marks.push({ position: year, label: "Y" + (year + 1) })
+        marks.push({ position: year, label: String(year + 1), major: false })
     }
     return marks
+  }
+
+  function axisUnit() {
+    return projection === "years" ? "Y" : "M"
+  }
+
+  function axisMarkX(position) {
+    if (projection === "months") return columnOffset(position) + cellWidth() / 2
+    return position * (cellWidth() + gap()) + cellWidth() / 2
   }
 
   onProjectionChanged: refreshCells(false)
@@ -340,8 +384,8 @@ Flickable {
         ctx.clearRect(0, 0, width, height)
         if (!root.cells || root.cells.length === 0) return
 
-        var size = root.cellSize()
-        var stride = size + root.gap()
+        var cellWidth = root.cellWidth()
+        var cellHeight = root.cellHeight()
         var columns = root.columns()
         var axis = root.axisMarks()
         var originX = root.gridOriginX()
@@ -351,10 +395,14 @@ Flickable {
         ctx.textAlign = "center"
         ctx.textBaseline = "middle"
         ctx.fillStyle = Qt.darker(root.foreground, 1.8)
+        ctx.textAlign = "right"
+        ctx.fillText(root.axisUnit(), originX - Style.space(6), originY - Style.space(10))
+        ctx.textAlign = "center"
         for (var a = 0; a < axis.length; a++) {
-          var markX = originX + axis[a].position * stride + size / 2
+          var markX = originX + root.axisMarkX(axis[a].position)
           ctx.fillText(axis[a].label, markX, originY - Style.space(10))
-          ctx.fillRect(markX, originY - Style.space(4), Style.spacing.hairline, Style.space(3))
+          var tickHeight = axis[a].major ? Style.space(5) : Style.space(3)
+          ctx.fillRect(markX, originY - tickHeight, Style.spacing.hairline, tickHeight)
         }
 
         ctx.textAlign = "right"
@@ -365,7 +413,7 @@ Flickable {
             : (root.projection === "years" ? root.visibleYearStart : root.visibleYearStart + localRow)
           var age = root.projection === "years" && root.expanded ? absoluteRow * 10 : absoluteRow
           if (absoluteRow % rowStep === 0 || !root.expanded)
-            ctx.fillText(String(age), originX - Style.space(6), originY + localRow * stride + size / 2)
+            ctx.fillText(String(age), originX - Style.space(6), originY + root.rowOffset(localRow) + cellHeight / 2)
         }
 
         // The current row is the viewport's attention band. It remains quiet
@@ -376,8 +424,8 @@ Flickable {
             && (root.projection !== "years" || root.expanded)) {
           var bandAccent = Style.selectedStateColor(root.foreground, Color.accent)
           ctx.fillStyle = Qt.rgba(bandAccent.r, bandAccent.g, bandAccent.b, 0.055)
-          ctx.fillRect(originX - Style.space(2), originY + nowRow * stride - Style.space(1),
-            root.gridWidth() + Style.space(4), size + Style.space(2))
+          ctx.fillRect(originX - Style.space(2), originY + root.rowOffset(nowRow) - Style.space(1),
+            root.gridWidth() + Style.space(4), cellHeight + Style.space(2))
         }
 
         var firstIndex = root.firstVisibleIndex()
@@ -387,26 +435,26 @@ Flickable {
           var localIndex = i - firstIndex
           var column = localIndex % columns
           var cellRow = Math.floor(localIndex / columns)
-          var x = originX + column * stride
-          var y = originY + cellRow * stride
+          var x = originX + root.columnOffset(column)
+          var y = originY + root.rowOffset(cellRow)
           var accent = Style.selectedStateColor(root.foreground, Color.accent)
 
           if (cell.status === "lived") {
             ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.34)
-            ctx.fillRect(x, y, size, size)
+            ctx.fillRect(x, y, cellWidth, cellHeight)
           } else if (cell.status === "current") {
             ctx.fillStyle = accent
-            ctx.fillRect(x, y, size, size)
+            ctx.fillRect(x, y, cellWidth, cellHeight)
           } else {
             ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
             ctx.lineWidth = Style.spacing.hairline
-            ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, size - 1), Math.max(0, size - 1))
+            ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, cellWidth - 1), Math.max(0, cellHeight - 1))
           }
 
           if (i === root.hoveredIndex) {
             ctx.strokeStyle = root.foreground
             ctx.lineWidth = Math.max(1, Style.spacing.hairline)
-            ctx.strokeRect(x, y, size, size)
+            ctx.strokeRect(x, y, cellWidth, cellHeight)
           }
         }
 
@@ -417,14 +465,14 @@ Flickable {
         ctx.fillStyle = Qt.darker(root.foreground, 1.9)
         if (root.projection === "years" && !root.expanded) {
           if (root.canPanEarlier)
-            ctx.fillText("←", originX - Style.space(12), originY + size / 2)
+            ctx.fillText("←", originX - Style.space(12), originY + cellHeight / 2)
           if (root.canPanLater)
-            ctx.fillText("→", originX + root.gridWidth() + Style.space(12), originY + size / 2)
+            ctx.fillText("→", originX + root.gridWidth() + Style.space(12), originY + cellHeight / 2)
         } else {
           if (root.canPanEarlier)
-            ctx.fillText("↑", width - rightGutter / 2, originY + size / 2)
+            ctx.fillText("↑", width - rightGutter / 2, originY + cellHeight / 2)
           if (root.canPanLater)
-            ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - size / 2)
+            ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - cellHeight / 2)
         }
       }
 
