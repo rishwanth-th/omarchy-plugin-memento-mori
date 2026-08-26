@@ -57,30 +57,41 @@ rather than twelve repeated abbreviations.
   row is placed within that capacity rather than hard-coding two rows on each
   side. Projection changes preserve the temporal starting point.
 - Tiny `M →` and `Y ↓` cues disclose the horizontal and vertical dimensions.
+  Hovering either cue accents its corresponding scale; only `M →` is an
+  action, switching between Weeks and Months.
   The viewport's first, current, and last ages are labelled alongside every
   visible five-year landmark. Wheel and keyboard navigation slide the
   attention window one life-year at a time, and returning to now restores the
   default.
 - The LIFE rail uses the same temporal grammar as the grid: muted lived time,
   a thin accent marker at the exact present boundary, and a recessed future.
-  Its precise lived/remaining count uses that accent hue as the active finite-
-  time readout; quiet decade ticks and labels, shorter five-year ticks, and
-  barely-there annual ticks carry scale without becoming a second grid.
+  Projection-aware lived and remaining counts sit beneath their corresponding
+  rail segments, using the rail itself as their span rather than adding a
+  second bracket. Quiet decade ticks and labels, shorter five-year ticks, and
+  barely-there annual ticks carry scale without becoming a second grid. The
+  present marker also names its current life year.
 - Calendar defines the panel dimensions. Weeks and Months share its exact
-  frame and spend the remaining height on one fixed Canvas budget, so entering
-  LIFE or changing resolution never resizes the widget. The rail supplies
-  global horizon context while the grid remains a scrollable local window.
+  frame, Canvas budget, grid envelope, and vertical row stride, so entering
+  LIFE or changing resolution moves neither the widget nor the grid. The rail
+  supplies global horizon context while the grid remains a scrollable local
+  window.
 - The stable readout above the grid is the single source of hover precision;
-  no second pointer-following tooltip repeats it. Exact calendar time stays
-  first (`20–26 AUG 2026 · WEEK 5`), followed by life-relative context
-  (`AGE 25 · PRESENT`) in the same flowing line rather than at the card edge.
-- A faint current-row attention band and quiet edge arrows communicate the
-  viewport's default focus and whether earlier or later rows remain.
+  no second pointer-following tooltip repeats it. Only the exact birth-anchored
+  calendar interval remains there (`20–26 AUG 2026`), centered in one stable
+  slot. The inspected `W 5` / `M 1` position and age move to precise ticks on
+  the horizontal and vertical grid axes. Past, present, and future are not
+  repeated because the cells and legend already encode that state.
+- Crossing the tiny gaps between cells preserves the last hovered interval,
+  avoiding a flash back to the present between adjacent cells. Hover receives
+  a crisp outline distinct from the filled present cell; V1 does not imply a
+  click action or persistent selection.
+- Faint current-row and current-column attention bands meet at the present
+  cell. Quiet edge arrows communicate whether earlier or later rows remain.
 
 Scales provide orientation. Hover provides precision:
 
-- Weeks: status, exact week interval, age, week-in-life-year.
-- Months: status, exact calendar interval, age, month-in-life-year.
+- Weeks: exact week interval, age, and week-in-life-year.
+- Months: exact calendar interval, age, and month-in-life-year.
 
 ## Implementation boundary
 

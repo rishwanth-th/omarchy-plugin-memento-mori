@@ -11,16 +11,26 @@ Item {
   property real percent: 0
   property int horizonWeeks: 4000
   property bool showYearScale: false
+  property bool showSegmentLabels: false
+  property string livedLabel: ""
+  property string remainingLabel: ""
   property bool interactive: false
   property string tooltipText: "Memento Mori"
 
   readonly property int horizonYears: Math.max(1, Math.ceil(horizonWeeks / 52))
   readonly property int yearTickCount: horizonYears + 1
+  readonly property int currentYear: Math.max(0, Math.min(horizonYears,
+    Math.floor(horizonWeeks * Math.max(0, Math.min(1, progress)) / 52)))
 
   signal activated()
 
-  implicitHeight: Math.max(lifeLabel.implicitHeight,
+  readonly property int baseHeight: Math.max(lifeLabel.implicitHeight,
     Style.space(showYearScale ? 24 : 16))
+
+  implicitHeight: baseHeight + (showSegmentLabels
+    ? Math.max(livedSegmentLabel.implicitHeight, remainingSegmentLabel.implicitHeight)
+      + Style.space(2)
+    : 0)
 
   Text {
     id: lifeLabel
@@ -116,13 +126,58 @@ Item {
           anchors.horizontalCenter: parent.horizontalCenter
           anchors.top: parent.top
           anchors.topMargin: Style.space(2)
-          visible: parent.decade
+          visible: parent.decade && parent.year !== root.currentYear
           text: parent.year === 0 ? "Y 0" : String(parent.year)
           color: Qt.darker(root.foreground, 2)
           font.family: root.fontFamily
           font.pixelSize: Math.max(7, Style.font.caption - 2)
         }
       }
+    }
+
+    Text {
+      x: Math.max(0, Math.min(parent.width - width,
+        Math.round(parent.width * root.progress - width / 2)))
+      anchors.top: parent.top
+      anchors.topMargin: Style.space(2)
+      text: String(root.currentYear)
+      color: Color.accent
+      font.family: root.fontFamily
+      font.pixelSize: Math.max(7, Style.font.caption - 2)
+    }
+  }
+
+  Item {
+    visible: root.showSegmentLabels
+    anchors.left: track.left
+    anchors.right: track.right
+    y: root.baseHeight + Style.space(2)
+    height: visible
+      ? Math.max(livedSegmentLabel.implicitHeight, remainingSegmentLabel.implicitHeight)
+      : 0
+
+    Text {
+      id: livedSegmentLabel
+      x: 0
+      width: Math.max(0, parent.width * Math.max(0, Math.min(1, root.progress)))
+      horizontalAlignment: Text.AlignHCenter
+      text: root.livedLabel
+      color: Color.accent
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.caption
+      elide: Text.ElideRight
+    }
+
+    Text {
+      id: remainingSegmentLabel
+      x: parent.width * Math.max(0, Math.min(1, root.progress))
+      width: Math.max(0, parent.width - x)
+      horizontalAlignment: Text.AlignHCenter
+      text: root.remainingLabel
+      color: Color.accent
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.caption
+      elide: Text.ElideRight
     }
   }
 

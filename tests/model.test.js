@@ -80,8 +80,10 @@ test("grid readouts split exact time from life-relative context", () => {
     /^.+ 2035 · MONTH \d+ · AGE 33 · FUTURE$/)
 
   assert.deepEqual(Model.projectionReadoutParts(currentWeek, "weeks", today), {
-    interval: "20–26 AUG 2026 · WEEK 5",
-    context: "AGE 25 · PRESENT"
+    date: "20–26 AUG 2026",
+    position: "WEEK 5",
+    age: "AGE 25",
+    status: "PRESENT"
   })
 })
 

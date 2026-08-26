@@ -16,18 +16,19 @@ then click the LIFE rail to enter the finite timeline.
 - uses exactly 4,000 weeks as the default horizon;
 - supports local Weeks and Months resolutions of the same date span;
 - translates the highlighted lived/remaining count into the active Weeks or
-  Months resolution while the canonical LIFE rail stays week-based;
+  Months resolution beneath the matching LIFE-rail segments while the
+  canonical rail itself stays week-based;
 - fits as many complete life-year rows as the compact grid budget allows,
   keeping the current interval in focus without a fixed row count;
 - uses one concise unit legend with numbered temporal ticks, while the Months
   projection spans the full axis and retains quiet quarter grouping;
-- keeps LIFE in the calendar's exact panel frame and gives the available
-  height to one stable, scrollable attention window;
+- keeps LIFE in the calendar's exact panel frame and gives Weeks and Months
+  one stable grid envelope and scrollable attention window;
 - carries decade orientation on the LIFE rail instead of adding a third grid
   mode or full-screen state;
 - distinguishes lived, current, and future cells;
-- resolves every hovered cell to its life-relative position and exact date
-  interval;
+- resolves every hovered cell to an exact date interval and precise horizontal
+  and vertical axis ticks;
 - stores the exact birth date and optional horizon override only in local
   Omarchy shell settings.
 

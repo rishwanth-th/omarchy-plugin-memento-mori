@@ -520,7 +520,7 @@ Panel {
               percent: root.lifeDonePercent
               horizonWeeks: root.horizonWeeks
               interactive: true
-              tooltipText: "Open Memento Mori"
+              tooltipText: "Memento Mori"
               onActivated: root.showLife()
             }
           }

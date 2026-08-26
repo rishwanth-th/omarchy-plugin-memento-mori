@@ -338,7 +338,7 @@ function compactDateRange(startKey, endKey) {
 function projectionReadout(cell, mode, today) {
   var parts = projectionReadoutParts(cell, mode, today)
   if (!parts) return ""
-  return parts.interval + " · " + parts.context
+  return parts.date + " · " + parts.position + " · " + parts.age + " · " + parts.status
 }
 
 function projectionReadoutParts(cell, mode, today) {
@@ -350,8 +350,10 @@ function projectionReadoutParts(cell, mode, today) {
   var position = (monthMode ? "MONTH " : "WEEK ") + (offset % span + 1)
   var statuses = { lived: "PAST", current: "PRESENT", future: "FUTURE" }
   return {
-    interval: compactDateRange(cell.startKey, cell.endKey) + " · " + position,
-    context: "AGE " + age + " · " + (statuses[cell.status] || String(cell.status || "").toUpperCase())
+    date: compactDateRange(cell.startKey, cell.endKey),
+    position: position,
+    age: "AGE " + age,
+    status: statuses[cell.status] || String(cell.status || "").toUpperCase()
   }
 }
 
