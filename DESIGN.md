@@ -35,10 +35,13 @@ V1 uses uniform cells. It does not insert four-week month gaps or a 4-4-5
 cadence: a birth-date-anchored timeline cannot truthfully promise those visual
 groups are calendar months.
 
-- Weeks: 52 columns per visual life-year, sparse landmarks at weeks 1, 13,
-  26, 39, and 52, with age landmarks every five rows.
-- Months: 12 columns per life-year, derived from exact calendar intervals.
-- Years: 10 columns per decade, with decades on the vertical axis.
+- Weeks: 52 columns per visual life-year, with twelve proportional life-month
+  ticks across the horizontal axis and age landmarks every five rows. Exact
+  calendar intervals remain in the readout rather than being implied by gaps.
+- Months: 12 exact calendar intervals per life-year, with quarter landmarks
+  across the horizontal axis.
+- Years: 10 columns per decade, with year-in-decade ticks horizontally and
+  decades on the vertical axis.
 - Lived cells are softly filled.
 - The current cell is the only accent.
 - Future cells are quietly outlined.
@@ -51,6 +54,13 @@ groups are calendar months.
 - Years remains the compact whole-horizon overview.
 - A quiet expand action reveals the complete configured horizon in the same
   anchored surface. It is a contemplative view, not the panel default.
+- All compact projections inhabit one fixed panel and Canvas frame. Collapsed
+  Months and Years grids are centered within it, so projection changes do not
+  move the surrounding interface.
+- The stable readout above the grid is the single source of hover precision;
+  no second pointer-following tooltip repeats it.
+- A faint current-row attention band and quiet edge arrows communicate the
+  viewport's default focus and whether earlier or later rows remain.
 
 Scales provide orientation. Hover provides precision:
 
