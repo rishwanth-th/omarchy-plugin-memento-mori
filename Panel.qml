@@ -58,6 +58,7 @@ Panel {
   readonly property real lifeDonePercent: lifeStats.percent
   property bool editingLife: false
   property string panelPage: "calendar"
+  property int compactFrameHeight: 0
   readonly property bool showingLife: panelPage === "life"
 
   // Unset falls through to the locale's own first day, so a fresh install
@@ -214,6 +215,10 @@ Panel {
       root.startEditingLife()
       return
     }
+    // Calendar's hidden layout is slightly shorter than its visible layout.
+    // Capture the real card before changing pages so LIFE inherits the exact
+    // native frame under the current theme, scale, and calendar row count.
+    root.compactFrameHeight = panel.contentHeight
     root.panelPage = "life"
     Qt.callLater(function() {
       lifeView.resetToNow()
@@ -262,8 +267,9 @@ Panel {
     // frame so Weeks, Months, and Years cannot resize the card between them.
     contentHeight: root.showingLife && lifeView.expanded && panel.availableCardHeight > 0
       ? Math.round(panel.availableCardHeight)
-      : panel.fittedContentHeight(Math.max(calendarColumn.implicitHeight,
-          root.showingLife ? lifeView.contentHeight : 0))
+      : root.showingLife
+        ? Math.max(root.compactFrameHeight, panel.fittedContentHeight(lifeView.contentHeight))
+        : panel.fittedContentHeight(calendarColumn.implicitHeight)
 
     PanelKeyCatcher {
       id: keyCatcher
