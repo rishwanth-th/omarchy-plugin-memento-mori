@@ -324,23 +324,32 @@ function formatDateRange(start, end) {
 function compactDateRangeParts(startKey, endKey) {
   var start = dateFromKey(startKey)
   var end = dateFromKey(endKey)
-  if (!start || !end) return { prefix: "", month: "", year: "", date: "" }
+  if (!start || !end) return { range: "", month: "", year: "", date: "" }
   var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-  var prefix = ""
+  var range = ""
   if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth())
-    prefix = start.getDate() + "–" + end.getDate()
+    range = start.getDate() + "–" + end.getDate()
   else if (start.getFullYear() === end.getFullYear())
-    prefix = start.getDate() + " " + months[start.getMonth()] + "–" + end.getDate()
+    range = start.getDate() + "–" + months[end.getMonth()] + " " + end.getDate()
   else
-    prefix = start.getDate() + " " + months[start.getMonth()] + " "
-      + start.getFullYear() + "–" + end.getDate()
-  var month = months[end.getMonth()]
-  var year = String(end.getFullYear())
+    range = start.getDate() + "–" + end.getFullYear() + " "
+      + months[end.getMonth()] + " " + end.getDate()
+  var month = months[start.getMonth()]
+  var year = String(start.getFullYear())
+  var date = ""
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth())
+    date = start.getDate() + "–" + end.getDate() + " " + month + " " + year
+  else if (start.getFullYear() === end.getFullYear())
+    date = start.getDate() + " " + month + "–" + end.getDate() + " "
+      + months[end.getMonth()] + " " + year
+  else
+    date = start.getDate() + " " + month + " " + year + "–" + end.getDate()
+      + " " + months[end.getMonth()] + " " + end.getFullYear()
   return {
-    prefix: prefix,
+    range: range,
     month: month,
     year: year,
-    date: prefix + " " + month + " " + year
+    date: date
   }
 }
 
@@ -365,7 +374,7 @@ function projectionReadoutParts(cell, mode, today) {
   var statuses = { lived: "PAST", current: "PRESENT", future: "FUTURE" }
   return {
     date: date.date,
-    datePrefix: date.prefix,
+    dateRange: date.range,
     dateMonth: date.month,
     dateYear: date.year,
     position: position,
