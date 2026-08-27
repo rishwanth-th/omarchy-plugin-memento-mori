@@ -104,40 +104,6 @@ test("finite-time counts follow the active projection", () => {
   })
 })
 
-test("projection overlap fragments preserve exact week and month boundaries", () => {
-  const today = localDate(2000, 2, 1)
-  const weeks = Model.projectionCells("weeks", "2000-01-31", today, 4000)
-  const months = Model.projectionCells("months", "2000-01-31", today, 4000)
-  const segments = Model.projectionOverlapSegments(weeks, months, 4, 5, 0, 2)
-
-  assert.equal(weeks[4].startKey, "2000-02-28")
-  assert.equal(weeks[4].endKey, "2000-03-05")
-  assert.equal(months[0].endKey, "2000-02-28")
-  assert.equal(months[1].startKey, "2000-02-29")
-  assert.equal(segments.length, 2)
-  assert.deepEqual(segments.map(segment => [segment.sourceIndex, segment.targetIndex]), [
-    [4, 0],
-    [4, 1]
-  ])
-  assert.equal(segments[0].sourceStart, 0)
-  assert.equal(segments[0].sourceEnd, 1 / 7)
-  assert.equal(segments[0].targetStart, 28 / 29)
-  assert.equal(segments[0].targetEnd, 1)
-  assert.equal(segments[1].sourceStart, 1 / 7)
-  assert.equal(segments[1].sourceEnd, 1)
-  assert.equal(segments[1].targetStart, 0)
-  assert.equal(segments[1].targetEnd, 6 / 31)
-
-  const reverse = Model.projectionOverlapSegments(months, weeks, 0, 2, 4, 5)
-  assert.equal(reverse.length, 2)
-  assert.deepEqual(reverse.map(segment => [segment.sourceIndex, segment.targetIndex]), [
-    [0, 4],
-    [1, 4]
-  ])
-
-  assert.deepEqual(Model.projectionOverlapSegments(weeks, months, 0, 0, 0, 0), [])
-})
-
 test("the temporal viewport favors the future and clamps at both ends", () => {
   assert.equal(Model.temporalViewportStart(25, 77, 5), 23)
   assert.equal(Model.temporalViewportStart(30, 77, 24), 21)

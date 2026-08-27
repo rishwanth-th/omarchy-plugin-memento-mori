@@ -23,11 +23,10 @@ Flickable {
   property bool projectionToggleHovered: false
   property string morphFromProjection: ""
   property var morphFromCells: []
-  property var morphSegments: []
   property real morphProgress: 1
   property bool preparingMorph: false
   property bool reducedMotion: false
-  readonly property bool projectionMorphing: morphSegments.length > 0 && morphProgress < 1
+  readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
   readonly property var projectionStats: Model.projectionStats(cells, projection)
@@ -187,7 +186,6 @@ Flickable {
   function clearProjectionMorph() {
     morphFromProjection = ""
     morphFromCells = []
-    morphSegments = []
     lifeCanvas.requestPaint()
   }
 
@@ -210,21 +208,8 @@ Flickable {
 
     if (reducedMotion) return
 
-    var sourceColumns = columnsFor(sourceProjection)
-    var targetColumns = columnsFor(projection)
-    var sourceFirst = Math.max(0, firstVisibleIndexFor(sourceProjection) - sourceColumns)
-    var sourceLast = Math.min(sourceCells.length,
-      firstVisibleIndexFor(sourceProjection) + (visibleRowCount + 1) * sourceColumns)
-    var targetFirst = Math.max(0, firstVisibleIndexFor(projection) - targetColumns)
-    var targetLast = Math.min(cells.length,
-      firstVisibleIndexFor(projection) + (visibleRowCount + 1) * targetColumns)
-    var segments = Model.projectionOverlapSegments(sourceCells, cells,
-      sourceFirst, sourceLast, targetFirst, targetLast)
-
-    if (segments.length === 0) return
     morphFromProjection = sourceProjection
     morphFromCells = sourceCells
-    morphSegments = segments
     morphProgress = 0
     projectionMorphAnimation.start()
   }
@@ -579,32 +564,37 @@ Flickable {
 
       function paintProjectionMorph(ctx) {
         var t = Math.max(0, Math.min(1, root.morphProgress))
-        var sourceOpacity = Math.max(0, 1 - t * 2)
-        var targetOpacity = Math.max(0, t * 2 - 1)
-        var fragmentOpacity = Math.sin(Math.PI * t) * 0.82
+        var sourceLeft = root.gridOriginXFor(root.morphFromProjection)
+        var targetLeft = root.gridOriginXFor(root.projection)
+        var sourceRight = sourceLeft + root.gridWidthFor(root.morphFromProjection)
+        var targetRight = targetLeft + root.gridWidthFor(root.projection)
+        var left = sourceLeft + (targetLeft - sourceLeft) * t
+        var right = sourceRight + (targetRight - sourceRight) * t
+        var seamX = left + (right - left) * t
 
-        paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
-          sourceOpacity, -1)
+        // The two resolutions never overlap: superimposing 52 and 12 columns
+        // creates a moire fan even when every cell is stationary.
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(0, 0, Math.max(0, seamX), height)
+        ctx.clip()
+        paintProjection(ctx, root.projection, root.cells, 1, -1)
+        ctx.restore()
 
-        for (var i = 0; i < root.morphSegments.length; i++) {
-          var segment = root.morphSegments[i]
-          var sourceCell = root.morphFromCells[segment.sourceIndex]
-          var targetCell = root.cells[segment.targetIndex]
-          if (!sourceCell || !targetCell) continue
-          var sourceRect = root.segmentRect(root.morphFromProjection,
-            segment.sourceIndex, segment.sourceStart, segment.sourceEnd)
-          var targetRect = root.segmentRect(root.projection,
-            segment.targetIndex, segment.targetStart, segment.targetEnd)
-          var rect = {
-            x: sourceRect.x + (targetRect.x - sourceRect.x) * t,
-            y: sourceRect.y + (targetRect.y - sourceRect.y) * t,
-            width: sourceRect.width + (targetRect.width - sourceRect.width) * t,
-            height: sourceRect.height + (targetRect.height - sourceRect.height) * t
-          }
-          paintCell(ctx, targetCell, rect, fragmentOpacity, false)
-        }
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(seamX, 0, Math.max(0, width - seamX), height)
+        ctx.clip()
+        paintProjection(ctx, root.morphFromProjection, root.morphFromCells, 1, -1)
+        ctx.restore()
 
-        paintProjection(ctx, root.projection, root.cells, targetOpacity, -1)
+        // Mark the local change in resolution without implying that a week
+        // has one spatial destination inside a calendar month.
+        var seamAlpha = Math.sin(Math.PI * t) * 0.22
+        ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, seamAlpha)
+        ctx.fillRect(seamX, root.gridOriginY() - Style.space(2),
+          Style.spacing.hairline, root.gridHeight() + Style.space(4))
       }
 
       onPaint: {

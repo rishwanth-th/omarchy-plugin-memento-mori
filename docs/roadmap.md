@@ -37,18 +37,29 @@ month contains four weeks.
 
 ### Proposed grammar
 
-1. The stable source grid begins fading into exact date-overlap fragments.
-2. Each fragment moves into the proportional part of the destination interval
-   occupied by those same dates.
-3. A week crossing a month boundary may split across two month cells; the
-   reverse transition recombines those fragments into the week.
-4. The stable destination grid resolves over the moving fragments.
+1. A narrow resolution seam travels left-to-right across the stable grid.
+2. Ahead of the seam the source projection remains settled; behind it the
+   destination projection is already settled.
+3. Cells switch only at the seam. The two resolutions never overlap and cells
+   do not travel to a false one-to-one spatial destination.
+4. No fixed four-week grouping is shown: both endpoints retain their exact
+   birth-anchored week and calendar-month semantics.
 5. Axis precision switches with the destination while panel and viewport
    geometry remain fixed.
 
+### Rejected prototype
+
+Moving exact date-overlap fragments was mathematically faithful but visually
+false. Because 52-week life-year rows drift against birth-anchored calendar
+months, the fragments formed dense funnels across ages. Localizing that motion
+reduced its area but not its ambiguity; crossfading the two stationary grids
+still produced the same moire fan. The clean cutover keeps exact endpoints
+without claiming a spatial correspondence the grid does not possess.
+
 ### Acceptance
 
-- Both directions communicate containment and end on the unchanged V1 grids.
+- Both directions communicate one timeline at a different resolution and end
+  on the unchanged V1 grids.
 - No fixed four-week grouping or false calendar semantics.
 - Present, lived, and future states are exact at both endpoints.
 - `M →`, `1`, and `2` use the same transition.
