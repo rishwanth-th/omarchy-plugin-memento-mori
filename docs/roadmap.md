@@ -67,7 +67,7 @@ fragments into a stationary midpoint, holds that structure for roughly
 `104ms`, and then resolves it. It is educational and visually distinctive,
 but deliberately subordinate to the stable seam.
 
-- `3` alternates the motion style for subsequent `1` / `2` changes.
+- `A` alternates the motion style for subsequent `P` projection changes.
 - A triple-click on an otherwise inert grid region provides the pointer
   equivalent without colliding with the single-click projection cue.
 - The choice is session-only and adds no visible control or persisted setting.
@@ -97,8 +97,8 @@ nothing that emerged from Weeks and Months themselves. It was discarded.
   on the unchanged V1 grids.
 - No fixed four-week grouping or false calendar semantics.
 - Present, lived, and future states are exact at both endpoints.
-- `M →`, `1`, and `2` use the currently selected transition.
-- `3` and the grid triple-click change only motion style, never projection.
+- `M →` and `P` toggle projection using the currently selected transition.
+- `A` and the grid triple-click change only motion style, never projection.
 - Hit-testing pauses only during the short morph.
 - Rapid reversal creates no queued or orphaned animation.
 - Reduced motion can snap to the destination without a different layout.

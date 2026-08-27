@@ -302,9 +302,8 @@ Panel {
         if (root.showingLife) {
           if (t === "t" || t === "T") lifeView.resetToNow()
           else if (t === "m" || t === "M") root.showCalendar()
-          else if (t === "1") lifeView.setProjection("weeks")
-          else if (t === "2") lifeView.setProjection("months")
-          else if (t === "3") lifeView.toggleAnimationStyle()
+          else if (t === "p" || t === "P") lifeView.toggleProjection()
+          else if (t === "a" || t === "A") lifeView.toggleAnimationStyle()
           return
         }
         if (t === "m" || t === "M") root.showLife()

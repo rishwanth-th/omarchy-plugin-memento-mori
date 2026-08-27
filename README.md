@@ -65,9 +65,9 @@ omarchy plugin enable rishwanth.memento-mori --section center
 5. Press Enter, then press `M` or click the LIFE rail.
 
 Inside Memento Mori, scroll or use the arrow keys to move the attention
-window. Click `M →`, or press `1` / `2`, to switch between Weeks and Months.
-Press `M` to return to Calendar.
-Press `3`, or triple-click an otherwise inert part of the grid, to alternate
+window. Click `M →`, or press `P`, to toggle between Weeks and Months. Press
+`M` to return to Calendar.
+Press `A`, or triple-click an otherwise inert part of the grid, to alternate
 between the calm projection seam and the exact date-overlap interference
 animation. The calm seam remains the startup default. Press `T` or Enter to
 return to the present.

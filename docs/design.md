@@ -47,7 +47,8 @@ rather than twelve repeated abbreviations.
 - Weeks and Months are the only grid resolutions. Years remains legible as
   sparse ticks on the LIFE rail instead of becoming a third grid mode.
 - Clicking the tiny `M →` cue toggles resolution in place. Keyboard shortcuts
-  `1` and `2` remain available without a permanent mode bar.
+  use `P` for the same reversible projection action without a permanent mode
+  bar.
 
 ## Attention window
 
@@ -108,11 +109,12 @@ finishes in `360ms`, never overlays the two settled grids, and preserves the
 panel, viewport, axes, row stride, and present anchor.
 
 An exact date-overlap interference lens is retained as a session-only motion
-alternative. Pressing `3`, or triple-clicking an otherwise inert part of the
+alternative. Pressing `A`, or triple-clicking an otherwise inert part of the
 grid, alternates the motion style without creating a third projection or a
-visible setting. `1` and `2` continue to select Weeks and Months. The lens
-splits intervals only at their real shared dates, holds their interference at
-a stable midpoint, and resolves in `520ms`. It is never persisted; the calm
+visible setting. `P` toggles Weeks and Months as one reversible projection
+action. The lens splits intervals only at their real shared dates, holds their
+interference at a stable midpoint, and resolves in `520ms`. It is never
+persisted; the calm
 seam remains the startup default.
 
 ## Implementation boundary
