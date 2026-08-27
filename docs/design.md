@@ -17,7 +17,9 @@ The clock must remain a clock.
 2. Double-clicking the year rail configures the exact local birth date and
    optional week horizon.
 3. The resulting LIFE rail is the entrance to Memento Mori.
-4. Clicking LIFE switches the same anchored panel to the finite timeline.
+4. Pressing `L` is the primary keyboard entrance; clicking LIFE is its direct
+   pointer equivalent. Both switch the same anchored panel to the finite
+   timeline.
 5. A visible back action returns to Calendar; Escape closes the panel.
 
 The LIFE rail is shared across Calendar and Memento Mori. It always remains
