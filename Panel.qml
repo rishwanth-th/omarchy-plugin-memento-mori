@@ -301,6 +301,7 @@ Panel {
       onTextKey: function(t) {
         if (root.showingLife) {
           if (t === "t" || t === "T") lifeView.resetToNow()
+          else if (t === "m" || t === "M") root.showCalendar()
           else if (t === "1") lifeView.setProjection("weeks")
           else if (t === "2") lifeView.setProjection("months")
           else if (t === "3") lifeView.toggleAnimationStyle()

@@ -18,9 +18,9 @@ The clock must remain a clock.
    optional week horizon.
 3. The resulting LIFE rail is the entrance to Memento Mori.
 4. `H/J/K/L` retain the inherited Calendar navigation grammar. Pressing `M`
-   for Memento Mori is the primary keyboard entrance; clicking LIFE is its
-   direct pointer equivalent. Both switch the same anchored panel to the
-   finite timeline.
+   for Memento Mori toggles the anchored panel between Calendar and the finite
+   timeline. Clicking LIFE enters through the same path; the visible back
+   action is the direct pointer return.
 5. A visible back action returns to Calendar; Escape closes the panel.
 
 The LIFE rail is shared across Calendar and Memento Mori. It always remains

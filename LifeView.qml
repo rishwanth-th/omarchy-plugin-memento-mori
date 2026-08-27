@@ -227,7 +227,7 @@ Flickable {
     cancelEntrance()
     finishProjectionMorph()
     entranceFull = fullEntrance === true
-    entranceRailProgress = entranceFull ? 0 : 1
+    entranceRailProgress = 0
     entranceGuideProgress = 0
     entranceAnimating = true
     lifeCanvas.requestPaint()
@@ -576,14 +576,30 @@ Flickable {
     onFinished: root.completeEntrance()
   }
 
-  NumberAnimation {
+  ParallelAnimation {
     id: repeatEntranceAnimation
-    target: root
-    property: "entranceGuideProgress"
-    from: 0
-    to: 1
-    duration: 160
-    easing.type: Easing.OutCubic
+
+    NumberAnimation {
+      target: root
+      property: "entranceRailProgress"
+      from: 0
+      to: 1
+      duration: 320
+      easing.type: Easing.OutCubic
+    }
+
+    SequentialAnimation {
+      PauseAnimation { duration: 160 }
+      NumberAnimation {
+        target: root
+        property: "entranceGuideProgress"
+        from: 0
+        to: 1
+        duration: 160
+        easing.type: Easing.OutCubic
+      }
+    }
+
     onFinished: root.completeEntrance()
   }
 

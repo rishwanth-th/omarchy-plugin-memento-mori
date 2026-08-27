@@ -129,9 +129,12 @@ pretend to animate thousands of off-screen cells.
   immediately. The motion explains passage without withholding the answer.
 - The present cell's two coordinate guides resolve during the final `160ms`,
   handing attention from the global rail to the local viewport.
-- Repeat entrances skip the global sweep and use only the short guide settle.
-- Calendar remains keyboard-first: `M` enters LIFE, while clicking the rail is
-  the direct pointer equivalent. Both invoke the same entrance grammar.
+- Repeat entrances retain the same global-to-local story in a shorter `320ms`
+  sweep, with the guide handoff occupying the final `160ms`. The transition
+  remains perceptible without repeating the full first-session timing.
+- Calendar remains keyboard-first: `M` toggles Calendar and LIFE. Clicking the
+  rail enters through the same path, while the visible back action is the
+  direct pointer return.
 - Closing or interacting mid-sweep cancels stale motion. An interrupted first
   entrance does not count as completed and may replay next time.
 - Changing birth date or horizon rearms the full entrance. Reduced motion
