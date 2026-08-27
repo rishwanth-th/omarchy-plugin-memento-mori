@@ -405,15 +405,75 @@ Flickable {
       readonly property var readout: Model.projectionReadoutParts(cell, root.projection, root.today)
 
       Text {
-        id: dateReadout
-        width: parent.width
-        anchors.verticalCenter: parent.verticalCenter
-        horizontalAlignment: Text.AlignHCenter
-        text: readoutRow.readout ? readoutRow.readout.date : ""
-        color: root.foreground
+        id: datePrefixMeasure
+        visible: false
+        text: "31 DEC 2099–31"
         font.family: root.fontFamily
         font.pixelSize: Style.font.bodySmall
-        elide: Text.ElideRight
+      }
+
+      Text {
+        id: dateMonthMeasure
+        visible: false
+        text: "SEP"
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.bodySmall
+      }
+
+      Text {
+        id: dateYearMeasure
+        visible: false
+        text: "2099"
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.bodySmall
+      }
+
+      Row {
+        id: dateReadout
+        anchors.centerIn: parent
+        spacing: Style.space(4)
+
+        Item {
+          width: datePrefixMeasure.implicitWidth
+          height: datePrefix.implicitHeight
+
+          Text {
+            id: datePrefix
+            anchors.right: parent.right
+            text: readoutRow.readout ? readoutRow.readout.datePrefix : ""
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
+        }
+
+        Item {
+          width: dateMonthMeasure.implicitWidth
+          height: dateMonth.implicitHeight
+
+          Text {
+            id: dateMonth
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: readoutRow.readout ? readoutRow.readout.dateMonth : ""
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
+        }
+
+        Item {
+          width: dateYearMeasure.implicitWidth
+          height: dateYear.implicitHeight
+
+          Text {
+            id: dateYear
+            anchors.left: parent.left
+            text: readoutRow.readout ? readoutRow.readout.dateYear : ""
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
+        }
       }
     }
 

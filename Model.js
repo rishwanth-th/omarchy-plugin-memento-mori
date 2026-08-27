@@ -321,18 +321,31 @@ function formatDateRange(start, end) {
 
 // The split grid readout keeps exact calendar time (always including year)
 // apart from life-relative AGE and PAST/PRESENT/FUTURE context.
-function compactDateRange(startKey, endKey) {
+function compactDateRangeParts(startKey, endKey) {
   var start = dateFromKey(startKey)
   var end = dateFromKey(endKey)
-  if (!start || !end) return ""
+  if (!start || !end) return { prefix: "", month: "", year: "", date: "" }
   var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-  var suffix = " " + end.getFullYear()
+  var prefix = ""
   if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth())
-    return start.getDate() + "–" + end.getDate() + " " + months[start.getMonth()] + suffix
-  if (start.getFullYear() === end.getFullYear())
-    return start.getDate() + " " + months[start.getMonth()] + "–" + end.getDate() + " " + months[end.getMonth()] + suffix
-  return start.getDate() + " " + months[start.getMonth()] + " " + start.getFullYear()
-    + "–" + end.getDate() + " " + months[end.getMonth()] + " " + end.getFullYear()
+    prefix = start.getDate() + "–" + end.getDate()
+  else if (start.getFullYear() === end.getFullYear())
+    prefix = start.getDate() + " " + months[start.getMonth()] + "–" + end.getDate()
+  else
+    prefix = start.getDate() + " " + months[start.getMonth()] + " "
+      + start.getFullYear() + "–" + end.getDate()
+  var month = months[end.getMonth()]
+  var year = String(end.getFullYear())
+  return {
+    prefix: prefix,
+    month: month,
+    year: year,
+    date: prefix + " " + month + " " + year
+  }
+}
+
+function compactDateRange(startKey, endKey) {
+  return compactDateRangeParts(startKey, endKey).date
 }
 
 function projectionReadout(cell, mode, today) {
@@ -343,6 +356,7 @@ function projectionReadout(cell, mode, today) {
 
 function projectionReadoutParts(cell, mode, today) {
   if (!cell) return ""
+  var date = compactDateRangeParts(cell.startKey, cell.endKey)
   var monthMode = mode === "months"
   var span = monthMode ? 12 : 52
   var offset = Math.max(0, Math.floor(Number(cell.index) || 0))
@@ -350,7 +364,10 @@ function projectionReadoutParts(cell, mode, today) {
   var position = (monthMode ? "MONTH " : "WEEK ") + (offset % span + 1)
   var statuses = { lived: "PAST", current: "PRESENT", future: "FUTURE" }
   return {
-    date: compactDateRange(cell.startKey, cell.endKey),
+    date: date.date,
+    datePrefix: date.prefix,
+    dateMonth: date.month,
+    dateYear: date.year,
     position: position,
     age: "AGE " + age,
     status: statuses[cell.status] || String(cell.status || "").toUpperCase()
