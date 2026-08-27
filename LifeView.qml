@@ -29,7 +29,7 @@ Flickable {
   property var morphTargetRects: []
   property real morphProgress: 1
   property bool morphUsesDateOverlap: false
-  property real entrancePassageProgress: 1
+  property real entranceFocusProgress: 1
   property real entranceLabelProgress: 1
   property real entranceGuideProgress: 1
   property bool entranceAnimating: false
@@ -228,7 +228,7 @@ Flickable {
     cancelEntrance()
     finishProjectionMorph()
     entranceFull = fullEntrance === true
-    entrancePassageProgress = 0
+    entranceFocusProgress = 0
     entranceLabelProgress = 0
     entranceGuideProgress = 0
     entranceAnimating = true
@@ -247,7 +247,7 @@ Flickable {
 
   function completeEntrance() {
     var completedFullEntrance = entranceFull
-    entrancePassageProgress = 1
+    entranceFocusProgress = 1
     entranceLabelProgress = 1
     entranceGuideProgress = 1
     entranceAnimating = false
@@ -259,7 +259,7 @@ Flickable {
   function cancelEntrance() {
     if (fullEntranceAnimation.running) fullEntranceAnimation.stop()
     if (repeatEntranceAnimation.running) repeatEntranceAnimation.stop()
-    entrancePassageProgress = 1
+    entranceFocusProgress = 1
     entranceLabelProgress = 1
     entranceGuideProgress = 1
     entranceAnimating = false
@@ -550,38 +550,33 @@ Flickable {
   onHorizonWeeksChanged: refreshCells(true)
   onWidthChanged: lifeCanvas.requestPaint()
   onMorphProgressChanged: lifeCanvas.requestPaint()
+  onEntranceFocusProgressChanged: lifeCanvas.requestPaint()
   onEntranceGuideProgressChanged: lifeCanvas.requestPaint()
   Component.onCompleted: refreshCells(true)
 
   ParallelAnimation {
     id: fullEntranceAnimation
 
-    SequentialAnimation {
-      PauseAnimation { duration: 60 }
-      NumberAnimation {
-        target: root
-        property: "entrancePassageProgress"
-        from: 0
-        to: 1
-        duration: 420
-        easing.type: Easing.InOutCubic
-      }
+    NumberAnimation {
+      target: root
+      property: "entranceFocusProgress"
+      from: 0
+      to: 1
+      duration: 320
+      easing.type: Easing.InOutCubic
+    }
+
+    NumberAnimation {
+      target: root
+      property: "entranceLabelProgress"
+      from: 0
+      to: 1
+      duration: 320
+      easing.type: Easing.InOutCubic
     }
 
     SequentialAnimation {
-      PauseAnimation { duration: 60 }
-      NumberAnimation {
-        target: root
-        property: "entranceLabelProgress"
-        from: 0
-        to: 1
-        duration: 420
-        easing.type: Easing.InOutCubic
-      }
-    }
-
-    SequentialAnimation {
-      PauseAnimation { duration: 320 }
+      PauseAnimation { duration: 160 }
       NumberAnimation {
         target: root
         property: "entranceGuideProgress"
@@ -598,32 +593,26 @@ Flickable {
   ParallelAnimation {
     id: repeatEntranceAnimation
 
-    SequentialAnimation {
-      PauseAnimation { duration: 60 }
-      NumberAnimation {
-        target: root
-        property: "entrancePassageProgress"
-        from: 0
-        to: 1
-        duration: 320
-        easing.type: Easing.InOutCubic
-      }
+    NumberAnimation {
+      target: root
+      property: "entranceFocusProgress"
+      from: 0
+      to: 1
+      duration: 240
+      easing.type: Easing.InOutCubic
+    }
+
+    NumberAnimation {
+      target: root
+      property: "entranceLabelProgress"
+      from: 0
+      to: 1
+      duration: 240
+      easing.type: Easing.InOutCubic
     }
 
     SequentialAnimation {
-      PauseAnimation { duration: 60 }
-      NumberAnimation {
-        target: root
-        property: "entranceLabelProgress"
-        from: 0
-        to: 1
-        duration: 320
-        easing.type: Easing.InOutCubic
-      }
-    }
-
-    SequentialAnimation {
-      PauseAnimation { duration: 220 }
+      PauseAnimation { duration: 80 }
       NumberAnimation {
         target: root
         property: "entranceGuideProgress"
@@ -721,8 +710,6 @@ Flickable {
       animateProgressChanges: !root.entranceAnimating
       segmentProgress: root.stats.progress
       segmentOpacity: root.entranceLabelProgress
-      passageProgress: root.entrancePassageProgress
-      passageActive: root.entranceAnimating
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " " + root.projectionStats.unit + " lived"
       remainingLabel: root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)
@@ -829,7 +816,12 @@ Flickable {
             root.foreground.b, 0.34 * alpha)
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
         } else if (cell.status === "current") {
-          ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b, alpha)
+          // Calendar already establishes the global present. LIFE adds its
+          // local coordinate, so the cell resolves from quiet to exact rather
+          // than replaying time from birth.
+          var presentAlpha = 0.35 + 0.65 * root.entranceFocusProgress
+          ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b,
+            alpha * presentAlpha)
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
         } else {
           ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
@@ -1089,15 +1081,20 @@ Flickable {
           var guideX = originX + root.columnOffset(guideColumn) + cellWidth / 2
           var guideY = originY + root.rowOffset(guideRow) + cellHeight / 2
           var guideColor = guides[g].current ? Color.accent : root.foreground
-          var guideOpacity = guides[g].current
-            ? 0.32 * root.entranceGuideProgress
-            : 0.26
+          var guideOpacity = guides[g].current ? 0.32 : 0.26
+          var guideProgress = guides[g].current
+            ? root.entranceGuideProgress
+            : 1
+          var horizontalLength = Math.max(0,
+            guideX - originX + Style.space(3))
+          var verticalLength = Math.max(0,
+            guideY - originY + Style.space(6))
           ctx.fillStyle = Qt.rgba(guideColor.r, guideColor.g, guideColor.b,
             guideOpacity)
           ctx.fillRect(originX - Style.space(3), guideY,
-            Math.max(0, guideX - originX + Style.space(3)), Style.spacing.hairline)
+            horizontalLength * guideProgress, Style.spacing.hairline)
           ctx.fillRect(guideX, originY - Style.space(6), Style.spacing.hairline,
-            Math.max(0, guideY - originY + Style.space(6)))
+            verticalLength * guideProgress)
         }
 
         if (root.projectionMorphing) paintProjectionMorph(ctx)

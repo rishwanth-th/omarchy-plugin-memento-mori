@@ -121,23 +121,22 @@ present cell and its two guide lines resolve into place.
 The rail should tell the whole-horizon story; the compact viewport should not
 pretend to animate thousands of off-screen cells.
 
-### Prototype 1 — global passage, local settle
+### Prototype 1 — settled summary, local focus
 
 - The Calendar rail and LIFE rail remain settled at the same exact progress;
   entrance never rewinds the visible timeline from present back to birth.
-- On the first completed LIFE entrance of a shell session, a subordinate
-  passage tracer holds at birth for `60ms`, then travels through lived time
-  toward the stationary present marker over `420ms` using InOutCubic timing.
-  It dissolves as it arrives so the real present remains the only accent.
+- A birth-to-present tracer was rejected after live review: it was not legible
+  without explanation, while making it stronger would compete with the true
+  present marker. The rail therefore remains a stable global summary.
 - Exact percentage, date readout, grid, and present cell are available
   immediately. Lived and remaining labels stay pinned to their final segment
-  geometry and brighten with the rail rather than sliding or reflowing.
-- The present cell's two coordinate guides resolve during the final `160ms`,
-  handing attention from the global rail to the local viewport.
-- Repeat entrances retain the same `60ms` hold and passage trace in a shorter
-  `320ms` sweep, with the guide handoff occupying the final `160ms`. The
-  transition remains perceptible without repeating the full first-session
-  timing or resetting settled state.
+  geometry and brighten without sliding or reflowing.
+- LIFE's genuinely new information is local: the present cell resolves from a
+  quiet accent to full intensity over `320ms`, while its coordinate guides draw
+  from the axes toward it during the final `160ms`.
+- Repeat entrances use a shorter `240ms` focus resolve, with the guide handoff
+  beginning after `80ms`. The transition remains perceptible without resetting
+  any settled state.
 - Calendar remains keyboard-first: `M` toggles Calendar and LIFE. Clicking the
   rail enters through the same path, while the visible back action is the
   direct pointer return.
