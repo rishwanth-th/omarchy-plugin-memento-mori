@@ -154,7 +154,7 @@ test("one exact temporal pin maps across projections without drifting", () => {
   assert.equal(Model.projectionIndexForDate(months, "2200-01-01"), -1)
 })
 
-test("temporal delta stays symmetric and follows the active projection", () => {
+test("live temporal inspection stays symmetric and follows the active projection", () => {
   const today = localDate(2026, 8, 28)
   const birth = "2001-08-23"
   const weeks = Model.projectionCells("weeks", birth, today, 4000)

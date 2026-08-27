@@ -153,51 +153,109 @@ compact viewport contains all 4,000 weeks.
 
 ## Workstream 3 — Temporal-distance pin
 
-**Status:** static proof of concept under live review. Tracked in DAZ-277.
+**Status:** live-measure and held-ruler experiment under live review. Tracked
+in DAZ-277.
 
-Clicking a cell may pin a deliberate comparison with the present. The LIFE
-rail would gain a quiet second marker and highlight only the segment between
-now and the selected interval. The existing exact-date readout remains the
-primary label; one concise delta may describe how far behind or ahead the
-selection lies.
+Clicking a cell pins one deliberate comparison with the present. The LIFE rail
+gains a quiet second marker and highlights only the segment between now and
+the selected interval. The existing exact-date readout remains the primary
+label.
 
 This is the purpose that may earn click interaction. Pinning is not a doorway
 to journaling, milestones, or a detail product.
 
-The first proof deliberately stops before motion and numbers. One exact date
-survives projection changes, its containing cell gains a quiet foreground
-outline, and the LIFE rail shows a subordinate marker plus only the segment
-between it and the accented present. Pointer click and the keyboard inspection
-cursor share the same single-pin state; leaving LIFE clears it.
+The static proof established that one exact date can survive projection
+changes, gain a quiet foreground outline, and form a subordinate LIFE segment
+without competing with the accented present. Pointer click and the keyboard
+inspection cursor share the same single-pin state; leaving LIFE clears it.
 
 The pin is a complete secondary coordinate rather than a floating mark. Its
 week/month value and age remain visible on the grid axes, and its life-year
-value remains visible on the LIFE scale. Duplicate coordinates collapse to one
-label, while the present keeps the only accent and hover remains subordinate.
+value remains visible on the LIFE scale. Duplicate coordinates collapse to
+one label, while the present keeps the only accent and inspection remains
+subordinate.
 
-### Questions
+### Rejected ownership — persistent pin sentence
 
-- Is the visual segment sufficient, or does a compact `+587 WEEKS` delta help?
-- Does the static cell-to-rail relationship read clearly enough to earn
-  further motion?
-- Is the keyboard cursor visually distinct enough from the deliberate pin?
-- After live review, should a compact numeric delta be tested or omitted?
+The first numeric proof placed `109 WEEKS AFTER NOW` or `105 WEEKS BEFORE NOW`
+permanently beside the unchanged centered date after pinning. Although its
+geometry stayed fixed and its arithmetic was exact, freezing a transient
+measurement made the pin compete with the date and merely preserve hover.
 
-### Active experiment — projection delta
+Live review retained the treatment but changed its owner. The sentence is
+useful while the pointer or keyboard cursor is moving because inspection is
+already transient and explicitly asks how the chosen interval relates to now.
+It must leave with inspection rather than become permanent dashboard copy.
 
-The discardable delta branch tests one fixed, right-aligned readout beside the
-unchanged centered date: `109 WEEKS AFTER NOW` or `105 WEEKS BEFORE NOW`.
-Weeks count weekly grid intervals and Months count exact birth-anchored monthly
-intervals. The geometry does not move, the wording is symmetric around now,
-and a pin inside the current interval shows no redundant zero delta.
+### Active experiment — live measure and held ruler
+
+The corrected proof assigns distinct jobs to inspection and pinning:
+
+1. Pointer hover and keyboard inspection show the exact date, coordinates, and
+   full projection-aware delta from the shared present origin.
+2. Clicking or pressing Enter holds that interval without freezing its prose
+   readout: a quiet cell outline, secondary axis coordinates, LIFE marker, and
+   present-to-pin segment remain while inspection moves elsewhere.
+3. Pin creation draws one restrained LIFE bridge from present to the held
+   point. Retargeting cancels stale motion and forms the new span once.
+4. Hovering the held cell or LIFE span recalls the same full delta through the
+   ordinary inspection grammar; no separate pin tooltip or countdown exists.
+5. Reduced motion resolves directly to the same held geometry.
+
+Weeks count weekly grid intervals and Months count exact birth-anchored
+calendar-month intervals. A pin inside the present interval produces no
+redundant zero delta.
+
+### Boundary — not multiple pins
+
+Present is an origin, inspection is a probe, and the pin is one held
+relationship. Multiple pins are not extra playfulness: useful marks would need
+names, editing, collision handling, keyboard traversal, deletion, and likely
+persistence. That is a separately justified personal-history plugin.
 
 ### Reject if
 
 - Pinning merely freezes hover without enabling comparison.
 - A second marker competes with the present accent.
 - The delta creates productivity pressure or countdown urgency.
+- A grid-spanning connector obscures cells or implies a path through
+  intervening intervals.
 
-## Workstream 4 — Hover-guide motion
+## Workstream 4 — Grid rhythm and contextual spacing
+
+**Status:** queued after the held-span workstream.
+
+Tim Urban's five-year row separation may make age groups more immediately
+legible. Because it changes geometry rather than decoration, it must be tested
+before later guide and viewport motion is refined.
+
+Two hypotheses remain deliberately separate:
+
+- A slightly larger horizontal gap after every five life-year rows is
+  semantically truthful in both projections.
+- Additional vertical grouping in Weeks must not suggest fixed calendar
+  months. The existing proportional month ticks may remain the most honest
+  expression; any column spacing needs an independently legible meaning.
+
+### Questions
+
+- Does five-year rhythm improve orientation inside the compact attention
+  window, or merely reduce useful row capacity?
+- Can the present retain a calm default position when variable row gaps are
+  introduced?
+- Do hit-testing, axis guides, wheel movement, pin coordinates, LIFE entrance,
+  and both projection transitions remain exact and stable?
+- Does the extra structure reduce moire, or create stronger accidental bands?
+
+### Reject if
+
+- The panel or grid changes dimensions.
+- Fewer visible rows make the viewport feel cramped.
+- Weeks imply false four-week months or calendar quarters.
+- Existing motion must distort exact temporal coordinates to accommodate the
+  gaps.
+
+## Workstream 5 — Hover-guide motion
 
 Hover should draw the foreground coordinate guides from the axes toward the
 inspected cell over a short, cancellable interval. The present accent and its
@@ -205,7 +263,8 @@ guides remain stationary.
 
 A traveling animation directly from the present to every hovered cell is not
 the default direction: it can imply that now moved and becomes noisy under
-rapid pointer motion. Temporal distance belongs to deliberate pinning.
+rapid pointer motion. Textual distance belongs to live inspection; the one
+retained spatial connection belongs to deliberate pinning.
 
 ### Reject if
 
@@ -213,7 +272,7 @@ rapid pointer motion. Temporal distance belongs to deliberate pinning.
 - Pointer movement leaves queued trails or stale guides.
 - Hover makes the present appear to move.
 
-## Workstream 5 — Viewport movement
+## Workstream 6 — Viewport movement
 
 Wheel and keyboard navigation may slide by one exact life-year row using a
 short, cancellable transition and a restrained edge response. It retains
@@ -222,7 +281,7 @@ stable dimensions and exact stopping positions.
 Inertial scrolling is intentionally excluded if it makes ages harder to land
 on. This is polish, not core meaning.
 
-## Workstream 6 — Transition light treatment
+## Workstream 7 — Transition light treatment
 
 **Status:** parked. Tracked in DAZ-276.
 
@@ -250,9 +309,10 @@ point; it cannot become an independent particle layer.
 1. Weeks ↔ Months semantic morph — complete.
 2. LIFE entrance — complete.
 3. Temporal-distance pin — next.
-4. Hover-guide motion.
-5. Viewport movement.
-6. Transition light treatment.
+4. Grid rhythm and contextual spacing.
+5. Hover-guide motion.
+6. Viewport movement.
+7. Transition light treatment.
 
 Only one workstream may change runtime behavior at a time. Each one receives
 its own live review before the next begins.

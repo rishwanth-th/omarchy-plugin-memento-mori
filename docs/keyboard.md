@@ -167,6 +167,12 @@ DAZ-277 currently implements this deliberately bounded grammar:
 7. The pinned identity is an exact date. Weeks and Months map that date into
    their containing interval without replacing it, so projection round trips
    cannot drift.
+8. Pointer hover and keyboard inspection are live temporal measures. Every
+   non-present inspected interval shows its exact projection-aware distance
+   from now for as long as that probe remains active.
+9. The pin is a held spatial measure, not frozen hover. Its quiet grid and LIFE
+   geometry remains while inspection moves elsewhere; hovering the held cell
+   or LIFE span recalls its full delta through the same inspection readout.
 
 `X` remains consumed and inert. No multi-pin accumulation, persisted state, or
-numeric delta is part of this proof of concept.
+personal-history annotation is part of this proof of concept.

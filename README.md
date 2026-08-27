@@ -17,7 +17,10 @@ without leaving the native panel.
   LIFE rail retains whole-horizon context.
 - Lived, present, and remaining time inherit the active Omarchy theme.
 - Hover resolves a cell to its exact date interval and coordinates on both
-  axes without adding a second tooltip.
+  axes, and continuously measures its active projection distance from now,
+  without adding a pointer-following tooltip.
+- One session-only pin can hold an interval as quiet grid and LIFE-rail
+  geometry while hover continues exploring from the same present origin.
 - The existing clock label, calendar, navigation, timezone action, and format
   cycling remain intact.
 - Birth date and horizon settings stay local. The plugin has no telemetry,
@@ -69,8 +72,8 @@ window. Click `M →`, or press `P`, to toggle between Weeks and Months. Press
 `M` to return to Calendar.
 Press `A`, or triple-click an otherwise inert part of the grid, to alternate
 between the calm projection seam and the exact date-overlap interference
-animation. The calm seam remains the startup default. Press `T` or Enter to
-return to the present.
+animation. The calm seam remains the startup default. Press `T` or Space to
+return inspection to now; press Enter to hold or retarget one temporal pin.
 
 The birth date and horizon are stored as widget settings in
 `~/.config/omarchy/shell.json`. Do not commit that file unchanged to a public

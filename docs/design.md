@@ -102,6 +102,38 @@ Scales provide orientation; hover provides precision:
 - Weeks: exact week interval, age, and week-in-life-year.
 - Months: exact calendar interval, age, and month-in-life-year.
 
+## Temporal roles and held span
+
+The interface has three temporal roles, not three competing pins:
+
+- **Present** is the permanent origin and the only accent.
+- **Inspection** is the transient pointer hover or keyboard cursor. It answers
+  "what is here, and how far is it from now?" through the shared date readout,
+  axes, foreground guides, and a live projection-aware delta.
+- **Hold** is one deliberate, session-only pin. It answers "keep this
+  relationship visible" through a quiet cell outline, complete secondary axis
+  coordinates, and the LIFE segment between that exact date and present.
+
+Inspection is the live temporal measure; hold is the retained spatial measure.
+The full `109 WEEKS AFTER NOW` treatment remains visible while a non-present
+cell is actively inspected, then leaves with the pointer or keyboard probe. A
+pin never freezes that transient sentence into the composition. It preserves
+the selected point and its relationship to the common present origin while
+inspection continues elsewhere.
+
+Pin creation draws one restrained bridge along the LIFE rail from present to
+the held point, then settles into quiet geometry. No direct diagonal crosses
+the grid: the LIFE rail can connect dates outside the attention viewport
+without turning intervening cells into a false path. Hovering the held cell or
+rail span naturally recalls its full delta through the same inspection
+grammar; the settled pin itself needs no second sentence.
+
+One exact date may be held at a time. Retargeting replaces it, leaving LIFE
+clears it, and projection changes map it into the containing week or month
+without changing its identity. Multiple pins, labels, chapters, annotations,
+or persistence would constitute a personal-history product and remain outside
+this plugin.
+
 ## V2 motion grammar
 
 Projection changes use a calm left-to-right resolution seam by default. It
@@ -131,6 +163,9 @@ persisted; the calm seam remains the startup default.
 - The fixed Canvas paints only the absolute rows in the current attention
   window; scrolling changes that window without resizing the panel.
 - Motion must preserve stable geometry and respect reduced-motion settings.
+- Row-group spacing must be derived from truthful age structure. Fixed gaps in
+  Weeks must not imply calendar-month boundaries that the birth-anchored model
+  does not contain.
 
 ## Non-goals
 

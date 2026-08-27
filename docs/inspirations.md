@@ -23,6 +23,29 @@ finite lifespan becoming graspable as a field of small marks.
 The plugin adapts that whole-life idea to a compact desktop widget rather than
 reproducing the article or its poster.
 
+Urban's writable calendar also suggests life chapters, turning points, and
+future goals. Those are evidence that personal landmarks can be meaningful,
+not a requirement that this compact widget store them. Memento Mori keeps one
+temporary held date for comparison; a collection of named landmarks would be
+a different product.
+
+The article's slightly stronger separation between five-year row groups is a
+useful contextual-spacing specimen. It groups truthful age intervals rather
+than pretending birth-anchored weeks align into fixed calendar months. A
+future geometry experiment may test that rhythm under the panel's fixed
+height, viewport, and hit-testing constraints.
+
+### Tim Urban — “The Tail End”
+
+[The Tail End](https://waitbutwhy.com/2015/12/the-tail-end.html) changes the
+unit of reflection from elapsed time to remaining experiences and time with
+particular people. Its lesson is that a life fraction and a relationship's
+remaining fraction can differ dramatically.
+
+That is a conceptual extension, not a pin feature. Supporting visits, seasons,
+books, relationships, or other estimated units would require personal inputs
+and assumptions that belong in a separately justified plugin or lens.
+
 ## Interaction and visual specimens
 
 ### Bryan Braun — “Your Life”
@@ -46,6 +69,25 @@ The [4000 Weeks extension](https://chromewebstore.google.com/detail/4000-weeks/n
 is a restraint specimen: the idea remains effective with almost no surrounding
 product machinery.
 
+### Interaction research
+
+Ben Shneiderman's [visual information-seeking
+mantra](https://drum.lib.umd.edu/items/cd983adb-568a-47d3-b43a-1d8d8b8c72f4/full)
+and Heer and Shneiderman's [interaction
+taxonomy](https://idl.uw.edu/papers/interactive-dynamics) distinguish stable
+overview and selection from details requested during inspection. That
+distinction informs the temporal grammar: present is the origin, hover or the
+keyboard cursor is a live measure from now, and one clicked date is a held
+spatial relationship. The full numerical sentence belongs to transient
+inspection; persistent selection retains geometry without freezing that detail
+into dashboard text.
+
+Research on [personal temporal
+landmarks](https://cutrell.org/papers/SISLandmarks_Interact2003.pdf) shows that
+meaningful events can improve orientation and recall. It also reinforces the
+boundary: once marks need names, memory, search, or persistence, the design has
+crossed from a finite-time reminder into a personal-history system.
+
 ## Implementation parent
 
 The native [`omarchy.clock`](https://github.com/basecamp/omarchy/tree/quattro/shell/plugins/panels/clock)
@@ -61,8 +103,10 @@ calendar application.
 ```text
 Four Thousand Weeks -> finite horizon
 Tim Urban           -> visual grammar
+The Tail End         -> alternative temporal units
 Bryan Braun         -> projection precedent
 In Weeks            -> low-noise inspection
+Interaction research-> overview, probe, and held selection
 Omarchy clock       -> native interaction and implementation
 ```
 
@@ -73,3 +117,8 @@ streaks, quotes, AI coaching, motivational notifications, loved-one counters,
 or generic productivity systems. Their presence elsewhere is not evidence
 that they belong here. A future experiment must independently earn any new
 concept before it enters the stable design.
+
+Multiple pins are subject to the same boundary. Without names they are
+ambiguous decoration; with names they quickly require editing, collision
+handling, navigation, deletion, and persistence. If that system ever earns a
+purpose, it should be designed as its own plugin rather than accumulated here.

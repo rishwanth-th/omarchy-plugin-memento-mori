@@ -47,6 +47,7 @@ Flickable {
   property string pinnedDateKey: ""
   property string keyboardDateKey: ""
   property bool keyboardInspecting: false
+  property real pinBridgeProgress: 1
   readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
 
@@ -59,6 +60,20 @@ Flickable {
   readonly property var pinDelta: Model.projectionDelta(cells, projection, pinnedDateKey)
   readonly property real pinProgress: Model.lifeProgressForDate(
     birthKey, pinnedDateKey, horizonWeeks)
+  readonly property int activeInspectionIndex: hoveredIndex >= 0
+    ? hoveredIndex
+    : (keyboardInspecting ? keyboardIndex : -1)
+  readonly property string activeInspectionDateKey: activeInspectionIndex >= 0
+      && activeInspectionIndex < cells.length
+    ? cells[activeInspectionIndex].startKey
+    : ""
+  readonly property var inspectionDelta: Model.projectionDelta(
+    cells, projection, activeInspectionDateKey)
+  readonly property var visibleDelta: lifeRail.pinHovered && hasPin
+    ? pinDelta
+    : inspectionDelta
+  readonly property bool deltaVisible: (activeInspectionIndex >= 0
+    || (lifeRail.pinHovered && hasPin)) && visibleDelta.configured
   readonly property int totalLifeYears: Math.max(1, Math.ceil(horizonWeeks / 52))
   readonly property int visibleYearCount: Math.min(compactYearSpan, totalLifeYears)
   readonly property int visibleYearStart: Math.max(0,
@@ -248,8 +263,20 @@ Flickable {
   }
 
   function clearPin() {
+    if (pinBridgeAnimation.running) pinBridgeAnimation.stop()
     pinnedDateKey = ""
+    pinBridgeProgress = 1
     lifeCanvas.requestPaint()
+  }
+
+  function startPinBridge() {
+    if (pinBridgeAnimation.running) pinBridgeAnimation.stop()
+    if (reducedMotion) {
+      pinBridgeProgress = 1
+      return
+    }
+    pinBridgeProgress = 0
+    pinBridgeAnimation.start()
   }
 
   function clearTemporalSelection() {
@@ -268,6 +295,7 @@ Flickable {
     }
     pinnedDateKey = cells[index].startKey
     keyboardDateKey = cells[index].startKey
+    startPinBridge()
     lifeCanvas.requestPaint()
     return true
   }
@@ -662,6 +690,13 @@ Flickable {
   onMorphProgressChanged: lifeCanvas.requestPaint()
   onEntranceFocusProgressChanged: lifeCanvas.requestPaint()
   onEntranceGuideProgressChanged: lifeCanvas.requestPaint()
+  onPinBridgeProgressChanged: lifeCanvas.requestPaint()
+  onReducedMotionChanged: {
+    if (reducedMotion && pinBridgeAnimation.running) {
+      pinBridgeAnimation.stop()
+      pinBridgeProgress = 1
+    }
+  }
   Component.onCompleted: refreshCells(true)
 
   ParallelAnimation {
@@ -769,6 +804,16 @@ Flickable {
   }
 
   NumberAnimation {
+    id: pinBridgeAnimation
+    target: root
+    property: "pinBridgeProgress"
+    from: 0
+    to: 1
+    duration: 220
+    easing.type: Easing.OutCubic
+  }
+
+  NumberAnimation {
     id: projectionMorphAnimation
     target: root
     property: "morphProgress"
@@ -858,6 +903,7 @@ Flickable {
       passageActive: root.entranceAnimating
       pinActive: root.hasPin && root.pinProgress >= 0
       pinProgress: Math.max(0, root.pinProgress)
+      pinRevealProgress: root.pinBridgeProgress
       previousLivedLabel: root.morphFromLivedLabel
       previousRemainingLabel: root.morphFromRemainingLabel
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
@@ -948,12 +994,12 @@ Flickable {
 
       Text {
         id: deltaReadout
-        visible: root.hasPin && root.pinDelta.configured
+        visible: root.deltaVisible
         anchors.right: parent.right
         anchors.rightMargin: Style.space(4)
         anchors.verticalCenter: parent.verticalCenter
         width: Style.space(150)
-        text: visible ? root.pinDelta.label : ""
+        text: visible ? root.visibleDelta.label : ""
         color: Qt.rgba(root.foreground.r, root.foreground.g,
           root.foreground.b, 0.72)
         font.family: root.fontFamily
@@ -1000,10 +1046,10 @@ Flickable {
 
         if (pinned && cell.status !== "current" && alpha >= 0.99) {
           ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-            root.foreground.b, 0.14)
+            root.foreground.b, 0.14 * root.pinBridgeProgress)
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
           ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-            root.foreground.b, 0.72)
+            root.foreground.b, 0.72 * root.pinBridgeProgress)
           ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
           var pinInset = ctx.lineWidth / 2
           ctx.strokeRect(rect.x + pinInset, rect.y + pinInset,
@@ -1299,7 +1345,7 @@ Flickable {
           var guideOpacity = guides[g].current ? 0.32 : (guides[g].pinned ? 0.28 : 0.18)
           var guideProgress = guides[g].current
             ? root.entranceGuideProgress
-            : 1
+            : (guides[g].pinned ? root.pinBridgeProgress : 1)
           var horizontalLength = Math.max(0,
             guideX - originX + Style.space(3))
           var verticalLength = Math.max(0,

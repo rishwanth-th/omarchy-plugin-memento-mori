@@ -422,10 +422,11 @@ function projectionIndexForDate(cells, value) {
   return -1
 }
 
-// Describe distance in the active projection rather than inventing one mixed
-// duration. Weeks count week cells; Months count exact birth-anchored calendar
-// cells. The wording is deliberately symmetric and neutral around now.
-function projectionDelta(cells, mode, pinnedDateKey) {
+// Describe one inspected or held date from the present in the active
+// projection rather than inventing one mixed duration. Weeks count week cells;
+// Months count exact birth-anchored calendar cells. The wording is deliberately
+// symmetric and neutral around now.
+function projectionDelta(cells, mode, dateKey) {
   var intervals = Array.isArray(cells) ? cells : []
   var presentIndex = -1
   for (var i = 0; i < intervals.length; i++) {
@@ -434,11 +435,11 @@ function projectionDelta(cells, mode, pinnedDateKey) {
       break
     }
   }
-  var pinnedIndex = projectionIndexForDate(intervals, pinnedDateKey)
-  if (presentIndex < 0 || pinnedIndex < 0 || pinnedIndex === presentIndex)
+  var targetIndex = projectionIndexForDate(intervals, dateKey)
+  if (presentIndex < 0 || targetIndex < 0 || targetIndex === presentIndex)
     return { configured: false, count: 0, direction: "", unit: "", label: "" }
 
-  var signedCount = pinnedIndex - presentIndex
+  var signedCount = targetIndex - presentIndex
   var count = Math.abs(signedCount)
   var singular = mode === "months" ? "MONTH" : "WEEK"
   var unit = count === 1 ? singular : singular + "S"

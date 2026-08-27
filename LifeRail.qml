@@ -21,6 +21,7 @@ Item {
   property bool passageActive: false
   property bool pinActive: false
   property real pinProgress: 0
+  property real pinRevealProgress: 1
   property string previousLivedLabel: ""
   property string previousRemainingLabel: ""
   property string livedLabel: ""
@@ -34,6 +35,7 @@ Item {
     Math.floor(horizonWeeks * Math.max(0, Math.min(1, progress)) / 52)))
   readonly property int pinYear: Math.max(0, Math.min(horizonYears,
     Math.floor(horizonWeeks * Math.max(0, Math.min(1, pinProgress)) / 52)))
+  readonly property bool pinHovered: pinSpanHover.containsMouse
 
   signal activated()
 
@@ -94,17 +96,19 @@ Item {
     }
 
     Rectangle {
+      id: pinSpan
       // A pin is a relationship to the present, not a second present. The
       // quiet span makes that relationship legible while accent remains
       // reserved for now.
+      readonly property real presentPoint: Math.max(0, Math.min(1, root.progress))
+      readonly property real targetPoint: Math.max(0, Math.min(1, root.pinProgress))
+      readonly property real reveal: Math.max(0, Math.min(1, root.pinRevealProgress))
+      readonly property real revealedPoint: presentPoint
+        + (targetPoint - presentPoint) * reveal
       visible: root.pinActive
-      x: Math.round(parent.width * Math.min(
-        Math.max(0, Math.min(1, root.progress)),
-        Math.max(0, Math.min(1, root.pinProgress))))
+      x: Math.round(parent.width * Math.min(presentPoint, revealedPoint))
       width: Math.max(Style.spacing.hairline,
-        Math.round(parent.width * Math.abs(
-          Math.max(0, Math.min(1, root.pinProgress))
-          - Math.max(0, Math.min(1, root.progress)))))
+        Math.round(parent.width * Math.abs(revealedPoint - presentPoint)))
       height: Math.max(Style.spacing.hairline, Style.space(2))
       anchors.verticalCenter: parent.verticalCenter
       color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
@@ -112,6 +116,7 @@ Item {
 
     Rectangle {
       visible: root.pinActive
+      opacity: Math.max(0, Math.min(1, root.pinRevealProgress))
       width: Math.max(Style.spacing.hairline, Style.space(2))
       height: parent.height + Style.space(4)
       x: Math.round(Math.max(0, Math.min(parent.width - width,
@@ -119,6 +124,57 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       radius: width / 2
       color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.72)
+    }
+
+    Item {
+      // A single subordinate tracer makes the direction of the held span
+      // legible, then disappears before the settled comparison is inspected.
+      readonly property real reveal: Math.max(0, Math.min(1, root.pinRevealProgress))
+      readonly property real presentPoint: Math.max(0, Math.min(1, root.progress))
+      readonly property real targetPoint: Math.max(0, Math.min(1, root.pinProgress))
+      readonly property real revealedPoint: presentPoint
+        + (targetPoint - presentPoint) * reveal
+      visible: root.pinActive && reveal > 0 && reveal < 1
+      width: Style.space(8)
+      height: parent.height
+      x: Math.round(Math.max(0, Math.min(parent.width - width,
+        parent.width * revealedPoint - width / 2)))
+      anchors.verticalCenter: parent.verticalCenter
+      opacity: Math.sin(Math.PI * reveal)
+
+      Rectangle {
+        anchors.fill: parent
+        radius: height / 2
+        color: root.foreground
+        opacity: 0.12
+      }
+
+      Rectangle {
+        anchors.centerIn: parent
+        width: Math.max(Style.spacing.hairline * 2, Style.space(2))
+        height: parent.height
+        radius: width / 2
+        color: root.foreground
+        opacity: 0.52
+      }
+    }
+
+    MouseArea {
+      id: pinSpanHover
+      enabled: root.pinActive
+      visible: root.pinActive
+      hoverEnabled: true
+      acceptedButtons: Qt.NoButton
+      x: Math.max(0, Math.round(parent.width * Math.min(
+        Math.max(0, Math.min(1, root.progress)),
+        Math.max(0, Math.min(1, root.pinProgress)))) - Style.space(5))
+      width: Math.min(parent.width - x, Math.max(Style.space(10),
+        Math.round(parent.width * Math.abs(
+          Math.max(0, Math.min(1, root.pinProgress))
+          - Math.max(0, Math.min(1, root.progress)))) + Style.space(10)))
+      y: -Style.space(5)
+      height: parent.height + Style.space(10)
+      cursorShape: containsMouse ? Qt.PointingHandCursor : Qt.ArrowCursor
     }
 
     Item {
@@ -242,6 +298,7 @@ Item {
           ? currentCenter - minimumSeparation
           : currentCenter + minimumSeparation)
       visible: root.pinActive && root.pinYear !== root.currentYear
+      opacity: Math.max(0, Math.min(1, root.pinRevealProgress))
       x: Math.max(0, Math.min(parent.width - width,
         Math.round(resolvedCenter - width / 2)))
       anchors.top: parent.top
