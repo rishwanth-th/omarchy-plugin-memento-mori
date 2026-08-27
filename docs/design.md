@@ -90,6 +90,12 @@ Crossing the tiny gaps between cells preserves the last hovered interval,
 avoiding a flash back to the present. Hover receives a crisp outline distinct
 from the filled present cell; V1 does not imply click or persistent selection.
 
+Opening LIFE begins from present even when the popup appears beneath a parked
+pointer. T or Space restores that same keyboard-owned present state. Hover
+takes ownership only after deliberate pointer movement, so a stationary mouse
+cannot immediately undo a reset or make reopening start from an accidental
+cell.
+
 Present retains accent ticks on both axes while hover adds foreground ticks
 without replacing them. When both points share an axis coordinate, the one
 accent tick remains rather than drawing competing labels in one place.
@@ -127,6 +133,12 @@ the grid: the LIFE rail can connect dates outside the attention viewport
 without turning intervening cells into a false path. Hovering the held cell or
 rail span naturally recalls its full delta through the same inspection
 grammar; the settled pin itself needs no second sentence.
+
+Horizontal keyboard traversal preserves one interval per deliberate press.
+During key repeat, its cadence is scaled by rendered cell stride, so traversing
+Months covers approximately the same visual distance per second as Weeks
+instead of racing across the twelve-column projection. Vertical movement
+remains one exact life-year row in either projection.
 
 One exact date may be held at a time. Retargeting replaces it, leaving LIFE
 clears it, and projection changes map it into the containing week or month

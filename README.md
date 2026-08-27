@@ -74,6 +74,8 @@ Press `A`, or triple-click an otherwise inert part of the grid, to alternate
 between the calm projection seam and the exact date-overlap interference
 animation. The calm seam remains the startup default. Press `T` or Space to
 return inspection to now; press Enter to hold or retarget one temporal pin.
+LIFE opens from present even if the pointer is already parked over the panel;
+move the pointer deliberately to hand inspection back to hover.
 
 The birth date and horizon are stored as widget settings in
 `~/.config/omarchy/shell.json`. Do not commit that file unchanged to a public

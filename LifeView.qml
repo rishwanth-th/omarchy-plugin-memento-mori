@@ -47,6 +47,15 @@ Flickable {
   property string pinnedDateKey: ""
   property string keyboardDateKey: ""
   property bool keyboardInspecting: false
+  property bool hoverArmed: false
+  property bool hoverReferenceValid: false
+  property real hoverReferenceX: 0
+  property real hoverReferenceY: 0
+  property double lastHorizontalMoveAt: 0
+  property double lastHorizontalRequestAt: 0
+  property real horizontalRepeatCadence: 30
+  property double inspectionMoveBlockedUntil: 0
+  property int pendingHorizontalDirection: 0
   property real pinBridgeProgress: 1
   readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
@@ -215,21 +224,25 @@ Flickable {
   function resetToNow(activateCursor) {
     if (entranceAnimating) cancelEntrance()
     finishProjectionMorph()
+    cancelPendingInspectionMove()
     windowYearStart = defaultWindowStart()
     contentY = 0
-    hoveredIndex = -1
+    disarmHover()
     keyboardInspecting = activateCursor === true
     keyboardDateKey = keyboardInspecting && presentCellIndex >= 0
       ? cells[presentCellIndex].startKey
       : ""
+    if (keyboardInspecting)
+      inspectionMoveBlockedUntil = Date.now() + horizontalTraversalInterval()
     lifeCanvas.requestPaint()
   }
 
   function panRows(delta) {
     if (entranceAnimating) cancelEntrance()
     finishProjectionMorph()
+    cancelPendingInspectionMove()
     windowYearStart = Math.max(0, Math.min(totalLifeYears - visibleYearCount, visibleYearStart + delta))
-    hoveredIndex = -1
+    disarmHover()
     keyboardInspecting = false
     keyboardDateKey = ""
     lifeCanvas.requestPaint()
@@ -245,7 +258,61 @@ Flickable {
       Math.min(totalLifeYears - visibleYearCount, windowYearStart))
   }
 
-  function moveInspection(dx, dy) {
+  function disarmHover() {
+    hoverArmed = false
+    hoveredIndex = -1
+    hoverReferenceValid = gridMouse.containsMouse
+    if (hoverReferenceValid) {
+      hoverReferenceX = gridMouse.mouseX
+      hoverReferenceY = gridMouse.mouseY
+    }
+  }
+
+  function hoverActivationDistance() {
+    return Math.max(Style.space(5), Style.spacing.hairline * 6)
+  }
+
+  function armHoverFromMotion(x, y) {
+    if (hoverArmed) return true
+    if (!hoverReferenceValid) {
+      hoverReferenceX = x
+      hoverReferenceY = y
+      hoverReferenceValid = true
+      return false
+    }
+    var dx = x - hoverReferenceX
+    var dy = y - hoverReferenceY
+    if (Math.sqrt(dx * dx + dy * dy) < hoverActivationDistance()) return false
+    hoverArmed = true
+    return true
+  }
+
+  function horizontalTraversalInterval() {
+    var weekStride = cellWidthFor("weeks") + columnGapFor("weeks")
+    var activeStride = cellWidthFor(projection) + columnGapFor(projection)
+    if (projection === "months") activeStride += quarterGapFor(projection) / 3
+    return Math.max(horizontalRepeatCadence, Math.min(240,
+      Math.round(horizontalRepeatCadence * activeStride / Math.max(1, weekStride))))
+  }
+
+  function noteHorizontalRequest(now) {
+    if (lastHorizontalRequestAt > 0) {
+      var gap = now - lastHorizontalRequestAt
+      // Ignore deliberate taps and scheduler noise. Auto-repeat events form a
+      // stable cadence that can be mapped through the rendered cell stride.
+      if (gap >= 8 && gap <= 120)
+        horizontalRepeatCadence = horizontalRepeatCadence * 0.65 + gap * 0.35
+    }
+    lastHorizontalRequestAt = now
+  }
+
+  function cancelPendingInspectionMove() {
+    pendingHorizontalDirection = 0
+    if (horizontalMoveTimer.running) horizontalMoveTimer.stop()
+    lastHorizontalMoveAt = 0
+  }
+
+  function performInspectionMove(dx, dy) {
     if (entranceAnimating) cancelEntrance()
     finishProjectionMorph()
     var base = keyboardInspecting && keyboardIndex >= 0
@@ -257,12 +324,40 @@ Flickable {
     if (target < 0 || target >= cells.length) return
     keyboardDateKey = cells[target].startKey
     keyboardInspecting = true
-    hoveredIndex = -1
+    disarmHover()
     ensureIndexVisible(target)
     lifeCanvas.requestPaint()
   }
 
+  function moveInspection(dx, dy) {
+    var now = Date.now()
+    if (now < inspectionMoveBlockedUntil) return
+    if (dx !== 0 && dy === 0) noteHorizontalRequest(now)
+    if (projection !== "months" || dx === 0 || dy !== 0) {
+      if (dy !== 0) cancelPendingInspectionMove()
+      performInspectionMove(dx, dy)
+      return
+    }
+
+    var interval = horizontalTraversalInterval()
+    if (lastHorizontalMoveAt === 0 || now - lastHorizontalMoveAt >= interval) {
+      pendingHorizontalDirection = 0
+      if (horizontalMoveTimer.running) horizontalMoveTimer.stop()
+      performInspectionMove(dx, 0)
+      lastHorizontalMoveAt = now
+      return
+    }
+
+    pendingHorizontalDirection = dx
+    if (!horizontalMoveTimer.running) {
+      horizontalMoveTimer.interval = Math.max(1,
+        Math.round(interval - (now - lastHorizontalMoveAt)))
+      horizontalMoveTimer.start()
+    }
+  }
+
   function clearPin() {
+    cancelPendingInspectionMove()
     if (pinBridgeAnimation.running) pinBridgeAnimation.stop()
     pinnedDateKey = ""
     pinBridgeProgress = 1
@@ -280,15 +375,19 @@ Flickable {
   }
 
   function clearTemporalSelection() {
+    cancelPendingInspectionMove()
     clearPin()
     keyboardInspecting = false
     keyboardDateKey = ""
-    hoveredIndex = -1
+    disarmHover()
     lifeCanvas.requestPaint()
   }
 
   function togglePinAtIndex(index) {
     if (index < 0 || index >= cells.length) return false
+    inspectionMoveBlockedUntil = Date.now()
+      + Math.max(120, horizontalTraversalInterval())
+    cancelPendingInspectionMove()
     if (cells[index].status === "current" || (hasPin && pinnedIndex === index)) {
       clearPin()
       return false
@@ -672,6 +771,7 @@ Flickable {
   }
 
   onProjectionChanged: {
+    cancelPendingInspectionMove()
     refreshCells(false)
     if (keyboardInspecting) ensureIndexVisible(keyboardIndex)
     else if (hasPin) ensureIndexVisible(pinnedIndex)
@@ -698,6 +798,19 @@ Flickable {
     }
   }
   Component.onCompleted: refreshCells(true)
+
+  Timer {
+    id: horizontalMoveTimer
+    repeat: false
+    onTriggered: {
+      var direction = root.pendingHorizontalDirection
+      root.pendingHorizontalDirection = 0
+      if (direction === 0 || root.projection !== "months"
+          || Date.now() < root.inspectionMoveBlockedUntil) return
+      root.performInspectionMove(direction, 0)
+      root.lastHorizontalMoveAt = Date.now()
+    }
+  }
 
   ParallelAnimation {
     id: fullEntranceAnimation
@@ -1381,6 +1494,7 @@ Flickable {
           ? Qt.PointingHandCursor
           : Qt.ArrowCursor
         onPositionChanged: function(mouse) {
+          if (!root.armHoverFromMotion(mouse.x, mouse.y)) return
           var overHorizontal = root.horizontalAxisContains(mouse.x, mouse.y)
           var overVertical = root.verticalAxisContains(mouse.x, mouse.y)
           var overToggle = root.projectionToggleContains(mouse.x, mouse.y)
@@ -1394,6 +1508,8 @@ Flickable {
           }
           var next = root.hitTest(mouse.x, mouse.y)
           if (next >= 0 && next !== root.hoveredIndex) {
+            root.keyboardInspecting = false
+            root.keyboardDateKey = ""
             root.hoveredIndex = next
             lifeCanvas.requestPaint()
           } else if (next < 0 && !root.gridContains(mouse.x, mouse.y)
@@ -1406,13 +1522,21 @@ Flickable {
           root.horizontalAxisHovered = false
           root.verticalAxisHovered = false
           root.projectionToggleHovered = false
-          root.hoveredIndex = -1
+          root.disarmHover()
           lifeCanvas.requestPaint()
         }
         onClicked: function(mouse) {
+          root.hoverArmed = true
+          root.hoverReferenceValid = true
+          root.hoverReferenceX = mouse.x
+          root.hoverReferenceY = mouse.y
           if (root.projectionToggleContains(mouse.x, mouse.y)) root.toggleProjection()
-          else if (root.hitTest(mouse.x, mouse.y) >= 0)
-            root.togglePinAtIndex(root.hitTest(mouse.x, mouse.y))
+          else if (root.hitTest(mouse.x, mouse.y) >= 0) {
+            root.keyboardInspecting = false
+            root.keyboardDateKey = ""
+            root.hoveredIndex = root.hitTest(mouse.x, mouse.y)
+            root.togglePinAtIndex(root.hoveredIndex)
+          }
           else if (root.gridContains(mouse.x, mouse.y))
             root.registerAnimationTap(mouse.x, mouse.y)
         }

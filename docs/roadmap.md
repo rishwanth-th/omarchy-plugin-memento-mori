@@ -201,6 +201,11 @@ The corrected proof assigns distinct jobs to inspection and pinning:
 4. Hovering the held cell or LIFE span recalls the same full delta through the
    ordinary inspection grammar; no separate pin tooltip or countdown exists.
 5. Reduced motion resolves directly to the same held geometry.
+6. Opening and T/Space begin from present without inheriting a parked pointer;
+   deliberate mouse movement transfers inspection back to hover.
+7. Horizontal key repeat is normalized by rendered cell distance, preserving
+   one interval per deliberate press while giving Weeks and Months coherent
+   traversal speed.
 
 Weeks count weekly grid intervals and Months count exact birth-anchored
 calendar-month intervals. A pin inside the present interval produces no

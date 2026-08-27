@@ -262,6 +262,10 @@ Panel {
       keyboardInspecting: lifeView.keyboardInspecting,
       keyboardIndex: lifeView.keyboardIndex,
       hoveredIndex: lifeView.hoveredIndex,
+      hoverArmed: lifeView.hoverArmed,
+      horizontalRepeatCadence: lifeView.horizontalRepeatCadence,
+      horizontalTraversalInterval: lifeView.horizontalTraversalInterval(),
+      inspectionMoveBlocked: Date.now() < lifeView.inspectionMoveBlockedUntil,
       pinnedDateKey: lifeView.pinnedDateKey,
       pinnedIndex: lifeView.pinnedIndex,
       inspectionDeltaLabel: lifeView.inspectionDelta.label,
@@ -334,7 +338,7 @@ Panel {
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) {
         if (root.showingLife) {
-          if (t === "t" || t === "T") lifeView.resetToNow()
+          if (t === "t" || t === "T") lifeView.resetToNow(true)
           else if (t === "m" || t === "M") root.showCalendar()
           else if (t === "p" || t === "P") lifeView.toggleProjection()
           else if (t === "a" || t === "A") lifeView.toggleAnimationStyle()

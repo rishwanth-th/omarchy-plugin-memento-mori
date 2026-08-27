@@ -112,6 +112,17 @@ fields.
 - The pin is session-only. Leaving LIFE clears it; it is never written to
   settings.
 
+### Inspection ownership and pacing
+
+- LIFE opens with present as the semantic starting point. A pointer already
+  parked over the popup does not activate hover until it moves deliberately.
+- `T` and Space restore keyboard inspection to present and disarm inherited
+  hover. Deliberate pointer movement hands inspection back to hover.
+- One horizontal press always moves one projected interval. Held-key repeat is
+  paced by rendered cell distance, so Months and Weeks traverse the grid at a
+  coherent visual speed despite their different column widths.
+- Vertical movement remains one life-year row per press in both projections.
+
 ## Current key budget
 
 The following constraints apply before adding another interaction:
@@ -173,6 +184,9 @@ DAZ-277 currently implements this deliberately bounded grammar:
 9. The pin is a held spatial measure, not frozen hover. Its quiet grid and LIFE
    geometry remains while inspection moves elsewhere; hovering the held cell
    or LIFE span recalls its full delta through the same inspection readout.
+10. Opening and T/Space begin from present with hover disarmed; pointer motion
+    must deliberately reclaim inspection. Horizontal repeat cadence is
+    projection-aware so Months does not visually outrun Weeks.
 
 `X` remains consumed and inert. No multi-pin accumulation, persisted state, or
 personal-history annotation is part of this proof of concept.
