@@ -56,6 +56,28 @@ reduced its area but not its ambiguity; crossfading the two stationary grids
 still produced the same moire fan. The clean cutover keeps exact endpoints
 without claiming a spatial correspondence the grid does not possess.
 
+### Candidate refinement — temporal lens
+
+Raw moire is not a dependable design material: its apparent movement changes
+with pixel density, scaling, capture, and theme contrast. The next prototype
+may preserve its sense of interference without superimposing the two grids.
+
+A narrow lens would travel left-to-right:
+
+1. Ahead of the lens, source cells remain fully settled.
+2. Entering the lens, cells collapse vertically into a quiet horizontal
+   filament for each life-year row.
+3. A broad, low-opacity shimmer may travel inside the neutral filament. It
+   must use coarse spacing rather than fine alternating lines, so it cannot
+   alias into accidental moire.
+4. Leaving the lens, destination cells expand from the same row filament.
+5. Source and destination grids are never visible in the same pixels.
+
+The shared filament is semantically neutral: it represents the continuous
+timeline beneath both sampling resolutions without claiming that particular
+weeks belong to a particular month cell. The current clean cutover remains the
+fallback if the lens feels ornamental or delays recognition.
+
 ### Acceptance
 
 - Both directions communicate one timeline at a different resolution and end
