@@ -395,6 +395,75 @@ function projectionStats(cells, mode) {
   }
 }
 
+// Split source intervals by exact date overlap. The fractions tile each
+// inclusive interval without pretending that calendar months contain a fixed
+// number of weeks. Their changing row alignment is the mathematical source
+// of the interference pattern used by the DAZ-274 experiment.
+function projectionOverlapSegments(sourceCells, targetCells,
+                                   sourceFirst, sourceLast,
+                                   targetFirst, targetLast) {
+  var sources = Array.isArray(sourceCells) ? sourceCells : []
+  var targets = Array.isArray(targetCells) ? targetCells : []
+  var parsedSourceFirst = Number(sourceFirst)
+  var parsedSourceLast = Number(sourceLast)
+  var parsedTargetFirst = Number(targetFirst)
+  var parsedTargetLast = Number(targetLast)
+  var sourceStart = Math.max(0, Math.min(sources.length,
+    isFinite(parsedSourceFirst) ? Math.floor(parsedSourceFirst) : 0))
+  var sourceEnd = Math.max(sourceStart, Math.min(sources.length,
+    isFinite(parsedSourceLast) ? Math.floor(parsedSourceLast) : sources.length))
+  var targetStart = Math.max(0, Math.min(targets.length,
+    isFinite(parsedTargetFirst) ? Math.floor(parsedTargetFirst) : 0))
+  var targetEnd = Math.max(targetStart, Math.min(targets.length,
+    isFinite(parsedTargetLast) ? Math.floor(parsedTargetLast) : targets.length))
+  var segments = []
+  var targetCursor = targetStart
+
+  for (var sourceIndex = sourceStart; sourceIndex < sourceEnd; sourceIndex++) {
+    var sourceCell = sources[sourceIndex]
+    var sourceStartDate = dateFromKey(sourceCell.startKey)
+    var sourceEndDate = dateFromKey(sourceCell.endKey)
+    if (!sourceStartDate || !sourceEndDate) continue
+    var sourceStartDay = utcDayNumber(sourceStartDate)
+    var sourceEndDay = utcDayNumber(sourceEndDate)
+    var sourceDays = sourceEndDay - sourceStartDay + 1
+    if (sourceDays <= 0) continue
+
+    while (targetCursor < targetEnd) {
+      var cursorEnd = dateFromKey(targets[targetCursor].endKey)
+      if (cursorEnd && utcDayNumber(cursorEnd) >= sourceStartDay) break
+      targetCursor++
+    }
+
+    for (var targetIndex = targetCursor; targetIndex < targetEnd; targetIndex++) {
+      var targetCell = targets[targetIndex]
+      var targetStartDate = dateFromKey(targetCell.startKey)
+      var targetEndDate = dateFromKey(targetCell.endKey)
+      if (!targetStartDate || !targetEndDate) continue
+      var targetStartDay = utcDayNumber(targetStartDate)
+      var targetEndDay = utcDayNumber(targetEndDate)
+      if (targetStartDay > sourceEndDay) break
+
+      var overlapStart = Math.max(sourceStartDay, targetStartDay)
+      var overlapEnd = Math.min(sourceEndDay, targetEndDay)
+      if (overlapStart > overlapEnd) continue
+      var targetDays = targetEndDay - targetStartDay + 1
+      if (targetDays <= 0) continue
+
+      segments.push({
+        sourceIndex: sourceIndex,
+        targetIndex: targetIndex,
+        sourceStart: (overlapStart - sourceStartDay) / sourceDays,
+        sourceEnd: (overlapEnd - sourceStartDay + 1) / sourceDays,
+        targetStart: (overlapStart - targetStartDay) / targetDays,
+        targetEnd: (overlapEnd - targetStartDay + 1) / targetDays
+      })
+    }
+  }
+
+  return segments
+}
+
 function projectionCells(mode, birthKey, today, horizonValue) {
   var now = today instanceof Date ? today : new Date()
   var normalizedBirth = parseBirthDate(birthKey, now)
@@ -538,6 +607,7 @@ if (typeof module !== "undefined") {
     projectionReadout: projectionReadout,
     projectionReadoutParts: projectionReadoutParts,
     projectionStats: projectionStats,
+    projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,
     temporalViewportStart: temporalViewportStart,
     monthGrid: monthGrid,

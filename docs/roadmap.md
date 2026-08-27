@@ -29,13 +29,14 @@ here with a short reason so the same ambiguity is not rediscovered.
 
 ## Workstream 1 — Weeks ↔ Months semantic morph
 
-**Status:** first V2 experiment, tracked in DAZ-272.
+**Status:** stable seam retained as the default; exact-overlap interference
+retained as an optional session lens. Tracked in DAZ-272 and DAZ-274.
 
 Weeks and Months are two resolutions of one exact birth-anchored timeline.
 Their transition should disclose that containment without pretending every
 month contains four weeks.
 
-### Proposed grammar
+### Stable grammar
 
 1. A narrow resolution seam travels left-to-right across the stable grid.
 2. Ahead of the seam the source projection remains settled; behind it the
@@ -47,22 +48,31 @@ month contains four weeks.
 5. Axis precision switches with the destination while panel and viewport
    geometry remain fixed.
 
-### Rejected prototype
+### Why the seam remains the default
 
-Moving exact date-overlap fragments was mathematically faithful but visually
-false. Because 52-week life-year rows drift against birth-anchored calendar
-months, the fragments formed dense funnels across ages. Localizing that motion
-reduced its area but not its ambiguity; crossfading the two stationary grids
-still produced the same moire fan. The clean cutover keeps exact endpoints
-without claiming a spatial correspondence the grid does not possess.
+Because 52-week life-year rows drift against birth-anchored calendar months,
+moving exact overlap fragments forms dense interference fields across ages.
+Even when mathematically faithful, that motion asks for more attention than a
+frequently used widget transition should require. The clean cutover therefore
+remains the startup behavior and primary product expression.
 
-### Candidate refinement — temporal lens
+### Retained alternative — exact date-overlap lens
 
-Raw moire is not a dependable design material: its apparent movement changes
-with pixel density, scaling, capture, and theme contrast. The next prototype
-may preserve its sense of interference without superimposing the two grids.
+The DAZ-274 refinement precomputes every real date-overlap fragment, eases the
+fragments into a stationary midpoint, holds that structure for roughly
+`104ms`, and then resolves it. It is educational and visually distinctive,
+but deliberately subordinate to the stable seam.
 
-A narrow lens would travel left-to-right:
+- `3` alternates the motion style for subsequent `1` / `2` changes.
+- A triple-click on an otherwise inert grid region provides the pointer
+  equivalent without colliding with the single-click projection cue.
+- The choice is session-only and adds no visible control or persisted setting.
+- The annotated tag `experiment/date-overlap-interference-v1` preserves the
+  reviewed standalone specimen.
+
+### Rejected alternative — neutral filament lens
+
+A narrow lens was also tested in which:
 
 1. Ahead of the lens, source cells remain fully settled.
 2. Entering the lens, cells collapse vertically into a quiet horizontal
@@ -73,10 +83,9 @@ A narrow lens would travel left-to-right:
 4. Leaving the lens, destination cells expand from the same row filament.
 5. Source and destination grids are never visible in the same pixels.
 
-The shared filament is semantically neutral: it represents the continuous
-timeline beneath both sampling resolutions without claiming that particular
-weeks belong to a particular month cell. The current clean cutover remains the
-fallback if the lens feels ornamental or delays recognition.
+Although semantically neutral, the filament felt mechanically different but
+visually too close to the stable seam, while its independent shimmer taught
+nothing that emerged from Weeks and Months themselves. It was discarded.
 
 ### Acceptance
 
@@ -84,7 +93,8 @@ fallback if the lens feels ornamental or delays recognition.
   on the unchanged V1 grids.
 - No fixed four-week grouping or false calendar semantics.
 - Present, lived, and future states are exact at both endpoints.
-- `M →`, `1`, and `2` use the same transition.
+- `M →`, `1`, and `2` use the currently selected transition.
+- `3` and the grid triple-click change only motion style, never projection.
 - Hit-testing pauses only during the short morph.
 - Rapid reversal creates no queued or orphaned animation.
 - Reduced motion can snap to the destination without a different layout.

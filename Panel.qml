@@ -296,6 +296,7 @@ Panel {
           if (t === "t" || t === "T") lifeView.resetToNow()
           else if (t === "1") lifeView.setProjection("weeks")
           else if (t === "2") lifeView.setProjection("months")
+          else if (t === "3") lifeView.toggleAnimationStyle()
           return
         }
         if (t === "[") root.moveMonth(-1)

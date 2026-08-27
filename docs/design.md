@@ -98,6 +98,20 @@ Scales provide orientation; hover provides precision:
 - Weeks: exact week interval, age, and week-in-life-year.
 - Months: exact calendar interval, age, and month-in-life-year.
 
+## V2 motion grammar
+
+Projection changes use a calm left-to-right resolution seam by default. It
+finishes in `360ms`, never overlays the two settled grids, and preserves the
+panel, viewport, axes, row stride, and present anchor.
+
+An exact date-overlap interference lens is retained as a session-only motion
+alternative. Pressing `3`, or triple-clicking an otherwise inert part of the
+grid, alternates the motion style without creating a third projection or a
+visible setting. `1` and `2` continue to select Weeks and Months. The lens
+splits intervals only at their real shared dates, holds their interference at
+a stable midpoint, and resolves in `520ms`. It is never persisted; the calm
+seam remains the startup default.
+
 ## Implementation boundary
 
 - `horizonWeeks = 4000` is the default and core model.
