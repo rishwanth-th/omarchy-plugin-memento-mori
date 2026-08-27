@@ -24,11 +24,14 @@ Flickable {
   property string morphFromProjection: ""
   property var morphFromCells: []
   property var morphSegments: []
+  property var morphGeometry: []
+  property var morphSourceRects: []
+  property var morphTargetRects: []
   property real morphProgress: 1
   property bool preparingMorph: false
   property bool reducedMotion: false
   property bool dateOverlapEnabled: true
-  readonly property int projectionMorphDuration: dateOverlapEnabled ? 420 : 360
+  readonly property int projectionMorphDuration: dateOverlapEnabled ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
@@ -190,6 +193,9 @@ Flickable {
     morphFromProjection = ""
     morphFromCells = []
     morphSegments = []
+    morphGeometry = []
+    morphSourceRects = []
+    morphTargetRects = []
     lifeCanvas.requestPaint()
   }
 
@@ -229,6 +235,9 @@ Flickable {
     morphFromProjection = sourceProjection
     morphFromCells = sourceCells
     morphSegments = segments
+    morphGeometry = buildMorphGeometry(sourceProjection, sourceCells, segments)
+    morphSourceRects = visibleRectsFor(sourceProjection, sourceCells)
+    morphTargetRects = visibleRectsFor(projection, cells)
     morphProgress = 0
     projectionMorphAnimation.start()
   }
@@ -269,6 +278,34 @@ Flickable {
       width: Math.max(Style.spacing.hairline, width * (end - start)),
       height: cellHeight()
     }
+  }
+
+  function visibleRectsFor(mode, intervalCells) {
+    var rects = []
+    var first = firstVisibleIndexFor(mode)
+    var last = lastVisibleIndexFor(mode, intervalCells)
+    for (var index = first; index < last; index++)
+      rects.push(segmentRect(mode, index, 0, 1))
+    return rects
+  }
+
+  function buildMorphGeometry(sourceProjection, sourceCells, segments) {
+    var geometry = []
+    for (var i = 0; i < segments.length; i++) {
+      var segment = segments[i]
+      var sourceCell = sourceCells[segment.sourceIndex]
+      var targetCell = cells[segment.targetIndex]
+      if (!sourceCell || !targetCell) continue
+      geometry.push({
+        sourceCell: sourceCell,
+        targetCell: targetCell,
+        sourceRect: segmentRect(sourceProjection, segment.sourceIndex,
+          segment.sourceStart, segment.sourceEnd),
+        targetRect: segmentRect(projection, segment.targetIndex,
+          segment.targetStart, segment.targetEnd)
+      })
+    }
+    return geometry
   }
 
   function currentGridRow() {
@@ -432,7 +469,7 @@ Flickable {
     from: 0
     to: 1
     duration: root.projectionMorphDuration
-    easing.type: Easing.InOutCubic
+    easing.type: root.dateOverlapEnabled ? Easing.Linear : Easing.InOutCubic
     onFinished: root.clearProjectionMorph()
   }
 
@@ -684,15 +721,13 @@ Flickable {
           Style.spacing.hairline, root.gridHeight() + Style.space(4))
       }
 
-      function paintProjectionWireframe(ctx, mode, intervalCells, opacity) {
-        if (!intervalCells || opacity <= 0) return
-        var first = root.firstVisibleIndexFor(mode)
-        var last = root.lastVisibleIndexFor(mode, intervalCells)
+      function paintProjectionWireframe(ctx, rects, opacity) {
+        if (!rects || opacity <= 0) return
         ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
           root.foreground.b, opacity)
         ctx.lineWidth = Style.spacing.hairline
-        for (var index = first; index < last; index++) {
-          var rect = root.segmentRect(mode, index, 0, 1)
+        for (var index = 0; index < rects.length; index++) {
+          var rect = rects[index]
           ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
             Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
         }
@@ -717,11 +752,25 @@ Flickable {
       }
 
       function paintDateOverlapMorph(ctx, t) {
-        var sourceSettled = 1 - smoothUnit(t / 0.42)
-        var targetSettled = smoothUnit((t - 0.58) / 0.42)
-        var interference = Math.sin(Math.PI * t)
-        var wireOpacity = 0.12 * interference
-        var fragmentOpacity = 0.78 * interference
+        var arrivalEnd = 0.40
+        var resolveStart = 0.60
+        var geometryProgress
+        if (t < arrivalEnd)
+          geometryProgress = 0.5 * smoothUnit(t / arrivalEnd)
+        else if (t <= resolveStart)
+          geometryProgress = 0.5
+        else
+          geometryProgress = 0.5 + 0.5 * smoothUnit((t - resolveStart)
+            / (1 - resolveStart))
+
+        var sourceSettled = 1 - smoothUnit(t / 0.30)
+        var targetSettled = smoothUnit((t - 0.70) / 0.30)
+        var interference
+        if (t < arrivalEnd) interference = smoothUnit(t / arrivalEnd)
+        else if (t <= resolveStart) interference = 1
+        else interference = 1 - smoothUnit((t - resolveStart) / (1 - resolveStart))
+        var wireOpacity = 0.09 * interference
+        var fragmentOpacity = 0.66 * interference
 
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
           sourceSettled, -1)
@@ -729,26 +778,23 @@ Flickable {
         // At the midpoint the two exact sampling grids coexist only as quiet
         // outlines. Their beat pattern is real 52-week versus calendar-month
         // interference, not an independently drawn decorative texture.
-        paintProjectionWireframe(ctx, root.morphFromProjection,
-          root.morphFromCells, wireOpacity)
-        paintProjectionWireframe(ctx, root.projection, root.cells, wireOpacity)
+        paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity)
+        paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity)
 
-        for (var i = 0; i < root.morphSegments.length; i++) {
-          var segment = root.morphSegments[i]
-          var sourceCell = root.morphFromCells[segment.sourceIndex]
-          var targetCell = root.cells[segment.targetIndex]
-          if (!sourceCell || !targetCell) continue
-          var sourceRect = root.segmentRect(root.morphFromProjection,
-            segment.sourceIndex, segment.sourceStart, segment.sourceEnd)
-          var targetRect = root.segmentRect(root.projection,
-            segment.targetIndex, segment.targetStart, segment.targetEnd)
+        for (var i = 0; i < root.morphGeometry.length; i++) {
+          var geometry = root.morphGeometry[i]
+          var sourceRect = geometry.sourceRect
+          var targetRect = geometry.targetRect
           var rect = {
-            x: sourceRect.x + (targetRect.x - sourceRect.x) * t,
-            y: sourceRect.y + (targetRect.y - sourceRect.y) * t,
-            width: sourceRect.width + (targetRect.width - sourceRect.width) * t,
-            height: sourceRect.height + (targetRect.height - sourceRect.height) * t
+            x: sourceRect.x + (targetRect.x - sourceRect.x) * geometryProgress,
+            y: sourceRect.y + (targetRect.y - sourceRect.y) * geometryProgress,
+            width: sourceRect.width + (targetRect.width - sourceRect.width)
+              * geometryProgress,
+            height: sourceRect.height + (targetRect.height - sourceRect.height)
+              * geometryProgress
           }
-          paintOverlapFragment(ctx, sourceCell, targetCell, rect, fragmentOpacity)
+          paintOverlapFragment(ctx, geometry.sourceCell, geometry.targetCell,
+            rect, fragmentOpacity)
         }
 
         paintProjection(ctx, root.projection, root.cells, targetSettled, -1)

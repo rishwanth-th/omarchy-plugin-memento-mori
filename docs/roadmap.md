@@ -84,7 +84,12 @@ The rendering must make that truthful irregularity legible rather than dense:
    portions; no fixed four-week grouping is introduced.
 4. Only the fragment containing the present in both projections keeps the
    accent. The surrounding pattern remains subordinate.
-5. The destination resolves cleanly within the structural-motion budget.
+5. Fragment and wireframe geometry is precomputed once rather than rebuilt on
+   every animation frame.
+6. The transition eases into the exact midpoint, holds the interference field
+   stationary for roughly `104ms`, then eases out. Maximum pattern density and
+   maximum fragment velocity never coincide.
+7. The destination resolves cleanly after the deliberate `520ms` experiment.
 
 ### Acceptance
 
