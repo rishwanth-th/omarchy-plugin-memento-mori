@@ -130,7 +130,7 @@ pretend to animate thousands of off-screen cells.
 - The present cell's two coordinate guides resolve during the final `160ms`,
   handing attention from the global rail to the local viewport.
 - Repeat entrances skip the global sweep and use only the short guide settle.
-- Calendar remains keyboard-first: `L` enters LIFE, while clicking the rail is
+- Calendar remains keyboard-first: `M` enters LIFE, while clicking the rail is
   the direct pointer equivalent. Both invoke the same entrance grammar.
 - Closing or interacting mid-sweep cancels stale motion. An interrupted first
   entrance does not count as completed and may replay next time.

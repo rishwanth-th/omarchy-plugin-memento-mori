@@ -62,7 +62,7 @@ omarchy plugin enable rishwanth.memento-mori --section center
 3. Enter the birth date as `YYYY-MM-DD`.
 4. Keep the horizon at `4000` for the Four Thousand Weeks default, or choose a
    personal override.
-5. Press Enter, then press `L` or click the LIFE rail.
+5. Press Enter, then press `M` or click the LIFE rail.
 
 Inside Memento Mori, scroll or use the arrow keys to move the attention
 window. Click `M →`, or press `1` / `2`, to switch between Weeks and Months.

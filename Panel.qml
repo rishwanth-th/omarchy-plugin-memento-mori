@@ -306,7 +306,7 @@ Panel {
           else if (t === "3") lifeView.toggleAnimationStyle()
           return
         }
-        if (t === "l" || t === "L") root.showLife()
+        if (t === "m" || t === "M") root.showLife()
         else if (t === "[") root.moveMonth(-1)
         else if (t === "]") root.moveMonth(1)
         else if (t === "{") root.moveYear(-1)
