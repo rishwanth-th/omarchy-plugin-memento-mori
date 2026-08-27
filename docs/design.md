@@ -108,7 +108,9 @@ Projection changes use a calm left-to-right resolution seam by default. It
 finishes in `360ms`, never overlays the two settled grids, and preserves the
 panel, viewport, axes, row stride, and present anchor. The pinned lived and
 remaining readouts resolve through simultaneous local shimmers constrained to
-their text envelopes, rather than one tracer crossing the empty rail.
+their text envelopes, rather than one tracer crossing the empty rail. The
+lived readout owns the active unit; remaining stays unitless before, during,
+and after the transition so its envelope never expands temporarily.
 
 An exact date-overlap interference lens is retained as a session-only motion
 alternative. Pressing `A`, or triple-clicking an otherwise inert part of the

@@ -298,8 +298,10 @@ Flickable {
   function projectionCountLabel(intervalCells, mode, remaining) {
     var intervalStats = Model.projectionStats(intervalCells, mode)
     var count = remaining ? intervalStats.remaining : intervalStats.lived
-    return count.toLocaleString(Qt.locale("en_US"), "f", 0)
-      + " " + intervalStats.unit + (remaining ? " remaining" : " lived")
+    var formattedCount = count.toLocaleString(Qt.locale("en_US"), "f", 0)
+    return remaining
+      ? formattedCount + " remaining"
+      : formattedCount + " " + intervalStats.unit + " lived"
   }
 
   function setProjection(value) {
