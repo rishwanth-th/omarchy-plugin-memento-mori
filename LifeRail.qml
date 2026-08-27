@@ -15,6 +15,8 @@ Item {
   property bool animateProgressChanges: true
   property real segmentProgress: progress
   property real segmentOpacity: 1
+  property real passageProgress: 1
+  property bool passageActive: false
   property string livedLabel: ""
   property string remainingLabel: ""
   property bool interactive: false
@@ -80,6 +82,36 @@ Item {
       Behavior on width {
         enabled: root.animateProgressChanges
         NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+      }
+    }
+
+    Item {
+      // The settled rail remains truthful while this subordinate white tracer
+      // gives the entrance a brief sense of passage through lived time.
+      readonly property real passage: Math.max(0, Math.min(1, root.passageProgress))
+      visible: root.passageActive
+      width: Style.space(10)
+      height: parent.height
+      x: Math.round(Math.max(0, Math.min(parent.width - width,
+        parent.width * Math.max(0, Math.min(1, root.progress)) * passage - width / 2)))
+      anchors.verticalCenter: parent.verticalCenter
+      opacity: 1 - passage * passage
+
+      Rectangle {
+        anchors.fill: parent
+        radius: height / 2
+        color: root.foreground
+        opacity: 0.12
+      }
+
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        width: Math.max(Style.spacing.hairline * 2, Style.space(3))
+        height: parent.height
+        radius: width / 2
+        color: root.foreground
+        opacity: 0.45
       }
     }
 

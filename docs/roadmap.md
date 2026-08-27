@@ -112,52 +112,39 @@ nothing that emerged from Weeks and Months themselves. It was discarded.
 
 ## Workstream 2 — LIFE entrance
 
-**Status:** next. Tracked in DAZ-275.
+**Status:** complete. Tracked in DAZ-275.
 
-The LIFE rail may travel from birth through its year ticks to the present,
-with lived fill following behind it. Once the global sweep settles, the local
-present cell and its two guide lines resolve into place.
+The entrance moves attention from the whole-life summary to the local present
+without ever making the settled values untrue.
 
-The rail should tell the whole-horizon story; the compact viewport should not
-pretend to animate thousands of off-screen cells.
-
-### Prototype 1 — settled summary, local focus
+### Settled design — global passage, local focus
 
 - The Calendar rail and LIFE rail remain settled at the same exact progress;
   entrance never rewinds the visible timeline from present back to birth.
-- A birth-to-present tracer was rejected after live review: it was not legible
-  without explanation, while making it stronger would compete with the true
-  present marker. The rail therefore remains a stable global summary.
-- Exact percentage, date readout, grid, and present cell are available
-  immediately. Lived and remaining labels stay pinned to their final segment
-  geometry and brighten without sliding or reflowing.
-- LIFE's genuinely new information is local: the present cell resolves from a
-  quiet accent to full intensity over `320ms`, while its coordinate guides draw
-  from the axes toward it during the final `160ms`.
-- Repeat entrances use a shorter `240ms` focus resolve, with the guide handoff
-  beginning after `80ms`. The transition remains perceptible without resetting
-  any settled state.
+- A subordinate white tracer travels over that rail from birth toward the
+  stationary present marker, then dissolves as it arrives. It suggests passage
+  without replacing or moving the true value.
+- Exact percentage, date readout, grid, and present cell remain available.
+  Lived and remaining labels stay pinned to their final segment geometry and
+  brighten without sliding or reflowing.
+- The full entrance holds the tracer at birth for `60ms`, then sweeps for
+  `420ms`. After `160ms`, the present cell and labels resolve over `320ms`,
+  while coordinate guides draw from the axes during the final `160ms`. Every
+  layer lands together at `480ms`.
+- Repeat entrances retain the same grammar in `380ms`: a `60ms` hold and
+  `320ms` tracer, with a shorter `240ms` local resolve and final `160ms` guide
+  handoff landing at the same moment.
 - Calendar remains keyboard-first: `M` toggles Calendar and LIFE. Clicking the
   rail enters through the same path, while the visible back action is the
   direct pointer return.
-- Closing or interacting mid-sweep cancels stale motion. An interrupted first
-  entrance does not count as completed and may replay next time.
+- Closing or interacting mid-entrance cancels stale motion. An interrupted
+  first entrance does not count as completed and may replay next time.
 - Changing birth date or horizon rearms the full entrance. Reduced motion
   resolves directly to the same final state.
 
-### Questions
-
-- Does the sweep explain scale, or merely delay the answer?
-- Should it run once per session, only after configuration changes, or on
-  every opening?
-- Can repeat openings use only a short present-cell settle?
-- Should the lived grid fill by visible life-year rather than individual cell?
-
-### Reject if
-
-- Opening LIFE becomes a ceremony the user has to wait through.
-- The current value is unavailable during animation.
-- The viewport implies it contains the whole 4,000-week sweep.
+The accepted motion stays below half a second, keeps the true present visible,
+and confines whole-horizon movement to the rail rather than pretending the
+compact viewport contains all 4,000 weeks.
 
 ## Workstream 3 — Temporal-distance pin
 
@@ -211,8 +198,8 @@ on. This is polish, not core meaning.
 ## Evaluation order
 
 1. Weeks ↔ Months semantic morph — complete.
-2. LIFE entrance — next.
-3. Temporal-distance pin.
+2. LIFE entrance — complete.
+3. Temporal-distance pin — next.
 4. Hover-guide motion.
 5. Viewport movement.
 

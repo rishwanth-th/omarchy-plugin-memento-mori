@@ -29,6 +29,7 @@ Flickable {
   property var morphTargetRects: []
   property real morphProgress: 1
   property bool morphUsesDateOverlap: false
+  property real entrancePassageProgress: 1
   property real entranceFocusProgress: 1
   property real entranceLabelProgress: 1
   property real entranceGuideProgress: 1
@@ -228,6 +229,7 @@ Flickable {
     cancelEntrance()
     finishProjectionMorph()
     entranceFull = fullEntrance === true
+    entrancePassageProgress = 0
     entranceFocusProgress = 0
     entranceLabelProgress = 0
     entranceGuideProgress = 0
@@ -247,6 +249,7 @@ Flickable {
 
   function completeEntrance() {
     var completedFullEntrance = entranceFull
+    entrancePassageProgress = 1
     entranceFocusProgress = 1
     entranceLabelProgress = 1
     entranceGuideProgress = 1
@@ -259,6 +262,7 @@ Flickable {
   function cancelEntrance() {
     if (fullEntranceAnimation.running) fullEntranceAnimation.stop()
     if (repeatEntranceAnimation.running) repeatEntranceAnimation.stop()
+    entrancePassageProgress = 1
     entranceFocusProgress = 1
     entranceLabelProgress = 1
     entranceGuideProgress = 1
@@ -557,26 +561,42 @@ Flickable {
   ParallelAnimation {
     id: fullEntranceAnimation
 
-    NumberAnimation {
-      target: root
-      property: "entranceFocusProgress"
-      from: 0
-      to: 1
-      duration: 320
-      easing.type: Easing.InOutCubic
-    }
-
-    NumberAnimation {
-      target: root
-      property: "entranceLabelProgress"
-      from: 0
-      to: 1
-      duration: 320
-      easing.type: Easing.InOutCubic
+    SequentialAnimation {
+      PauseAnimation { duration: 60 }
+      NumberAnimation {
+        target: root
+        property: "entrancePassageProgress"
+        from: 0
+        to: 1
+        duration: 420
+        easing.type: Easing.InOutCubic
+      }
     }
 
     SequentialAnimation {
       PauseAnimation { duration: 160 }
+      ParallelAnimation {
+        NumberAnimation {
+          target: root
+          property: "entranceFocusProgress"
+          from: 0
+          to: 1
+          duration: 320
+          easing.type: Easing.InOutCubic
+        }
+        NumberAnimation {
+          target: root
+          property: "entranceLabelProgress"
+          from: 0
+          to: 1
+          duration: 320
+          easing.type: Easing.InOutCubic
+        }
+      }
+    }
+
+    SequentialAnimation {
+      PauseAnimation { duration: 320 }
       NumberAnimation {
         target: root
         property: "entranceGuideProgress"
@@ -593,26 +613,42 @@ Flickable {
   ParallelAnimation {
     id: repeatEntranceAnimation
 
-    NumberAnimation {
-      target: root
-      property: "entranceFocusProgress"
-      from: 0
-      to: 1
-      duration: 240
-      easing.type: Easing.InOutCubic
-    }
-
-    NumberAnimation {
-      target: root
-      property: "entranceLabelProgress"
-      from: 0
-      to: 1
-      duration: 240
-      easing.type: Easing.InOutCubic
+    SequentialAnimation {
+      PauseAnimation { duration: 60 }
+      NumberAnimation {
+        target: root
+        property: "entrancePassageProgress"
+        from: 0
+        to: 1
+        duration: 320
+        easing.type: Easing.InOutCubic
+      }
     }
 
     SequentialAnimation {
-      PauseAnimation { duration: 80 }
+      PauseAnimation { duration: 140 }
+      ParallelAnimation {
+        NumberAnimation {
+          target: root
+          property: "entranceFocusProgress"
+          from: 0
+          to: 1
+          duration: 240
+          easing.type: Easing.InOutCubic
+        }
+        NumberAnimation {
+          target: root
+          property: "entranceLabelProgress"
+          from: 0
+          to: 1
+          duration: 240
+          easing.type: Easing.InOutCubic
+        }
+      }
+    }
+
+    SequentialAnimation {
+      PauseAnimation { duration: 220 }
       NumberAnimation {
         target: root
         property: "entranceGuideProgress"
@@ -710,6 +746,8 @@ Flickable {
       animateProgressChanges: !root.entranceAnimating
       segmentProgress: root.stats.progress
       segmentOpacity: root.entranceLabelProgress
+      passageProgress: root.entrancePassageProgress
+      passageActive: root.entranceAnimating
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " " + root.projectionStats.unit + " lived"
       remainingLabel: root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)
