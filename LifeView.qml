@@ -431,16 +431,16 @@ Flickable {
       Row {
         id: dateReadout
         anchors.centerIn: parent
-        spacing: Style.space(4)
+        spacing: Style.space(6)
 
         Item {
-          width: datePrefixMeasure.implicitWidth
-          height: datePrefix.implicitHeight
+          width: dateYearMeasure.implicitWidth
+          height: dateYear.implicitHeight
 
           Text {
-            id: datePrefix
-            anchors.right: parent.right
-            text: readoutRow.readout ? readoutRow.readout.datePrefix : ""
+            id: dateYear
+            anchors.left: parent.left
+            text: readoutRow.readout ? readoutRow.readout.dateYear : ""
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
@@ -462,13 +462,13 @@ Flickable {
         }
 
         Item {
-          width: dateYearMeasure.implicitWidth
-          height: dateYear.implicitHeight
+          width: datePrefixMeasure.implicitWidth
+          height: datePrefix.implicitHeight
 
           Text {
-            id: dateYear
+            id: datePrefix
             anchors.left: parent.left
-            text: readoutRow.readout ? readoutRow.readout.dateYear : ""
+            text: readoutRow.readout ? readoutRow.readout.datePrefix : ""
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
