@@ -32,6 +32,8 @@ Item {
   readonly property int yearTickCount: horizonYears + 1
   readonly property int currentYear: Math.max(0, Math.min(horizonYears,
     Math.floor(horizonWeeks * Math.max(0, Math.min(1, progress)) / 52)))
+  readonly property int pinYear: Math.max(0, Math.min(horizonYears,
+    Math.floor(horizonWeeks * Math.max(0, Math.min(1, pinProgress)) / 52)))
 
   signal activated()
 
@@ -202,6 +204,9 @@ Item {
           anchors.top: parent.top
           anchors.topMargin: Style.space(2)
           visible: parent.decade && parent.year !== root.currentYear
+            && (!root.pinActive || parent.year !== root.pinYear)
+            && Math.abs(parent.year - root.currentYear) >= 3
+            && (!root.pinActive || Math.abs(parent.year - root.pinYear) >= 3)
           text: parent.year === 0 ? "Y 0" : String(parent.year)
           color: Qt.darker(root.foreground, 2)
           font.family: root.fontFamily
@@ -211,12 +216,38 @@ Item {
     }
 
     Text {
+      id: currentYearLabel
       x: Math.max(0, Math.min(parent.width - width,
         Math.round(parent.width * root.progress - width / 2)))
       anchors.top: parent.top
       anchors.topMargin: Style.space(2)
       text: String(root.currentYear)
       color: Color.accent
+      font.family: root.fontFamily
+      font.pixelSize: Math.max(7, Style.font.caption - 2)
+    }
+
+    Text {
+      id: pinYearLabel
+      readonly property real desiredCenter: parent.width
+        * Math.max(0, Math.min(1, root.pinProgress))
+      readonly property real currentCenter: parent.width
+        * Math.max(0, Math.min(1, root.progress))
+      readonly property real minimumSeparation: (width + currentYearLabel.width) / 2
+        + Style.space(2)
+      readonly property real resolvedCenter: Math.abs(desiredCenter - currentCenter)
+          >= minimumSeparation
+        ? desiredCenter
+        : (desiredCenter < currentCenter
+          ? currentCenter - minimumSeparation
+          : currentCenter + minimumSeparation)
+      visible: root.pinActive && root.pinYear !== root.currentYear
+      x: Math.max(0, Math.min(parent.width - width,
+        Math.round(resolvedCenter - width / 2)))
+      anchors.top: parent.top
+      anchors.topMargin: Style.space(2)
+      text: String(root.pinYear)
+      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.78)
       font.family: root.fontFamily
       font.pixelSize: Math.max(7, Style.font.caption - 2)
     }

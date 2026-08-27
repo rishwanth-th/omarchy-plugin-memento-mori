@@ -170,6 +170,11 @@ outline, and the LIFE rail shows a subordinate marker plus only the segment
 between it and the accented present. Pointer click and the keyboard inspection
 cursor share the same single-pin state; leaving LIFE clears it.
 
+The pin is a complete secondary coordinate rather than a floating mark. Its
+week/month value and age remain visible on the grid axes, and its life-year
+value remains visible on the LIFE scale. Duplicate coordinates collapse to one
+label, while the present keeps the only accent and hover remains subordinate.
+
 ### Questions
 
 - Is the visual segment sufficient, or does a compact `+587 WEEKS` delta help?

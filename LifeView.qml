@@ -618,7 +618,11 @@ Flickable {
   function verticalMarks() {
     var nowRow = currentGridRow()
     var inspectedRow = inspectedGridRow()
-    var candidates = [0, nowRow, inspectedRow, visibleRowCount - 1]
+    var pinnedRow = hasPin && pinnedIndex >= firstVisibleIndex()
+        && pinnedIndex < lastVisibleIndex()
+      ? Math.floor((pinnedIndex - firstVisibleIndex()) / columns())
+      : -1
+    var candidates = [0, nowRow, pinnedRow, inspectedRow, visibleRowCount - 1]
     var firstMultiple = Math.ceil(visibleYearStart / 5) * 5
     for (var age = firstMultiple; age < visibleYearStart + visibleYearCount; age += 5)
       candidates.push(age - visibleYearStart)
@@ -630,7 +634,8 @@ Flickable {
       seen[row] = true
       var markAge = visibleYearStart + row
       marks.push({ row: row, age: markAge,
-        current: row === nowRow, inspected: row === inspectedRow,
+        current: row === nowRow, pinned: row === pinnedRow,
+        inspected: row === inspectedRow,
         fiveYear: markAge % 5 === 0 })
     }
     marks.sort(function(a, b) { return a.row - b.row })
@@ -1188,11 +1193,13 @@ Flickable {
         for (var v = 0; v < vertical.length; v++) {
           ctx.fillStyle = vertical[v].current
             ? Color.accent
-            : (vertical[v].inspected
+            : (vertical[v].pinned
+              ? root.foreground
+              : (vertical[v].inspected
               ? inspectedColor
               : (root.verticalAxisHovered
                 ? Color.accent
-                : Qt.darker(root.foreground, 1.8)))
+                : Qt.darker(root.foreground, 1.8))))
           ctx.fillText(String(vertical[v].age), originX - Style.space(4),
             originY + root.rowOffset(vertical[v].row) + cellHeight / 2)
           ctx.fillRect(originX - (vertical[v].fiveYear ? Style.space(3) : Style.space(1)),
@@ -1201,20 +1208,27 @@ Flickable {
             Style.spacing.hairline)
         }
 
-        // The inspected interval reads directly on its axes. The base M scale
-        // remains the overview; this precise W/M marker appears only at the
-        // selected column and the age marker above appears at its selected row.
+        // Present, pin, and ephemeral inspection all read on the same axes.
+        // Duplicate row/column coordinates collapse to one value rather than
+        // printing the same week, month, or age on top of itself.
         var horizontalTicks = []
-        var presentColumn = -1
-        if (root.presentCellIndex >= root.firstVisibleIndex()
-            && root.presentCellIndex < root.lastVisibleIndex()) {
-          presentColumn = (root.presentCellIndex - root.firstVisibleIndex()) % columns
-          horizontalTicks.push({ index: root.presentCellIndex, current: true })
+        var horizontalCandidates = [
+          { index: root.presentCellIndex, current: true, pinned: false },
+          { index: root.pinnedIndex, current: false, pinned: true },
+          { index: inspectionIndex, current: false, pinned: false }
+        ]
+        var seenColumns = {}
+        for (var candidate = 0; candidate < horizontalCandidates.length; candidate++) {
+          var horizontalCandidate = horizontalCandidates[candidate]
+          if (horizontalCandidate.index < root.firstVisibleIndex()
+              || horizontalCandidate.index >= root.lastVisibleIndex()) continue
+          if (horizontalCandidate.pinned && !root.hasPin) continue
+          var candidateColumn = (horizontalCandidate.index
+            - root.firstVisibleIndex()) % columns
+          if (seenColumns[candidateColumn]) continue
+          seenColumns[candidateColumn] = true
+          horizontalTicks.push(horizontalCandidate)
         }
-        if (inspectionIndex >= root.firstVisibleIndex()
-            && inspectionIndex < root.lastVisibleIndex()
-            && (inspectionIndex - root.firstVisibleIndex()) % columns !== presentColumn)
-          horizontalTicks.push({ index: inspectionIndex, current: false })
 
         for (var h = 0; h < horizontalTicks.length; h++) {
           var tickColumn = (horizontalTicks[h].index - root.firstVisibleIndex()) % columns
@@ -1235,17 +1249,27 @@ Flickable {
             Style.spacing.hairline, Style.space(6))
         }
 
-        // Present and inspection use the same directional grammar: each point
-        // reaches only upward to X and leftward to Y. The present guide stays
-        // accented while hover, keyboard cursor, or pin adds a foreground guide.
+        // Each deliberate point reaches only upward to X and leftward to Y.
+        // Present stays accented, the pin persists in foreground, and hover or
+        // keyboard inspection remains the quietest temporary layer.
+        var guideCandidates = [
+          { index: root.presentCellIndex, current: true, pinned: false },
+          { index: root.pinnedIndex, current: false, pinned: true },
+          { index: inspectionIndex, current: false, pinned: false }
+        ]
         var guides = []
-        if (root.presentCellIndex >= root.firstVisibleIndex()
-            && root.presentCellIndex < root.lastVisibleIndex())
-          guides.push({ index: root.presentCellIndex, current: true })
-        if (inspectionIndex >= root.firstVisibleIndex()
-            && inspectionIndex < root.lastVisibleIndex()
-            && inspectionIndex !== root.presentCellIndex)
-          guides.push({ index: inspectionIndex, current: false })
+        var seenGuides = {}
+        for (var guideCandidateIndex = 0;
+             guideCandidateIndex < guideCandidates.length;
+             guideCandidateIndex++) {
+          var guideCandidate = guideCandidates[guideCandidateIndex]
+          if (guideCandidate.index < root.firstVisibleIndex()
+              || guideCandidate.index >= root.lastVisibleIndex()) continue
+          if (guideCandidate.pinned && !root.hasPin) continue
+          if (seenGuides[guideCandidate.index]) continue
+          seenGuides[guideCandidate.index] = true
+          guides.push(guideCandidate)
+        }
 
         for (var g = 0; g < guides.length; g++) {
           var guideLocal = guides[g].index - root.firstVisibleIndex()
@@ -1254,7 +1278,7 @@ Flickable {
           var guideX = originX + root.columnOffset(guideColumn) + cellWidth / 2
           var guideY = originY + root.rowOffset(guideRow) + cellHeight / 2
           var guideColor = guides[g].current ? Color.accent : root.foreground
-          var guideOpacity = guides[g].current ? 0.32 : 0.26
+          var guideOpacity = guides[g].current ? 0.32 : (guides[g].pinned ? 0.28 : 0.18)
           var guideProgress = guides[g].current
             ? root.entranceGuideProgress
             : 1
