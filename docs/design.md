@@ -106,7 +106,9 @@ Scales provide orientation; hover provides precision:
 
 Projection changes use a calm left-to-right resolution seam by default. It
 finishes in `360ms`, never overlays the two settled grids, and preserves the
-panel, viewport, axes, row stride, and present anchor.
+panel, viewport, axes, row stride, and present anchor. The pinned lived and
+remaining readouts resolve through simultaneous local shimmers constrained to
+their text envelopes, rather than one tracer crossing the empty rail.
 
 An exact date-overlap interference lens is retained as a session-only motion
 alternative. Pressing `A`, or triple-clicking an otherwise inert part of the
@@ -114,8 +116,7 @@ grid, alternates the motion style without creating a third projection or a
 visible setting. `P` toggles Weeks and Months as one reversible projection
 action. The lens splits intervals only at their real shared dates, holds their
 interference at a stable midpoint, and resolves in `520ms`. It is never
-persisted; the calm
-seam remains the startup default.
+persisted; the calm seam remains the startup default.
 
 ## Implementation boundary
 

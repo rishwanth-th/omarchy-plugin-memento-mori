@@ -51,6 +51,9 @@ month contains four weeks.
    birth-anchored week and calendar-month semantics.
 5. Axis precision switches with the destination while panel and viewport
    geometry remain fixed.
+6. Lived and remaining values retain their pinned geometry. Two local
+   shimmers resolve their units simultaneously inside the text envelopes;
+   no filament crosses the empty space between them.
 
 ### Why the seam remains the default
 
@@ -97,6 +100,8 @@ nothing that emerged from Weeks and Months themselves. It was discarded.
   on the unchanged V1 grids.
 - No fixed four-week grouping or false calendar semantics.
 - Present, lived, and future states are exact at both endpoints.
+- Lived and remaining readouts change units without shifting, reflowing, or
+  becoming detached from the grid transition.
 - `M →` and `P` toggle projection using the currently selected transition.
 - `A` and the grid triple-click change only motion style, never projection.
 - Hit-testing pauses only during the short morph.
@@ -195,6 +200,29 @@ stable dimensions and exact stopping positions.
 Inertial scrolling is intentionally excluded if it makes ages harder to land
 on. This is polish, not core meaning.
 
+## Workstream 6 — Transition light treatment
+
+**Status:** parked.
+
+Explore whether restrained glow, glints, or sparse glitter can make direction
+and arrival easier to perceive in the transitions that already carry temporal
+meaning. Light must be emitted by an existing seam, tracer, guide, or landing
+point; it cannot become an independent particle layer.
+
+### Questions
+
+- Can a brief glint clarify where a transition resolves without becoming a
+  reward animation?
+- Should treatment derive only from the active theme's accent and foreground?
+- Can sparse light remain stable across scaling and avoid moire or flicker?
+
+### Reject if
+
+- The effect is decorative when the underlying transition is already clear.
+- Glitter competes with the present accent or makes ordinary toggles feel
+  ceremonial.
+- Particles linger, queue, or imply urgency, achievement, or gamification.
+
 ## Evaluation order
 
 1. Weeks ↔ Months semantic morph — complete.
@@ -202,6 +230,7 @@ on. This is polish, not core meaning.
 3. Temporal-distance pin — next.
 4. Hover-guide motion.
 5. Viewport movement.
+6. Transition light treatment.
 
 Only one workstream may change runtime behavior at a time. Each one receives
 its own live review before the next begins.

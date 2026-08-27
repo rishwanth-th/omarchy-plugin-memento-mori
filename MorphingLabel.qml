@@ -98,9 +98,9 @@ Item {
     Rectangle {
       visible: root.clampedProgress > 0 && root.clampedProgress < 1
       x: Math.round(morphField.width * root.clampedProgress - width / 2)
-      y: -Style.space(1)
+      anchors.verticalCenter: parent.verticalCenter
       width: Math.min(Style.space(24), Math.max(Style.space(12), morphField.width / 3))
-      height: parent.height + Style.space(2)
+      height: Math.max(Style.space(6), Math.min(parent.height, root.fontSize))
       opacity: 4 * root.clampedProgress * (1 - root.clampedProgress)
 
       gradient: Gradient {
