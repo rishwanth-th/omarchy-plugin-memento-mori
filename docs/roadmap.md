@@ -153,6 +153,8 @@ compact viewport contains all 4,000 weeks.
 
 ## Workstream 3 — Temporal-distance pin
 
+**Status:** next. Tracked in DAZ-277.
+
 Clicking a cell may pin a deliberate comparison with the present. The LIFE
 rail would gain a quiet second marker and highlight only the segment between
 now and the selected interval. The existing exact-date readout remains the
@@ -202,7 +204,7 @@ on. This is polish, not core meaning.
 
 ## Workstream 6 — Transition light treatment
 
-**Status:** parked.
+**Status:** parked. Tracked in DAZ-276.
 
 Explore whether restrained glow, glints, or sparse glitter can make direction
 and arrival easier to perceive in the transitions that already carry temporal
