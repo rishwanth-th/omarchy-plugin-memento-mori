@@ -123,15 +123,18 @@ pretend to animate thousands of off-screen cells.
 
 ### Prototype 1 — global passage, local settle
 
-- On the first completed LIFE entrance of a shell session, the rail travels
-  from birth to the exact present over `420ms` using OutCubic timing.
-- Exact percentage, counts, date readout, grid, and present cell are available
-  immediately. The motion explains passage without withholding the answer.
+- On the first completed LIFE entrance of a shell session, the rail holds at
+  birth for `60ms`, then travels to the exact present over `420ms` using
+  InOutCubic timing. The slow departure makes zero legible before passage.
+- Exact percentage, date readout, grid, and present cell are available
+  immediately. Lived and remaining labels stay pinned to their final segment
+  geometry and brighten with the rail rather than sliding or reflowing.
 - The present cell's two coordinate guides resolve during the final `160ms`,
   handing attention from the global rail to the local viewport.
-- Repeat entrances retain the same global-to-local story in a shorter `320ms`
-  sweep, with the guide handoff occupying the final `160ms`. The transition
-  remains perceptible without repeating the full first-session timing.
+- Repeat entrances retain the same `60ms` hold and global-to-local story in a
+  shorter `320ms` sweep, with the guide handoff occupying the final `160ms`.
+  The transition remains perceptible without repeating the full first-session
+  timing.
 - Calendar remains keyboard-first: `M` toggles Calendar and LIFE. Clicking the
   rail enters through the same path, while the visible back action is the
   direct pointer return.

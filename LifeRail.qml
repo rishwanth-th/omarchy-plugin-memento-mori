@@ -13,6 +13,8 @@ Item {
   property bool showYearScale: false
   property bool showSegmentLabels: false
   property bool animateProgressChanges: true
+  property real segmentProgress: progress
+  property real segmentOpacity: 1
   property string livedLabel: ""
   property string remainingLabel: ""
   property bool interactive: false
@@ -156,6 +158,7 @@ Item {
 
   Item {
     visible: root.showSegmentLabels
+    opacity: Math.max(0, Math.min(1, root.segmentOpacity))
     anchors.left: track.left
     anchors.right: track.right
     y: root.baseHeight + Style.space(2)
@@ -166,7 +169,7 @@ Item {
     Text {
       id: livedSegmentLabel
       x: 0
-      width: Math.max(0, parent.width * Math.max(0, Math.min(1, root.progress)))
+      width: Math.max(0, parent.width * Math.max(0, Math.min(1, root.segmentProgress)))
       horizontalAlignment: Text.AlignHCenter
       text: root.livedLabel
       color: Color.accent
@@ -177,7 +180,7 @@ Item {
 
     Text {
       id: remainingSegmentLabel
-      x: parent.width * Math.max(0, Math.min(1, root.progress))
+      x: parent.width * Math.max(0, Math.min(1, root.segmentProgress))
       width: Math.max(0, parent.width - x)
       horizontalAlignment: Text.AlignHCenter
       text: root.remainingLabel
