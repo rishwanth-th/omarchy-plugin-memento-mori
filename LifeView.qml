@@ -27,6 +27,8 @@ Flickable {
   property var morphGeometry: []
   property var morphSourceRects: []
   property var morphTargetRects: []
+  property string morphFromLivedLabel: ""
+  property string morphFromRemainingLabel: ""
   property real morphProgress: 1
   property bool morphUsesDateOverlap: false
   property real entrancePassageProgress: 1
@@ -210,6 +212,8 @@ Flickable {
     morphGeometry = []
     morphSourceRects = []
     morphTargetRects = []
+    morphFromLivedLabel = ""
+    morphFromRemainingLabel = ""
     morphUsesDateOverlap = false
     lifeCanvas.requestPaint()
   }
@@ -291,6 +295,13 @@ Flickable {
     return true
   }
 
+  function projectionCountLabel(intervalCells, mode, remaining) {
+    var intervalStats = Model.projectionStats(intervalCells, mode)
+    var count = remaining ? intervalStats.remaining : intervalStats.lived
+    return count.toLocaleString(Qt.locale("en_US"), "f", 0)
+      + " " + intervalStats.unit + (remaining ? " remaining" : " lived")
+  }
+
   function setProjection(value) {
     if (value !== "weeks" && value !== "months") return
     if (projection === value) return
@@ -300,6 +311,8 @@ Flickable {
     finishProjectionMorph()
     var sourceProjection = projection
     var sourceCells = cells
+    morphFromLivedLabel = projectionCountLabel(sourceCells, sourceProjection, false)
+    morphFromRemainingLabel = projectionCountLabel(sourceCells, sourceProjection, true)
     preparingMorph = true
     projection = value
     preparingMorph = false
@@ -746,8 +759,12 @@ Flickable {
       animateProgressChanges: !root.entranceAnimating
       segmentProgress: root.stats.progress
       segmentOpacity: root.entranceLabelProgress
+      labelMorphProgress: root.morphProgress
+      labelMorphActive: root.projectionMorphing
       passageProgress: root.entrancePassageProgress
       passageActive: root.entranceAnimating
+      previousLivedLabel: root.morphFromLivedLabel
+      previousRemainingLabel: root.morphFromRemainingLabel
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " " + root.projectionStats.unit + " lived"
       remainingLabel: root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)

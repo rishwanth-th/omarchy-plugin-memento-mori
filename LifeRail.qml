@@ -15,8 +15,12 @@ Item {
   property bool animateProgressChanges: true
   property real segmentProgress: progress
   property real segmentOpacity: 1
+  property real labelMorphProgress: 1
+  property bool labelMorphActive: false
   property real passageProgress: 1
   property bool passageActive: false
+  property string previousLivedLabel: ""
+  property string previousRemainingLabel: ""
   property string livedLabel: ""
   property string remainingLabel: ""
   property bool interactive: false
@@ -189,6 +193,7 @@ Item {
   }
 
   Item {
+    id: segmentLabels
     visible: root.showSegmentLabels
     opacity: Math.max(0, Math.min(1, root.segmentOpacity))
     anchors.left: track.left
@@ -197,29 +202,140 @@ Item {
     height: visible
       ? Math.max(livedSegmentLabel.implicitHeight, remainingSegmentLabel.implicitHeight)
       : 0
+    readonly property real livedWidth: Math.max(0,
+      width * Math.max(0, Math.min(1, root.segmentProgress)))
+    readonly property real seamX: width * Math.max(0,
+      Math.min(1, root.labelMorphProgress))
 
-    Text {
-      id: livedSegmentLabel
-      x: 0
-      width: Math.max(0, parent.width * Math.max(0, Math.min(1, root.segmentProgress)))
-      horizontalAlignment: Text.AlignHCenter
-      text: root.livedLabel
-      color: Color.accent
-      font.family: root.fontFamily
-      font.pixelSize: Style.font.caption
-      elide: Text.ElideRight
+    Item {
+      id: settledLabels
+      anchors.fill: parent
+      visible: !root.labelMorphActive
+
+      Text {
+        id: livedSegmentLabel
+        x: 0
+        width: segmentLabels.livedWidth
+        horizontalAlignment: Text.AlignHCenter
+        text: root.livedLabel
+        color: Color.accent
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        elide: Text.ElideRight
+      }
+
+      Text {
+        id: remainingSegmentLabel
+        x: segmentLabels.livedWidth
+        width: Math.max(0, segmentLabels.width - x)
+        horizontalAlignment: Text.AlignHCenter
+        text: root.remainingLabel
+        color: Color.accent
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        elide: Text.ElideRight
+      }
     }
 
-    Text {
-      id: remainingSegmentLabel
-      x: parent.width * Math.max(0, Math.min(1, root.segmentProgress))
-      width: Math.max(0, parent.width - x)
-      horizontalAlignment: Text.AlignHCenter
-      text: root.remainingLabel
-      color: Color.accent
-      font.family: root.fontFamily
-      font.pixelSize: Style.font.caption
-      elide: Text.ElideRight
+    Item {
+      id: previousLabelsClip
+      visible: root.labelMorphActive && width > 0
+      clip: true
+      x: segmentLabels.seamX
+      width: Math.max(0, segmentLabels.width - x)
+      height: parent.height
+
+      Item {
+        x: -previousLabelsClip.x
+        width: segmentLabels.width
+        height: parent.height
+
+        Text {
+          x: 0
+          width: segmentLabels.livedWidth
+          horizontalAlignment: Text.AlignHCenter
+          text: root.previousLivedLabel
+          color: Color.accent
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          elide: Text.ElideRight
+        }
+
+        Text {
+          x: segmentLabels.livedWidth
+          width: Math.max(0, segmentLabels.width - x)
+          horizontalAlignment: Text.AlignHCenter
+          text: root.previousRemainingLabel
+          color: Color.accent
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          elide: Text.ElideRight
+        }
+      }
+    }
+
+    Item {
+      id: nextLabelsClip
+      visible: root.labelMorphActive && width > 0
+      clip: true
+      x: 0
+      width: segmentLabels.seamX
+      height: parent.height
+
+      Item {
+        width: segmentLabels.width
+        height: parent.height
+
+        Text {
+          x: 0
+          width: segmentLabels.livedWidth
+          horizontalAlignment: Text.AlignHCenter
+          text: root.livedLabel
+          color: Color.accent
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          elide: Text.ElideRight
+        }
+
+        Text {
+          x: segmentLabels.livedWidth
+          width: Math.max(0, segmentLabels.width - x)
+          horizontalAlignment: Text.AlignHCenter
+          text: root.remainingLabel
+          color: Color.accent
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          elide: Text.ElideRight
+        }
+      }
+    }
+
+    Item {
+      visible: root.labelMorphActive
+        && root.labelMorphProgress > 0
+        && root.labelMorphProgress < 1
+      x: Math.round(segmentLabels.seamX - width / 2)
+      y: -Style.space(1)
+      width: Style.space(8)
+      height: parent.height + Style.space(2)
+      opacity: 4 * root.labelMorphProgress * (1 - root.labelMorphProgress)
+
+      Rectangle {
+        anchors.fill: parent
+        radius: width / 2
+        color: root.foreground
+        opacity: 0.08
+      }
+
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        width: Math.max(Style.spacing.hairline * 2, Style.space(2))
+        height: parent.height
+        radius: width / 2
+        color: root.foreground
+        opacity: 0.55
+      }
     }
   }
 
