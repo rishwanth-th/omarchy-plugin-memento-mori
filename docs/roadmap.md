@@ -58,6 +58,9 @@ without claiming a spatial correspondence the grid does not possess.
 
 ### Candidate refinement — temporal lens
 
+**Status:** active isolated experiment, tracked in DAZ-274. The clean seam
+remains implemented alongside it as the control and immediate fallback.
+
 Raw moire is not a dependable design material: its apparent movement changes
 with pixel density, scaling, capture, and theme contrast. The next prototype
 may preserve its sense of interference without superimposing the two grids.

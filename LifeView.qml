@@ -26,6 +26,8 @@ Flickable {
   property real morphProgress: 1
   property bool preparingMorph: false
   property bool reducedMotion: false
+  property bool temporalLensEnabled: true
+  readonly property int projectionMorphDuration: temporalLensEnabled ? 400 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
@@ -412,7 +414,7 @@ Flickable {
     property: "morphProgress"
     from: 0
     to: 1
-    duration: 360
+    duration: root.projectionMorphDuration
     easing.type: Easing.InOutCubic
     onFinished: root.clearProjectionMorph()
   }
@@ -622,8 +624,89 @@ Flickable {
             opacity, index === hoveredIndex)
       }
 
-      function paintProjectionMorph(ctx) {
-        var t = Math.max(0, Math.min(1, root.morphProgress))
+      function clampUnit(value) {
+        return Math.max(0, Math.min(1, value))
+      }
+
+      function smoothUnit(value) {
+        var x = clampUnit(value)
+        return x * x * (3 - 2 * x)
+      }
+
+      function paintCompressedProjection(ctx, mode, intervalCells, clipLeft,
+                                         clipRight, seamX, lensHalf, sourceSide) {
+        if (!intervalCells || clipRight <= clipLeft) return
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(clipLeft, root.gridOriginY() - Style.space(2),
+          clipRight - clipLeft, root.gridHeight() + Style.space(4))
+        ctx.clip()
+
+        var first = root.firstVisibleIndexFor(mode)
+        var last = root.lastVisibleIndexFor(mode, intervalCells)
+        for (var index = first; index < last; index++) {
+          var rect = root.segmentRect(mode, index, 0, 1)
+          if (rect.x + rect.width < clipLeft || rect.x > clipRight) continue
+
+          var centerX = rect.x + rect.width / 2
+          var distance = sourceSide
+            ? (centerX - seamX) / lensHalf
+            : (seamX - centerX) / lensHalf
+          var scale = smoothUnit(distance)
+          var compressedHeight = Math.max(Style.spacing.hairline, rect.height * scale)
+          var compressedRect = {
+            x: rect.x,
+            y: rect.y + (rect.height - compressedHeight) / 2,
+            width: rect.width,
+            height: compressedHeight
+          }
+          paintCell(ctx, intervalCells[index], compressedRect,
+            0.18 + 0.82 * scale, false)
+        }
+        ctx.restore()
+      }
+
+      function paintTemporalFilaments(ctx, lensLeft, lensRight, t) {
+        var lensWidth = lensRight - lensLeft
+        if (lensWidth <= 0) return
+
+        var originY = root.gridOriginY()
+        var filamentHeight = Math.max(Style.spacing.hairline, Style.space(1))
+        var shimmer = Math.sin(Math.PI * t)
+        var pulseWidth = Math.max(Style.space(8), lensWidth * 0.24)
+        var currentRow = root.currentGridRow()
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(lensLeft, originY - Style.space(2), lensWidth,
+          root.gridHeight() + Style.space(4))
+        ctx.clip()
+
+        for (var row = 0; row < root.visibleRowCount; row++) {
+          var y = originY + root.rowOffset(row) + root.cellHeight() / 2
+          var rowColor = row === currentRow ? Color.accent : root.foreground
+          ctx.fillStyle = Qt.rgba(rowColor.r, rowColor.g, rowColor.b,
+            row === currentRow ? 0.28 : 0.13)
+          ctx.fillRect(lensLeft, y - filamentHeight / 2, lensWidth, filamentHeight)
+
+          // Two broad counter-moving pulses create a stable interference beat
+          // without drawing fine alternating lines or overlapping both grids.
+          for (var family = 0; family < 2; family++) {
+            var direction = family === 0 ? 1 : -1
+            var phase = t * 0.8 + family * 0.5 + direction * row * 0.17
+            phase = phase - Math.floor(phase)
+            var pulseX = lensLeft + phase * lensWidth
+            ctx.fillStyle = Qt.rgba(rowColor.r, rowColor.g, rowColor.b,
+              shimmer * (row === currentRow ? 0.08 : 0.045))
+            ctx.fillRect(pulseX - pulseWidth / 2, y - filamentHeight,
+              pulseWidth, filamentHeight * 2)
+          }
+        }
+        ctx.restore()
+      }
+
+      function paintProjectionSeam(ctx, t) {
         var sourceLeft = root.gridOriginXFor(root.morphFromProjection)
         var targetLeft = root.gridOriginXFor(root.projection)
         var sourceRight = sourceLeft + root.gridWidthFor(root.morphFromProjection)
@@ -655,6 +738,48 @@ Flickable {
           root.foreground.b, seamAlpha)
         ctx.fillRect(seamX, root.gridOriginY() - Style.space(2),
           Style.spacing.hairline, root.gridHeight() + Style.space(4))
+      }
+
+      function paintTemporalLens(ctx, t) {
+        var sourceLeft = root.gridOriginXFor(root.morphFromProjection)
+        var targetLeft = root.gridOriginXFor(root.projection)
+        var sourceRight = sourceLeft + root.gridWidthFor(root.morphFromProjection)
+        var targetRight = targetLeft + root.gridWidthFor(root.projection)
+        var lensWidth = Math.max(Style.space(36), root.weekCellSize() * 8)
+        var lensHalf = lensWidth / 2
+        var pathLeft = Math.min(sourceLeft, targetLeft) - lensHalf
+        var pathRight = Math.max(sourceRight, targetRight) + lensHalf
+        var seamX = pathLeft + (pathRight - pathLeft) * t
+        var lensLeft = seamX - lensHalf
+        var lensRight = seamX + lensHalf
+
+        // Settled endpoints remain outside the lens. Inside it, each life-year
+        // row converges on a shared filament before resolving at the new scale.
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(0, 0, Math.max(0, lensLeft), height)
+        ctx.clip()
+        paintProjection(ctx, root.projection, root.cells, 1, -1)
+        ctx.restore()
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(lensRight, 0, Math.max(0, width - lensRight), height)
+        ctx.clip()
+        paintProjection(ctx, root.morphFromProjection, root.morphFromCells, 1, -1)
+        ctx.restore()
+
+        paintCompressedProjection(ctx, root.projection, root.cells,
+          lensLeft, seamX, seamX, lensHalf, false)
+        paintCompressedProjection(ctx, root.morphFromProjection, root.morphFromCells,
+          seamX, lensRight, seamX, lensHalf, true)
+        paintTemporalFilaments(ctx, lensLeft, lensRight, t)
+      }
+
+      function paintProjectionMorph(ctx) {
+        var t = clampUnit(root.morphProgress)
+        if (root.temporalLensEnabled) paintTemporalLens(ctx, t)
+        else paintProjectionSeam(ctx, t)
       }
 
       onPaint: {
