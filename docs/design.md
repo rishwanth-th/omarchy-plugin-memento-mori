@@ -122,6 +122,8 @@ persisted; the calm seam remains the startup default.
 
 ## Implementation boundary
 
+- [Keyboard and interaction manual](keyboard.md) is the source of truth for
+  active bindings, inherited Omarchy routing, and future shortcut allocation.
 - `horizonWeeks = 4000` is the default and core model.
 - Exact birth date and horizon override are local widget settings.
 - One `Canvas` renders the dense grid; date, projection, and hit-test math

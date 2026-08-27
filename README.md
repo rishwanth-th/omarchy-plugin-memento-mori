@@ -93,6 +93,8 @@ omarchy plugin remove rishwanth.memento-mori
 
 ## Documentation
 
+- [Keyboard and interaction manual](docs/keyboard.md) records active keys,
+  pointer equivalents, inherited Omarchy routing, and the available key budget.
 - [Design philosophy](docs/design.md) records the stable product and visual
   decisions behind V1.
 - [Inspirations](docs/inspirations.md) identifies the bounded specimens and
