@@ -81,9 +81,42 @@ test("grid readouts split exact time from life-relative context", () => {
 
   assert.deepEqual(Model.projectionReadoutParts(currentWeek, "weeks", today), {
     date: "20–26 AUG 2026",
+    datePrefix: "20–26",
+    dateMonth: "AUG",
+    dateYear: "2026",
     position: "WEEK 5",
     age: "AGE 25",
     status: "PRESENT"
+  })
+
+  assert.deepEqual(Model.projectionReadoutParts({
+    index: 5,
+    startKey: "2026-08-27",
+    endKey: "2026-09-02",
+    status: "future"
+  }, "weeks", today), {
+    date: "27 AUG–2 SEP 2026",
+    datePrefix: "27 AUG–2",
+    dateMonth: "SEP",
+    dateYear: "2026",
+    position: "WEEK 6",
+    age: "AGE 0",
+    status: "FUTURE"
+  })
+
+  assert.deepEqual(Model.projectionReadoutParts({
+    index: 51,
+    startKey: "2026-12-28",
+    endKey: "2027-01-03",
+    status: "future"
+  }, "weeks", today), {
+    date: "28 DEC 2026–3 JAN 2027",
+    datePrefix: "28 DEC 2026–3",
+    dateMonth: "JAN",
+    dateYear: "2027",
+    position: "WEEK 52",
+    age: "AGE 0",
+    status: "FUTURE"
   })
 })
 
