@@ -4,8 +4,11 @@ V1 establishes the information architecture and interaction grammar. V2 adds
 motion and tactility only where they make temporal structure easier to
 understand. It is not permission to add product machinery.
 
-Each V2 idea is an isolated experiment. An experiment graduates into
-[Design philosophy](design.md) only after live review proves its meaning,
+V2 is organized as interaction workstreams, not as a collection of effects.
+Each workstream begins with a product intent and ends with a stable decision.
+It may use isolated experiments to answer uncertain questions, but an
+experiment is a method rather than the deliverable. A workstream graduates
+into [Design philosophy](design.md) only after live review proves its meaning,
 timing, cancellation, and reduced-motion behavior. Rejected experiments stay
 here with a short reason so the same ambiguity is not rediscovered.
 
@@ -29,8 +32,9 @@ here with a short reason so the same ambiguity is not rediscovered.
 
 ## Workstream 1 — Weeks ↔ Months semantic morph
 
-**Status:** stable seam retained as the default; exact-overlap interference
-retained as an optional session lens. Tracked in DAZ-272 and DAZ-274.
+**Status:** complete. Stable seam retained as the default; exact-overlap
+interference retained as an optional session lens. Tracked in DAZ-272 and
+DAZ-274.
 
 Weeks and Months are two resolutions of one exact birth-anchored timeline.
 Their transition should disclose that containment without pretending every
@@ -108,6 +112,8 @@ nothing that emerged from Weeks and Months themselves. It was discarded.
 
 ## Workstream 2 — LIFE entrance
 
+**Status:** next. Tracked in DAZ-275.
+
 The LIFE rail may travel from birth through its year ticks to the present,
 with lived fill following behind it. Once the global sweep settles, the local
 present cell and its two guide lines resolve into place.
@@ -180,8 +186,8 @@ on. This is polish, not core meaning.
 
 ## Evaluation order
 
-1. Weeks ↔ Months semantic morph.
-2. LIFE entrance.
+1. Weeks ↔ Months semantic morph — complete.
+2. LIFE entrance — next.
 3. Temporal-distance pin.
 4. Hover-guide motion.
 5. Viewport movement.
