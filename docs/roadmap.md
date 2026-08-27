@@ -121,6 +121,20 @@ present cell and its two guide lines resolve into place.
 The rail should tell the whole-horizon story; the compact viewport should not
 pretend to animate thousands of off-screen cells.
 
+### Prototype 1 — global passage, local settle
+
+- On the first completed LIFE entrance of a shell session, the rail travels
+  from birth to the exact present over `420ms` using OutCubic timing.
+- Exact percentage, counts, date readout, grid, and present cell are available
+  immediately. The motion explains passage without withholding the answer.
+- The present cell's two coordinate guides resolve during the final `160ms`,
+  handing attention from the global rail to the local viewport.
+- Repeat entrances skip the global sweep and use only the short guide settle.
+- Closing or interacting mid-sweep cancels stale motion. An interrupted first
+  entrance does not count as completed and may replay next time.
+- Changing birth date or horizon rearms the full entrance. Reduced motion
+  resolves directly to the same final state.
+
 ### Questions
 
 - Does the sweep explain scale, or merely delay the answer?

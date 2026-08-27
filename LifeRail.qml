@@ -12,6 +12,7 @@ Item {
   property int horizonWeeks: 4000
   property bool showYearScale: false
   property bool showSegmentLabels: false
+  property bool animateProgressChanges: true
   property string livedLabel: ""
   property string remainingLabel: ""
   property bool interactive: false
@@ -74,7 +75,10 @@ Item {
       radius: parent.radius
       color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.34)
 
-      Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+      Behavior on width {
+        enabled: root.animateProgressChanges
+        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+      }
     }
 
     Rectangle {
@@ -88,7 +92,10 @@ Item {
       radius: width / 2
       color: Color.accent
 
-      Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+      Behavior on x {
+        enabled: root.animateProgressChanges
+        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+      }
     }
   }
 

@@ -57,6 +57,7 @@ Panel {
   readonly property real lifeDone: lifeStats.progress
   readonly property real lifeDonePercent: lifeStats.percent
   property bool editingLife: false
+  property bool lifeEntrancePlayed: false
   property string panelPage: "calendar"
   property real calendarFrameImplicitHeight: 0
   readonly property bool showingLife: panelPage === "life"
@@ -112,6 +113,7 @@ Panel {
     // Dismissing the panel mid-edit would otherwise leave the inputs up,
     // waiting behind a closed popup for the next time it opens.
     if (root.editingLife) root.cancelEditingLife()
+    if (root.showingLife) lifeView.cancelEntrance()
     root.panelPage = "calendar"
     root.controller.hide()
   }
@@ -211,8 +213,10 @@ Panel {
   function commitLife() {
     var born = Model.parseBirthDate(bornField.text, today)
     var span = Model.parseHorizonWeeks(horizonField.text)
-    if (born !== root.birthDateKey || span !== root.horizonWeeks)
+    if (born !== root.birthDateKey || span !== root.horizonWeeks) {
+      root.lifeEntrancePlayed = false
       persistSettings({ birthDate: born, horizonWeeks: span })
+    }
     cancelEditingLife()
   }
 
@@ -222,14 +226,17 @@ Panel {
       return
     }
     root.rememberCalendarFrame()
+    lifeView.resetToNow()
+    lifeView.prepareEntrance(!root.lifeEntrancePlayed)
     root.panelPage = "life"
     Qt.callLater(function() {
-      lifeView.resetToNow()
+      lifeView.startPreparedEntrance()
       if (keyCatcher) keyCatcher.forceActiveFocus()
     })
   }
 
   function showCalendar() {
+    lifeView.cancelEntrance()
     root.panelPage = "calendar"
     Qt.callLater(function() {
       root.rememberCalendarFrame()
@@ -752,6 +759,9 @@ Panel {
         foreground: root.contentForeground
         fontFamily: root.contentFontFamily
         onBackRequested: root.showCalendar()
+        onEntranceCompleted: function(fullEntrance) {
+          if (fullEntrance) root.lifeEntrancePlayed = true
+        }
       }
     }
   }

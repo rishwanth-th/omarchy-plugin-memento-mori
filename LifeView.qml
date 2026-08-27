@@ -29,6 +29,10 @@ Flickable {
   property var morphTargetRects: []
   property real morphProgress: 1
   property bool morphUsesDateOverlap: false
+  property real entranceRailProgress: 1
+  property real entranceGuideProgress: 1
+  property bool entranceAnimating: false
+  property bool entranceFull: false
   property bool preparingMorph: false
   property bool reducedMotion: false
   property bool dateOverlapEnabled: false
@@ -54,6 +58,7 @@ Flickable {
   property int hoveredIndex: -1
 
   signal backRequested()
+  signal entranceCompleted(bool fullEntrance)
 
   clip: true
   boundsBehavior: Flickable.StopAtBounds
@@ -180,6 +185,7 @@ Flickable {
   }
 
   function resetToNow() {
+    if (entranceAnimating) cancelEntrance()
     finishProjectionMorph()
     windowYearStart = defaultWindowStart()
     contentY = 0
@@ -188,6 +194,7 @@ Flickable {
   }
 
   function panRows(delta) {
+    if (entranceAnimating) cancelEntrance()
     finishProjectionMorph()
     windowYearStart = Math.max(0, Math.min(totalLifeYears - visibleYearCount, visibleYearStart + delta))
     hoveredIndex = -1
@@ -216,6 +223,46 @@ Flickable {
     dateOverlapEnabled = !dateOverlapEnabled
   }
 
+  function prepareEntrance(fullEntrance) {
+    cancelEntrance()
+    finishProjectionMorph()
+    entranceFull = fullEntrance === true
+    entranceRailProgress = entranceFull ? 0 : 1
+    entranceGuideProgress = 0
+    entranceAnimating = true
+    lifeCanvas.requestPaint()
+  }
+
+  function startPreparedEntrance() {
+    if (!entranceAnimating) return
+    if (reducedMotion) {
+      completeEntrance()
+      return
+    }
+    if (entranceFull) fullEntranceAnimation.start()
+    else repeatEntranceAnimation.start()
+  }
+
+  function completeEntrance() {
+    var completedFullEntrance = entranceFull
+    entranceRailProgress = 1
+    entranceGuideProgress = 1
+    entranceAnimating = false
+    entranceFull = false
+    lifeCanvas.requestPaint()
+    entranceCompleted(completedFullEntrance)
+  }
+
+  function cancelEntrance() {
+    if (fullEntranceAnimation.running) fullEntranceAnimation.stop()
+    if (repeatEntranceAnimation.running) repeatEntranceAnimation.stop()
+    entranceRailProgress = 1
+    entranceGuideProgress = 1
+    entranceAnimating = false
+    entranceFull = false
+    lifeCanvas.requestPaint()
+  }
+
   function registerAnimationTap(x, y) {
     var now = Date.now()
     var dx = x - lastAnimationTapX
@@ -239,6 +286,8 @@ Flickable {
   function setProjection(value) {
     if (value !== "weeks" && value !== "months") return
     if (projection === value) return
+
+    if (entranceAnimating) cancelEntrance()
 
     finishProjectionMorph()
     var sourceProjection = projection
@@ -497,7 +546,46 @@ Flickable {
   onHorizonWeeksChanged: refreshCells(true)
   onWidthChanged: lifeCanvas.requestPaint()
   onMorphProgressChanged: lifeCanvas.requestPaint()
+  onEntranceGuideProgressChanged: lifeCanvas.requestPaint()
   Component.onCompleted: refreshCells(true)
+
+  ParallelAnimation {
+    id: fullEntranceAnimation
+
+    NumberAnimation {
+      target: root
+      property: "entranceRailProgress"
+      from: 0
+      to: 1
+      duration: 420
+      easing.type: Easing.OutCubic
+    }
+
+    SequentialAnimation {
+      PauseAnimation { duration: 260 }
+      NumberAnimation {
+        target: root
+        property: "entranceGuideProgress"
+        from: 0
+        to: 1
+        duration: 160
+        easing.type: Easing.OutCubic
+      }
+    }
+
+    onFinished: root.completeEntrance()
+  }
+
+  NumberAnimation {
+    id: repeatEntranceAnimation
+    target: root
+    property: "entranceGuideProgress"
+    from: 0
+    to: 1
+    duration: 160
+    easing.type: Easing.OutCubic
+    onFinished: root.completeEntrance()
+  }
 
   NumberAnimation {
     id: projectionMorphAnimation
@@ -575,11 +663,12 @@ Flickable {
       width: parent.width
       foreground: root.foreground
       fontFamily: root.fontFamily
-      progress: root.stats.progress
+      progress: root.stats.progress * root.entranceRailProgress
       percent: root.stats.percent
       horizonWeeks: root.horizonWeeks
       showYearScale: true
       showSegmentLabels: true
+      animateProgressChanges: !root.entranceAnimating
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " " + root.projectionStats.unit + " lived"
       remainingLabel: root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)
@@ -946,8 +1035,11 @@ Flickable {
           var guideX = originX + root.columnOffset(guideColumn) + cellWidth / 2
           var guideY = originY + root.rowOffset(guideRow) + cellHeight / 2
           var guideColor = guides[g].current ? Color.accent : root.foreground
+          var guideOpacity = guides[g].current
+            ? 0.32 * root.entranceGuideProgress
+            : 0.26
           ctx.fillStyle = Qt.rgba(guideColor.r, guideColor.g, guideColor.b,
-            guides[g].current ? 0.32 : 0.26)
+            guideOpacity)
           ctx.fillRect(originX - Style.space(3), guideY,
             Math.max(0, guideX - originX + Style.space(3)), Style.spacing.hairline)
           ctx.fillRect(guideX, originY - Style.space(6), Style.spacing.hairline,
