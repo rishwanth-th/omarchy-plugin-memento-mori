@@ -56,6 +56,7 @@ Flickable {
   readonly property int pinnedIndex: Model.projectionIndexForDate(cells, pinnedDateKey)
   readonly property int keyboardIndex: Model.projectionIndexForDate(cells, keyboardDateKey)
   readonly property bool hasPin: pinnedDateKey !== "" && pinnedIndex >= 0
+  readonly property var pinDelta: Model.projectionDelta(cells, projection, pinnedDateKey)
   readonly property real pinProgress: Model.lifeProgressForDate(
     birthKey, pinnedDateKey, horizonWeeks)
   readonly property int totalLifeYears: Math.max(1, Math.ceil(horizonWeeks / 52))
@@ -943,6 +944,23 @@ Flickable {
             font.pixelSize: Style.font.bodySmall
           }
         }
+      }
+
+      Text {
+        id: deltaReadout
+        visible: root.hasPin && root.pinDelta.configured
+        anchors.right: parent.right
+        anchors.rightMargin: Style.space(4)
+        anchors.verticalCenter: parent.verticalCenter
+        width: Style.space(150)
+        text: visible ? root.pinDelta.label : ""
+        color: Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, 0.72)
+        font.family: root.fontFamily
+        font.pixelSize: Math.max(8, Style.font.caption - 1)
+        font.letterSpacing: 0.5
+        horizontalAlignment: Text.AlignRight
+        elide: Text.ElideLeft
       }
     }
 

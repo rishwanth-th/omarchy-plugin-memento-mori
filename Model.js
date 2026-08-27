@@ -422,6 +422,36 @@ function projectionIndexForDate(cells, value) {
   return -1
 }
 
+// Describe distance in the active projection rather than inventing one mixed
+// duration. Weeks count week cells; Months count exact birth-anchored calendar
+// cells. The wording is deliberately symmetric and neutral around now.
+function projectionDelta(cells, mode, pinnedDateKey) {
+  var intervals = Array.isArray(cells) ? cells : []
+  var presentIndex = -1
+  for (var i = 0; i < intervals.length; i++) {
+    if (intervals[i].status === "current") {
+      presentIndex = i
+      break
+    }
+  }
+  var pinnedIndex = projectionIndexForDate(intervals, pinnedDateKey)
+  if (presentIndex < 0 || pinnedIndex < 0 || pinnedIndex === presentIndex)
+    return { configured: false, count: 0, direction: "", unit: "", label: "" }
+
+  var signedCount = pinnedIndex - presentIndex
+  var count = Math.abs(signedCount)
+  var singular = mode === "months" ? "MONTH" : "WEEK"
+  var unit = count === 1 ? singular : singular + "S"
+  var direction = signedCount < 0 ? "BEFORE NOW" : "AFTER NOW"
+  return {
+    configured: true,
+    count: count,
+    direction: direction,
+    unit: unit,
+    label: count + " " + unit + " " + direction
+  }
+}
+
 // LIFE's horizon is canonically week-based. Map an exact day to that same
 // scale so a secondary rail marker agrees with the settled present marker
 // and remains stable while the grid changes projection.
@@ -647,6 +677,7 @@ if (typeof module !== "undefined") {
     projectionReadoutParts: projectionReadoutParts,
     projectionStats: projectionStats,
     projectionIndexForDate: projectionIndexForDate,
+    projectionDelta: projectionDelta,
     lifeProgressForDate: lifeProgressForDate,
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,

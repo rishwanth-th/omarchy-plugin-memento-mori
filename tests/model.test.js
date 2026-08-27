@@ -154,6 +154,42 @@ test("one exact temporal pin maps across projections without drifting", () => {
   assert.equal(Model.projectionIndexForDate(months, "2200-01-01"), -1)
 })
 
+test("temporal delta stays symmetric and follows the active projection", () => {
+  const today = localDate(2026, 8, 28)
+  const birth = "2001-08-23"
+  const weeks = Model.projectionCells("weeks", birth, today, 4000)
+  const months = Model.projectionCells("months", birth, today, 4000)
+
+  assert.deepEqual(Model.projectionDelta(weeks, "weeks", "2028-09-28"), {
+    configured: true,
+    count: 109,
+    direction: "AFTER NOW",
+    unit: "WEEKS",
+    label: "109 WEEKS AFTER NOW"
+  })
+  assert.deepEqual(Model.projectionDelta(weeks, "weeks", "2024-08-22"), {
+    configured: true,
+    count: 105,
+    direction: "BEFORE NOW",
+    unit: "WEEKS",
+    label: "105 WEEKS BEFORE NOW"
+  })
+  assert.deepEqual(Model.projectionDelta(months, "months", "2028-09-28"), {
+    configured: true,
+    count: 25,
+    direction: "AFTER NOW",
+    unit: "MONTHS",
+    label: "25 MONTHS AFTER NOW"
+  })
+  assert.deepEqual(Model.projectionDelta(months, "months", "2026-08-28"), {
+    configured: false,
+    count: 0,
+    direction: "",
+    unit: "",
+    label: ""
+  })
+})
+
 test("an exact temporal pin uses the canonical week-based LIFE rail", () => {
   const birth = "2001-08-23"
 

@@ -264,6 +264,7 @@ Panel {
       hoveredIndex: lifeView.hoveredIndex,
       pinnedDateKey: lifeView.pinnedDateKey,
       pinnedIndex: lifeView.pinnedIndex,
+      deltaLabel: lifeView.pinDelta.label,
       visibleYearStart: lifeView.visibleYearStart
     })
   }

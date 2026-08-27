@@ -183,6 +183,14 @@ label, while the present keeps the only accent and hover remains subordinate.
 - Is the keyboard cursor visually distinct enough from the deliberate pin?
 - After live review, should a compact numeric delta be tested or omitted?
 
+### Active experiment — projection delta
+
+The discardable delta branch tests one fixed, right-aligned readout beside the
+unchanged centered date: `109 WEEKS AFTER NOW` or `105 WEEKS BEFORE NOW`.
+Weeks count weekly grid intervals and Months count exact birth-anchored monthly
+intervals. The geometry does not move, the wording is symmetric around now,
+and a pin inside the current interval shows no redundant zero delta.
+
 ### Reject if
 
 - Pinning merely freezes hover without enabling comparison.
