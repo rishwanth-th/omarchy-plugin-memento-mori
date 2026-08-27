@@ -153,7 +153,7 @@ compact viewport contains all 4,000 weeks.
 
 ## Workstream 3 — Temporal-distance pin
 
-**Status:** next. Tracked in DAZ-277.
+**Status:** static proof of concept under live review. Tracked in DAZ-277.
 
 Clicking a cell may pin a deliberate comparison with the present. The LIFE
 rail would gain a quiet second marker and highlight only the segment between
@@ -164,12 +164,19 @@ selection lies.
 This is the purpose that may earn click interaction. Pinning is not a doorway
 to journaling, milestones, or a detail product.
 
+The first proof deliberately stops before motion and numbers. One exact date
+survives projection changes, its containing cell gains a quiet foreground
+outline, and the LIFE rail shows a subordinate marker plus only the segment
+between it and the accented present. Pointer click and the keyboard inspection
+cursor share the same single-pin state; leaving LIFE clears it.
+
 ### Questions
 
 - Is the visual segment sufficient, or does a compact `+587 WEEKS` delta help?
-- Does click again clear the pin, with Escape as the keyboard equivalent?
-- Should keyboard inspection move the pin for accessibility?
-- How does a pinned date survive projection changes without changing meaning?
+- Does the static cell-to-rail relationship read clearly enough to earn
+  further motion?
+- Is the keyboard cursor visually distinct enough from the deliberate pin?
+- After live review, should a compact numeric delta be tested or omitted?
 
 ### Reject if
 

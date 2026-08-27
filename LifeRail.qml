@@ -19,6 +19,8 @@ Item {
   property bool labelMorphActive: false
   property real passageProgress: 1
   property bool passageActive: false
+  property bool pinActive: false
+  property real pinProgress: 0
   property string previousLivedLabel: ""
   property string previousRemainingLabel: ""
   property string livedLabel: ""
@@ -87,6 +89,34 @@ Item {
         enabled: root.animateProgressChanges
         NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
       }
+    }
+
+    Rectangle {
+      // A pin is a relationship to the present, not a second present. The
+      // quiet span makes that relationship legible while accent remains
+      // reserved for now.
+      visible: root.pinActive
+      x: Math.round(parent.width * Math.min(
+        Math.max(0, Math.min(1, root.progress)),
+        Math.max(0, Math.min(1, root.pinProgress))))
+      width: Math.max(Style.spacing.hairline,
+        Math.round(parent.width * Math.abs(
+          Math.max(0, Math.min(1, root.pinProgress))
+          - Math.max(0, Math.min(1, root.progress)))))
+      height: Math.max(Style.spacing.hairline, Style.space(2))
+      anchors.verticalCenter: parent.verticalCenter
+      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
+    }
+
+    Rectangle {
+      visible: root.pinActive
+      width: Math.max(Style.spacing.hairline, Style.space(2))
+      height: parent.height + Style.space(4)
+      x: Math.round(Math.max(0, Math.min(parent.width - width,
+        parent.width * Math.max(0, Math.min(1, root.pinProgress)) - width / 2)))
+      anchors.verticalCenter: parent.verticalCenter
+      radius: width / 2
+      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.72)
     }
 
     Item {

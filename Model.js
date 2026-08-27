@@ -395,6 +395,45 @@ function projectionStats(cells, mode) {
   }
 }
 
+// Resolve one exact day into whichever projection currently renders it. A
+// pin keeps the day as its identity, rather than adopting the destination
+// cell's boundary, so switching weeks -> months -> weeks never makes it
+// drift through the calendar.
+function projectionIndexForDate(cells, value) {
+  var intervals = Array.isArray(cells) ? cells : []
+  var date = dateFromKey(value)
+  if (!date || intervals.length === 0) return -1
+  var day = utcDayNumber(date)
+  var low = 0
+  var high = intervals.length - 1
+
+  while (low <= high) {
+    var middle = Math.floor((low + high) / 2)
+    var start = dateFromKey(intervals[middle].startKey)
+    var end = dateFromKey(intervals[middle].endKey)
+    if (!start || !end) return -1
+    var startDay = utcDayNumber(start)
+    var endDay = utcDayNumber(end)
+    if (day < startDay) high = middle - 1
+    else if (day > endDay) low = middle + 1
+    else return middle
+  }
+
+  return -1
+}
+
+// LIFE's horizon is canonically week-based. Map an exact day to that same
+// scale so a secondary rail marker agrees with the settled present marker
+// and remains stable while the grid changes projection.
+function lifeProgressForDate(birthKey, value, horizonValue) {
+  var birth = dateFromKey(birthKey)
+  var date = dateFromKey(value)
+  if (!birth || !date) return -1
+  var horizonWeeks = parseHorizonWeeks(horizonValue)
+  var week = Math.floor(daysBetween(birth, date) / 7)
+  return Math.max(0, Math.min(horizonWeeks, week)) / horizonWeeks
+}
+
 // Split source intervals by exact date overlap. The fractions tile each
 // inclusive interval without pretending that calendar months contain a fixed
 // number of weeks. Their changing row alignment is the mathematical source
@@ -607,6 +646,8 @@ if (typeof module !== "undefined") {
     projectionReadout: projectionReadout,
     projectionReadoutParts: projectionReadoutParts,
     projectionStats: projectionStats,
+    projectionIndexForDate: projectionIndexForDate,
+    lifeProgressForDate: lifeProgressForDate,
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,
     temporalViewportStart: temporalViewportStart,

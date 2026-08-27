@@ -44,12 +44,20 @@ Flickable {
   property double lastAnimationTapAt: 0
   property real lastAnimationTapX: 0
   property real lastAnimationTapY: 0
+  property string pinnedDateKey: ""
+  property string keyboardDateKey: ""
+  property bool keyboardInspecting: false
   readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
   readonly property var projectionStats: Model.projectionStats(cells, projection)
   readonly property int presentCellIndex: findPresentIndex()
+  readonly property int pinnedIndex: Model.projectionIndexForDate(cells, pinnedDateKey)
+  readonly property int keyboardIndex: Model.projectionIndexForDate(cells, keyboardDateKey)
+  readonly property bool hasPin: pinnedDateKey !== "" && pinnedIndex >= 0
+  readonly property real pinProgress: Model.lifeProgressForDate(
+    birthKey, pinnedDateKey, horizonWeeks)
   readonly property int totalLifeYears: Math.max(1, Math.ceil(horizonWeeks / 52))
   readonly property int visibleYearCount: Math.min(compactYearSpan, totalLifeYears)
   readonly property int visibleYearStart: Math.max(0,
@@ -188,12 +196,16 @@ Flickable {
     return Model.temporalViewportStart(currentLifeYear(), totalLifeYears, compactYearSpan)
   }
 
-  function resetToNow() {
+  function resetToNow(activateCursor) {
     if (entranceAnimating) cancelEntrance()
     finishProjectionMorph()
     windowYearStart = defaultWindowStart()
     contentY = 0
     hoveredIndex = -1
+    keyboardInspecting = activateCursor === true
+    keyboardDateKey = keyboardInspecting && presentCellIndex >= 0
+      ? cells[presentCellIndex].startKey
+      : ""
     lifeCanvas.requestPaint()
   }
 
@@ -202,7 +214,65 @@ Flickable {
     finishProjectionMorph()
     windowYearStart = Math.max(0, Math.min(totalLifeYears - visibleYearCount, visibleYearStart + delta))
     hoveredIndex = -1
+    keyboardInspecting = false
+    keyboardDateKey = ""
     lifeCanvas.requestPaint()
+  }
+
+  function ensureIndexVisible(index) {
+    if (index < 0 || index >= cells.length) return
+    var row = Math.floor(index / columns())
+    if (row < visibleYearStart) windowYearStart = row
+    else if (row >= visibleYearStart + visibleYearCount)
+      windowYearStart = row - visibleYearCount + 1
+    windowYearStart = Math.max(0,
+      Math.min(totalLifeYears - visibleYearCount, windowYearStart))
+  }
+
+  function moveInspection(dx, dy) {
+    if (entranceAnimating) cancelEntrance()
+    finishProjectionMorph()
+    var base = keyboardInspecting && keyboardIndex >= 0
+      ? keyboardIndex
+      : (hasPin ? pinnedIndex : presentCellIndex)
+    if (base < 0) base = firstVisibleIndex()
+    var target = Math.max(0, Math.min(cells.length - 1,
+      base + dx + dy * columns()))
+    if (target < 0 || target >= cells.length) return
+    keyboardDateKey = cells[target].startKey
+    keyboardInspecting = true
+    hoveredIndex = -1
+    ensureIndexVisible(target)
+    lifeCanvas.requestPaint()
+  }
+
+  function clearPin() {
+    pinnedDateKey = ""
+    lifeCanvas.requestPaint()
+  }
+
+  function clearTemporalSelection() {
+    clearPin()
+    keyboardInspecting = false
+    keyboardDateKey = ""
+    hoveredIndex = -1
+    lifeCanvas.requestPaint()
+  }
+
+  function togglePinAtIndex(index) {
+    if (index < 0 || index >= cells.length) return false
+    if (cells[index].status === "current" || (hasPin && pinnedIndex === index)) {
+      clearPin()
+      return false
+    }
+    pinnedDateKey = cells[index].startKey
+    keyboardDateKey = cells[index].startKey
+    lifeCanvas.requestPaint()
+    return true
+  }
+
+  function togglePinAtInspection() {
+    return togglePinAtIndex(inspectedIndex())
   }
 
   function clearProjectionMorph() {
@@ -443,6 +513,10 @@ Flickable {
   function inspectedIndex() {
     if (hoveredIndex >= firstVisibleIndex() && hoveredIndex < lastVisibleIndex())
       return hoveredIndex
+    if (keyboardInspecting && keyboardIndex >= firstVisibleIndex()
+        && keyboardIndex < lastVisibleIndex()) return keyboardIndex
+    if (hasPin && pinnedIndex >= firstVisibleIndex() && pinnedIndex < lastVisibleIndex())
+      return pinnedIndex
     var present = presentCellIndex
     if (present >= firstVisibleIndex() && present < lastVisibleIndex()) return present
     return firstVisibleIndex() < lastVisibleIndex() ? firstVisibleIndex() : -1
@@ -563,10 +637,21 @@ Flickable {
     return marks
   }
 
-  onProjectionChanged: refreshCells(false)
-  onBirthKeyChanged: refreshCells(true)
+  onProjectionChanged: {
+    refreshCells(false)
+    if (keyboardInspecting) ensureIndexVisible(keyboardIndex)
+    else if (hasPin) ensureIndexVisible(pinnedIndex)
+    lifeCanvas.requestPaint()
+  }
+  onBirthKeyChanged: {
+    clearTemporalSelection()
+    refreshCells(true)
+  }
   onTodayChanged: refreshCells(true)
-  onHorizonWeeksChanged: refreshCells(true)
+  onHorizonWeeksChanged: {
+    clearTemporalSelection()
+    refreshCells(true)
+  }
   onWidthChanged: lifeCanvas.requestPaint()
   onMorphProgressChanged: lifeCanvas.requestPaint()
   onEntranceFocusProgressChanged: lifeCanvas.requestPaint()
@@ -765,6 +850,8 @@ Flickable {
       labelMorphActive: root.projectionMorphing
       passageProgress: root.entrancePassageProgress
       passageActive: root.entranceAnimating
+      pinActive: root.hasPin && root.pinProgress >= 0
+      pinProgress: Math.max(0, root.pinProgress)
       previousLivedLabel: root.morphFromLivedLabel
       previousRemainingLabel: root.morphFromRemainingLabel
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
@@ -863,7 +950,7 @@ Flickable {
       width: parent.width
       height: root.compactCanvasHeight
 
-      function paintCell(ctx, cell, rect, opacity, hovered) {
+      function paintCell(ctx, cell, rect, opacity, hovered, pinned, keyboardFocused) {
         if (!cell || !rect || opacity <= 0) return
         var alpha = Math.max(0, Math.min(1, opacity))
         var accent = Color.accent
@@ -888,6 +975,29 @@ Flickable {
             Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
         }
 
+        if (pinned && cell.status !== "current" && alpha >= 0.99) {
+          ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.14)
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.72)
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
+          var pinInset = ctx.lineWidth / 2
+          ctx.strokeRect(rect.x + pinInset, rect.y + pinInset,
+            Math.max(0, rect.width - ctx.lineWidth),
+            Math.max(0, rect.height - ctx.lineWidth))
+        }
+
+        if (keyboardFocused && !hovered && alpha >= 0.99) {
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.9)
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline)
+          var focusInset = Math.max(1, ctx.lineWidth)
+          ctx.strokeRect(rect.x + focusInset, rect.y + focusInset,
+            Math.max(0, rect.width - focusInset * 2),
+            Math.max(0, rect.height - focusInset * 2))
+        }
+
         if (hovered && alpha >= 0.99) {
           ctx.strokeStyle = root.foreground
           ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
@@ -902,9 +1012,12 @@ Flickable {
         if (!intervalCells || opacity <= 0) return
         var first = root.firstVisibleIndexFor(mode)
         var last = root.lastVisibleIndexFor(mode, intervalCells)
+        var currentProjection = mode === root.projection && intervalCells === root.cells
         for (var index = first; index < last; index++)
           paintCell(ctx, intervalCells[index], root.segmentRect(mode, index, 0, 1),
-            opacity, index === hoveredIndex)
+            opacity, index === hoveredIndex,
+            currentProjection && root.hasPin && index === root.pinnedIndex,
+            currentProjection && root.keyboardInspecting && index === root.keyboardIndex)
       }
 
       function clampUnit(value) {
@@ -1067,7 +1180,10 @@ Flickable {
         }
 
         var vertical = root.verticalMarks()
-        var inspectedColor = root.hoveredIndex >= 0 ? root.foreground : Color.accent
+        var inspectionIndex = root.inspectedIndex()
+        var inspectedColor = inspectionIndex !== root.presentCellIndex
+          ? root.foreground
+          : Color.accent
         ctx.textAlign = "right"
         for (var v = 0; v < vertical.length; v++) {
           ctx.fillStyle = vertical[v].current
@@ -1095,10 +1211,10 @@ Flickable {
           presentColumn = (root.presentCellIndex - root.firstVisibleIndex()) % columns
           horizontalTicks.push({ index: root.presentCellIndex, current: true })
         }
-        if (root.hoveredIndex >= root.firstVisibleIndex()
-            && root.hoveredIndex < root.lastVisibleIndex()
-            && (root.hoveredIndex - root.firstVisibleIndex()) % columns !== presentColumn)
-          horizontalTicks.push({ index: root.hoveredIndex, current: false })
+        if (inspectionIndex >= root.firstVisibleIndex()
+            && inspectionIndex < root.lastVisibleIndex()
+            && (inspectionIndex - root.firstVisibleIndex()) % columns !== presentColumn)
+          horizontalTicks.push({ index: inspectionIndex, current: false })
 
         for (var h = 0; h < horizontalTicks.length; h++) {
           var tickColumn = (horizontalTicks[h].index - root.firstVisibleIndex()) % columns
@@ -1119,17 +1235,17 @@ Flickable {
             Style.spacing.hairline, Style.space(6))
         }
 
-        // Present and hover use the same directional grammar: each point
+        // Present and inspection use the same directional grammar: each point
         // reaches only upward to X and leftward to Y. The present guide stays
-        // accented while hover adds a foreground inspection guide.
+        // accented while hover, keyboard cursor, or pin adds a foreground guide.
         var guides = []
         if (root.presentCellIndex >= root.firstVisibleIndex()
             && root.presentCellIndex < root.lastVisibleIndex())
           guides.push({ index: root.presentCellIndex, current: true })
-        if (root.hoveredIndex >= root.firstVisibleIndex()
-            && root.hoveredIndex < root.lastVisibleIndex()
-            && root.hoveredIndex !== root.presentCellIndex)
-          guides.push({ index: root.hoveredIndex, current: false })
+        if (inspectionIndex >= root.firstVisibleIndex()
+            && inspectionIndex < root.lastVisibleIndex()
+            && inspectionIndex !== root.presentCellIndex)
+          guides.push({ index: inspectionIndex, current: false })
 
         for (var g = 0; g < guides.length; g++) {
           var guideLocal = guides[g].index - root.firstVisibleIndex()
@@ -1173,7 +1289,9 @@ Flickable {
         enabled: !root.projectionMorphing
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
-        cursorShape: root.projectionToggleHovered ? Qt.PointingHandCursor : Qt.ArrowCursor
+        cursorShape: root.projectionToggleHovered || root.hoveredIndex >= 0
+          ? Qt.PointingHandCursor
+          : Qt.ArrowCursor
         onPositionChanged: function(mouse) {
           var overHorizontal = root.horizontalAxisContains(mouse.x, mouse.y)
           var overVertical = root.verticalAxisContains(mouse.x, mouse.y)
@@ -1205,6 +1323,8 @@ Flickable {
         }
         onClicked: function(mouse) {
           if (root.projectionToggleContains(mouse.x, mouse.y)) root.toggleProjection()
+          else if (root.hitTest(mouse.x, mouse.y) >= 0)
+            root.togglePinAtIndex(root.hitTest(mouse.x, mouse.y))
           else if (root.gridContains(mouse.x, mouse.y))
             root.registerAnimationTap(mouse.x, mouse.y)
         }

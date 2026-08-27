@@ -58,6 +58,7 @@ Panel {
   readonly property real lifeDonePercent: lifeStats.percent
   property bool editingLife: false
   property bool lifeEntrancePlayed: false
+  property bool lifeReturnHandled: false
   property string panelPage: "calendar"
   property real calendarFrameImplicitHeight: 0
   readonly property bool showingLife: panelPage === "life"
@@ -113,7 +114,10 @@ Panel {
     // Dismissing the panel mid-edit would otherwise leave the inputs up,
     // waiting behind a closed popup for the next time it opens.
     if (root.editingLife) root.cancelEditingLife()
-    if (root.showingLife) lifeView.cancelEntrance()
+    if (root.showingLife) {
+      lifeView.cancelEntrance()
+      lifeView.clearTemporalSelection()
+    }
     root.panelPage = "calendar"
     root.controller.hide()
   }
@@ -237,6 +241,7 @@ Panel {
 
   function showCalendar() {
     lifeView.cancelEntrance()
+    lifeView.clearTemporalSelection()
     root.panelPage = "calendar"
     Qt.callLater(function() {
       root.rememberCalendarFrame()
@@ -284,18 +289,27 @@ Panel {
       blocked: root.editingLife
       onMoveRequested: function(dx, dy) {
         if (root.showingLife) {
-          if (dy !== 0) lifeView.panRows(dy)
+          lifeView.moveInspection(dx, dy)
           return
         }
         if (dx !== 0) root.moveMonth(dx)
         if (dy !== 0) root.moveYear(dy)
       }
       onActivateRequested: {
-        if (root.showingLife) lifeView.resetToNow()
-        else root.goToToday()
+        if (root.showingLife) {
+          if (root.lifeReturnHandled) root.lifeReturnHandled = false
+          else lifeView.resetToNow(true)
+        } else root.goToToday()
+      }
+      onReturnRequested: {
+        if (root.showingLife) {
+          root.lifeReturnHandled = true
+          lifeView.togglePinAtInspection()
+        }
       }
       onCloseRequested: {
-        root.close()
+        if (root.showingLife && lifeView.hasPin) lifeView.clearPin()
+        else root.close()
       }
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(t) {

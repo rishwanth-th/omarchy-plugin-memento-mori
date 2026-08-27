@@ -137,6 +137,32 @@ test("finite-time counts follow the active projection", () => {
   })
 })
 
+test("one exact temporal pin maps across projections without drifting", () => {
+  const today = localDate(2026, 8, 26)
+  const birth = "2001-08-23"
+  const weeks = Model.projectionCells("weeks", birth, today, 4000)
+  const months = Model.projectionCells("months", birth, today, 4000)
+  const pinKey = "2026-08-20"
+  const weekIndex = Model.projectionIndexForDate(weeks, pinKey)
+  const monthIndex = Model.projectionIndexForDate(months, pinKey)
+
+  assert.equal(weeks[weekIndex].startKey, "2026-08-20")
+  assert.equal(months[monthIndex].startKey, "2026-07-23")
+  assert.equal(months[monthIndex].endKey, "2026-08-22")
+  assert.equal(Model.projectionIndexForDate(weeks, pinKey), weekIndex)
+  assert.equal(Model.projectionIndexForDate(months, "not-a-date"), -1)
+  assert.equal(Model.projectionIndexForDate(months, "2200-01-01"), -1)
+})
+
+test("an exact temporal pin uses the canonical week-based LIFE rail", () => {
+  const birth = "2001-08-23"
+
+  assert.equal(Model.lifeProgressForDate(birth, "2026-08-20", 4000), 1304 / 4000)
+  assert.equal(Model.lifeProgressForDate(birth, birth, 4000), 0)
+  assert.equal(Model.lifeProgressForDate(birth, "2200-01-01", 4000), 1)
+  assert.equal(Model.lifeProgressForDate(birth, "not-a-date", 4000), -1)
+})
+
 test("projection overlap fragments preserve exact week and month boundaries", () => {
   const today = localDate(2000, 2, 1)
   const weeks = Model.projectionCells("weeks", "2000-01-31", today, 4000)

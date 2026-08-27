@@ -32,9 +32,9 @@ These keys are intercepted by Omarchy before Calendar or LIFE receives text:
 
 | Key | Active behavior |
 | --- | --- |
-| `Escape` | Close the popup. While editing LIFE settings, cancel the edit instead. |
+| `Escape` | Close the popup. While editing LIFE settings, cancel the edit instead; in LIFE, clear an active temporal pin first. |
 | `Tab` / `Shift+Tab` | Open the next or previous visible panel in the same bar region. |
-| `Enter` / `Space` | Activate the page's primary return action: today in Calendar, now in LIFE. |
+| `Enter` / `Space` | Activate the page action. Both return to today in Calendar; LIFE distinguishes pin (`Enter`) from now (`Space`). |
 | Arrow keys | Send directional movement to the active page. |
 | Lowercase `H/J/K/L` | Vim equivalents for Left/Down/Up/Right. |
 | `X` | Consumed as a shared delete action; Memento Mori currently has no delete handler. |
@@ -86,28 +86,31 @@ fields.
 
 | Key | Action |
 | --- | --- |
-| `Up` / `K` | Move the attention viewport one life-year earlier. |
-| `Down` / `J` | Move the attention viewport one life-year later. |
-| `Left` / `H` | Consumed by the shared catcher; currently no LIFE action. |
-| `Right` / `L` | Consumed by the shared catcher; currently no LIFE action. |
-| `T`, `Enter`, or `Space` | Return the attention viewport to now. |
+| `Up` / `K` | Move the inspection cursor one life-year earlier; the viewport follows. |
+| `Down` / `J` | Move the inspection cursor one life-year later; the viewport follows. |
+| `Left` / `H` | Move the inspection cursor one projected interval earlier. |
+| `Right` / `L` | Move the inspection cursor one projected interval later. |
+| `Enter` | Pin the inspected interval, retarget the one pin, or clear it when already on that interval. The present itself is not pinnable. |
+| `T` or `Space` | Return the viewport and inspection cursor to now without changing an existing pin. |
 | `P` | Toggle the projection between Weeks and Months. |
 | `A` | Toggle the session-only projection animation style. |
 | `M` | Return to Calendar. |
-| `Escape` | Close the popup. |
+| `Escape` | Clear an active temporal pin first; close the popup when no pin remains. |
 
 ### Pointer
 
 - Scroll over the grid to move the attention viewport by one life-year.
 - Hover a cell to inspect its exact interval and coordinate guides.
+- Click a non-present cell to pin it, click another to retarget the one pin,
+  or click the pinned cell or present to clear it.
 - Hover an axis or its unit to emphasize that scale.
 - Click the `M →` projection cue to toggle Weeks and Months.
 - Triple-click an otherwise inert part of the grid to toggle projection
   animation style.
 - Click the back action to return to Calendar.
 - Click the now action, when visible, to restore the present-centered viewport.
-- Single and double clicks on ordinary grid cells currently have no committed
-  product action.
+- The pin is session-only. Leaving LIFE clears it; it is never written to
+  settings.
 
 ## Current key budget
 
@@ -116,21 +119,19 @@ The following constraints apply before adding another interaction:
 - `M`, `T`, `P`, and `A` are active LIFE mnemonics.
 - `Escape`, `Tab`, arrows, `H/J/K/L`, `Enter`, `Space`, and `X` are intercepted
   by the shared catcher before ordinary text-key routing.
-- `H/L` are available semantically in LIFE but require replacing their current
-  consumed no-op behavior.
-- `J/K` already own viewport movement. A keyboard cell cursor must absorb that
-  responsibility and keep the viewport following the cursor rather than add a
-  second movement model.
+- `H/J/K/L` and arrows now belong to one LIFE inspection cursor. The viewport
+  follows that cursor instead of maintaining a second keyboard movement model.
 - Number keys are intentionally free; `1` / `2` / `3` were retired when
   projection and animation became the reversible `P` and `A` actions.
 - Pointer multi-click is reserved only for secondary, session-only behavior;
   primary actions must remain immediate on one click.
 
-## Proposed temporal-distance pin grammar
+## Temporal-distance pin proof of concept
 
-The following is a design candidate for DAZ-277, not implemented behavior:
+DAZ-277 currently implements this deliberately bounded grammar:
 
-1. LIFE gains one keyboard inspection cursor, initialized at the present.
+1. LIFE has one keyboard inspection cursor, initialized from the present on
+   first movement.
 2. `H/L` or Left/Right move one projected interval; `J/K` or Up/Down move one
    life-year row while the viewport follows at its edges.
 3. `Enter` pins the focused interval, retargets the existing pin, or clears it
@@ -138,9 +139,11 @@ The following is a design candidate for DAZ-277, not implemented behavior:
 4. Pointer click performs the same single-pin action.
 5. `Escape` clears an active pin first and closes the popup only when no pin
    remains.
-6. `T` returns inspection to now without changing the exact meaning of a pin.
+6. `T` and `Space` return inspection to now without changing the exact meaning
+   of a pin.
+7. The pinned identity is an exact date. Weeks and Months map that date into
+   their containing interval without replacing it, so projection round trips
+   cannot drift.
 
-Before implementation, the experiment must decide whether `Space` mirrors
-`Enter` or remains a return-to-now action, and whether `X` should remain inert
-or become an explicit clear-pin key. No multi-pin accumulation or numeric
-delta is part of the first proof of concept.
+`X` remains consumed and inert. No multi-pin accumulation, persisted state, or
+numeric delta is part of this proof of concept.
