@@ -29,7 +29,7 @@ Flickable {
   property var morphTargetRects: []
   property real morphProgress: 1
   property bool morphUsesDateOverlap: false
-  property real entranceRailProgress: 1
+  property real entrancePassageProgress: 1
   property real entranceLabelProgress: 1
   property real entranceGuideProgress: 1
   property bool entranceAnimating: false
@@ -228,7 +228,7 @@ Flickable {
     cancelEntrance()
     finishProjectionMorph()
     entranceFull = fullEntrance === true
-    entranceRailProgress = 0
+    entrancePassageProgress = 0
     entranceLabelProgress = 0
     entranceGuideProgress = 0
     entranceAnimating = true
@@ -247,7 +247,7 @@ Flickable {
 
   function completeEntrance() {
     var completedFullEntrance = entranceFull
-    entranceRailProgress = 1
+    entrancePassageProgress = 1
     entranceLabelProgress = 1
     entranceGuideProgress = 1
     entranceAnimating = false
@@ -259,7 +259,7 @@ Flickable {
   function cancelEntrance() {
     if (fullEntranceAnimation.running) fullEntranceAnimation.stop()
     if (repeatEntranceAnimation.running) repeatEntranceAnimation.stop()
-    entranceRailProgress = 1
+    entrancePassageProgress = 1
     entranceLabelProgress = 1
     entranceGuideProgress = 1
     entranceAnimating = false
@@ -560,7 +560,7 @@ Flickable {
       PauseAnimation { duration: 60 }
       NumberAnimation {
         target: root
-        property: "entranceRailProgress"
+        property: "entrancePassageProgress"
         from: 0
         to: 1
         duration: 420
@@ -602,7 +602,7 @@ Flickable {
       PauseAnimation { duration: 60 }
       NumberAnimation {
         target: root
-        property: "entranceRailProgress"
+        property: "entrancePassageProgress"
         from: 0
         to: 1
         duration: 320
@@ -713,7 +713,7 @@ Flickable {
       width: parent.width
       foreground: root.foreground
       fontFamily: root.fontFamily
-      progress: root.stats.progress * root.entranceRailProgress
+      progress: root.stats.progress
       percent: root.stats.percent
       horizonWeeks: root.horizonWeeks
       showYearScale: true
@@ -721,6 +721,8 @@ Flickable {
       animateProgressChanges: !root.entranceAnimating
       segmentProgress: root.stats.progress
       segmentOpacity: root.entranceLabelProgress
+      passageProgress: root.entrancePassageProgress
+      passageActive: root.entranceAnimating
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " " + root.projectionStats.unit + " lived"
       remainingLabel: root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)
