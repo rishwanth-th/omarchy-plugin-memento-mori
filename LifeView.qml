@@ -405,9 +405,9 @@ Flickable {
       readonly property var readout: Model.projectionReadoutParts(cell, root.projection, root.today)
 
       Text {
-        id: datePrefixMeasure
+        id: dateRangeMeasure
         visible: false
-        text: "31 DEC 2099–31"
+        text: "31–2099 DEC 31"
         font.family: root.fontFamily
         font.pixelSize: Style.font.bodySmall
       }
@@ -462,13 +462,13 @@ Flickable {
         }
 
         Item {
-          width: datePrefixMeasure.implicitWidth
-          height: datePrefix.implicitHeight
+          width: dateRangeMeasure.implicitWidth
+          height: dateRange.implicitHeight
 
           Text {
-            id: datePrefix
+            id: dateRange
             anchors.left: parent.left
-            text: readoutRow.readout ? readoutRow.readout.datePrefix : ""
+            text: readoutRow.readout ? readoutRow.readout.dateRange : ""
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
