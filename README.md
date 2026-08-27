@@ -107,7 +107,12 @@ omarchy plugin remove rishwanth.memento-mori
 ```bash
 npm test
 omarchy plugin validate .
+omarchy-shell rishwanth.memento-mori interactionState
 ```
+
+`interactionState` is a read-only runtime probe for keyboard cursor, hover,
+pin, projection, and viewport state. It is useful when a QML hot reload appears
+to have retained an older component instance.
 
 The implementation is deliberately small:
 

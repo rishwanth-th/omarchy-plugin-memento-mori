@@ -126,6 +126,29 @@ The following constraints apply before adding another interaction:
 - Pointer multi-click is reserved only for secondary, session-only behavior;
   primary actions must remain immediate on one click.
 
+## Runtime routing check
+
+Omarchy's shared `PanelKeyCatcher` translates arrows and lowercase `H/J/K/L`
+into one `(dx, dy)` movement signal. Calendar maps that signal to month/year
+stepping; LIFE maps all four directions to its inspection cursor. LIFE must not
+retain the old mapping where only Up/Down pan the viewport and Left/Right are
+no-ops.
+
+The active plugin exposes a read-only probe for verifying that routing:
+
+```bash
+omarchy-shell rishwanth.memento-mori interactionState
+```
+
+If installed files contain `moveInspection` but the command reports `Function
+not found`, Omarchy is still holding a stale plugin component. Rescan first,
+then restart the shell only if the stale instance survives:
+
+```bash
+omarchy-shell shell rescanPlugins
+omarchy restart shell
+```
+
 ## Temporal-distance pin proof of concept
 
 DAZ-277 currently implements this deliberately bounded grammar:

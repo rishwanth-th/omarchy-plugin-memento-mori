@@ -146,6 +146,9 @@ BarWidget {
     function toggleWeekStart(): void { root.toggleWeekStart() }
     function showLife(): void { root.showLife() }
     function showCalendar(): void { root.showCalendar() }
+    function interactionState(): string {
+      return panelLoader.item ? panelLoader.item.interactionState() : "{}"
+    }
     function open(): void { root.open() }
     function close(): void { root.close() }
     function show(): void { root.open() }

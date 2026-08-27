@@ -253,6 +253,21 @@ Panel {
     setWeekStart(Model.toggledWeekStart(root.weekStart))
   }
 
+  function interactionState() {
+    return JSON.stringify({
+      page: root.panelPage,
+      projection: lifeView.projection,
+      presentIndex: lifeView.presentCellIndex,
+      inspectedIndex: lifeView.inspectedIndex(),
+      keyboardInspecting: lifeView.keyboardInspecting,
+      keyboardIndex: lifeView.keyboardIndex,
+      hoveredIndex: lifeView.hoveredIndex,
+      pinnedDateKey: lifeView.pinnedDateKey,
+      pinnedIndex: lifeView.pinnedIndex,
+      visibleYearStart: lifeView.visibleYearStart
+    })
+  }
+
   // English short day names, matching the rest of the interface.
   function weekdayLabel(weekday) {
     return String(labelLocale.dayName(weekday, Locale.ShortFormat)).toUpperCase()
