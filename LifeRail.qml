@@ -28,6 +28,8 @@ Item {
   property string remainingLabel: ""
   property bool interactive: false
   property string tooltipText: "Memento Mori"
+  property real temporalFrameLeft: -1
+  property real temporalFrameRight: -1
 
   readonly property int horizonYears: Math.max(1, Math.ceil(horizonWeeks / 52))
   readonly property int yearTickCount: horizonYears + 1
@@ -36,6 +38,11 @@ Item {
   readonly property int pinYear: Math.max(0, Math.min(horizonYears,
     Math.floor(horizonWeeks * Math.max(0, Math.min(1, pinProgress)) / 52)))
   readonly property bool pinHovered: pinSpanHover.containsMouse
+  readonly property bool usesTemporalFrame: temporalFrameLeft >= 0
+    && temporalFrameRight > temporalFrameLeft
+  readonly property real trackLeftEdge: track.x
+  readonly property real trackRightEdge: track.x + track.width
+  readonly property real trackWidth: track.width
 
   signal activated()
 
@@ -72,10 +79,12 @@ Item {
 
   Rectangle {
     id: track
-    anchors.left: lifeLabel.right
-    anchors.right: lifePercent.left
-    anchors.leftMargin: Style.space(12)
-    anchors.rightMargin: Style.space(12)
+    x: root.usesTemporalFrame
+      ? root.temporalFrameLeft
+      : lifeLabel.x + lifeLabel.width + Style.space(12)
+    width: Math.max(0, (root.usesTemporalFrame
+      ? root.temporalFrameRight
+      : lifePercent.x - Style.space(12)) - x)
     y: root.showYearScale
       ? Math.round((lifeLabel.implicitHeight - height) / 2)
       : Math.round((root.height - height) / 2)

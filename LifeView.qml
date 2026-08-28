@@ -118,6 +118,11 @@ Flickable {
   readonly property int visibleRowCount: visibleYearCount
   readonly property bool canPanEarlier: visibleYearStart > 0
   readonly property bool canPanLater: visibleYearStart + visibleYearCount < totalLifeYears
+  readonly property real temporalFrameLeft: gridOriginX()
+  readonly property real temporalFrameRight: gridOriginX() + gridWidth()
+  readonly property real lifeTrackLeft: lifeRail.trackLeftEdge
+  readonly property real lifeTrackRight: lifeRail.trackRightEdge
+  readonly property real lifeTrackWidth: lifeRail.trackWidth
 
   property var cells: []
   property int hoveredIndex: -1
@@ -1396,6 +1401,8 @@ Flickable {
         + " " + root.projectionStats.unit + " lived"
       remainingLabel: root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " remaining"
+      temporalFrameLeft: root.temporalFrameLeft
+      temporalFrameRight: root.temporalFrameRight
     }
 
     Item {
