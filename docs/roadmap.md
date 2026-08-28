@@ -253,46 +253,67 @@ persistence. That is a separately justified personal-history plugin.
 
 ## Workstream 4 — Grid rhythm and contextual spacing
 
-**Status:** active design investigation, tracked in DAZ-279. Runtime geometry
-remains unchanged until the bounded specimens below receive live comparison.
+**Status:** refined negative-space specimen under live review, tracked in
+DAZ-279. The active branch remains separate from `main`.
 
 Tim Urban's five-year row separation may make age groups more immediately
 legible. Because it changes geometry rather than decoration, it must be tested
 before later guide and viewport motion is refined.
 
-Two hypotheses remain deliberately separate:
+The design intent is two-dimensional. Gaps are not an ornamental treatment or
+a copied quarter token; they are the material through which the grid reveals
+the next truthful temporal group before labels are read.
 
-- A slightly larger horizontal gap after every five life-year rows is
-  semantically truthful in both projections.
-- Additional vertical grouping in Weeks must not suggest fixed calendar
-  months. The existing proportional month ticks may remain the most honest
-  expression; any column spacing needs an independently legible meaning.
+- Along age, both projections form exact five-life-year bands.
+- Across Weeks, twelve proportional life-month phrases distribute the
+  indivisible 52-week row with an irregular 4/5-week beat.
+- Across Months, larger channels after months 3, 6, and 9 form exact quarters.
+
+These life-month phrases are not calendar months. Exact calendar boundaries
+often fall inside seven-day cells and drift across rows; inspection retains
+that precision.
 
 ### Bounded specimens
 
-1. **Control — unchanged density.** Keep the current uniform row rhythm as the
-   baseline. Familiarity is not evidence against change, but every alternative
-   must improve orientation enough to justify disturbing this calm field.
-2. **Redistributed breathing — physical age rhythm.** Borrow a small amount of
-   space from ordinary row gaps and return it after every truthful five
-   life-year group. The Canvas envelope, visible-year capacity, cell size, and
-   average row pitch remain fixed; only the distribution of existing space
-   changes.
-3. **Cadence without geometry — contextual orientation.** Keep cell positions
-   and hit areas unchanged. Strengthen only the existing five-year age cue in
-   the vertical gutter or axis, without drawing a band through the cells. This
-   tests whether orientation needs physical breathing at all.
+1. **Control — unchanged density.** The uniform field remains the baseline.
+2. **Rejected cadence-only cue — `982c080`.** Stronger gutter marks were too
+   subtle and tested label hierarchy rather than structural spacing.
+3. **Rejected budget-preserving lattice — `a4b405e`.** Redistributing the old
+   gap total made the intended structure nearly imperceptible. Geometry
+   preservation incorrectly displaced meaning as the primary criterion.
+4. **Topology specimen.** Deliberately strong uninterrupted channels proved
+   the 12-by-five-year and 4-by-five-year compositions, but equal channel
+   widths fragmented Weeks and made Months resemble detached tables.
+5. **Refined rhythm — active.** Cells keep a quiet continuous beat inside each
+   group. Column channels remain strong enough to articulate projection units;
+   five-year row channels speak more quietly because they span the whole field.
+   Present remains the sole accent and the held ruler remains foreground.
 
-No specimen adds fixed four-week grouping, month-like columns, alternating
-row fills, or a second accent. Horizontal column rhythm remains out of scope
-unless it gains a truthful meaning independent of calendar months.
+No specimen adds alternating fills, a second accent, fixed four-week months,
+or decorative animation.
+
+### Progressive materialization
+
+The workstream follows the method established by the held ruler:
+
+1. Make the truthful structure unmistakable.
+2. Tune proportion, hierarchy, density, and breathing without hiding it.
+3. Test coexistence with present, inspection, pin, ruler, and motion.
+4. Accept playful behavior only when it emerges from temporal structure.
+
+The refined specimen lets the existing projection seam resolve twelve Weeks
+phrases into four Month quarters while the five-year bands remain anchored.
+Crossing a semantic channel retains the existing no-flicker inspection
+contract; direct physical pointer review must decide whether that pause feels
+tactile or sticky before the behavior is promoted.
 
 ### Questions
 
-- Does five-year rhythm improve orientation inside the compact attention
-  window, or merely reduce useful row capacity?
-- Can redistributed spacing preserve the exact visible-year count and cell
-  legibility, or does borrowing from ordinary rows make the field harsher?
+- Does the field read first as one lifetime and then as meaningful temporal
+  phrases, rather than as detached panels or a spreadsheet?
+- Are the column and row channels perceptually coherent without being
+  numerically identical?
+- Do Weeks retain enough individual-cell legibility at the refined density?
 - Can the present retain a calm default position when variable row gaps are
   introduced?
 - Do hit-testing, axis guides, wheel movement, pin coordinates, LIFE entrance,
@@ -301,13 +322,12 @@ unless it gains a truthful meaning independent of calendar months.
 
 ### Reject if
 
-- The panel or grid changes dimensions.
-- Fewer visible rows make the viewport feel cramped.
-- Weeks imply false four-week months or calendar quarters.
+- The panel changes dimensions or useful context decreases.
+- Weeks imply fixed four-week or exact calendar months.
 - Existing motion must distort exact temporal coordinates to accommodate the
   gaps.
-- The cadence-only specimen becomes a decorative stripe or competes with the
-  present accent.
+- The field resembles detached cards, a spreadsheet, or decorative striping.
+- The channels compete with present, inspection, or the held ruler.
 
 ## Workstream 5 — Hover-guide motion
 

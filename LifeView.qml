@@ -145,8 +145,22 @@ Flickable {
     return columnsFor(projection)
   }
 
+  function semanticColumnGap() {
+    // Column groups need enough air to remain visible between narrow Weeks
+    // cells without breaking the year into twelve unrelated panels.
+    return Style.spaceReal(6.25)
+  }
+
+  function semanticRowGap() {
+    // A five-year band is read across the whole field, so it can speak more
+    // quietly than a column channel and still remain structurally legible.
+    return Style.space(5)
+  }
+
   function columnGapFor(mode) {
-    return mode === "months" ? Style.space(2) : Style.space(1)
+    // Cells form a quiet continuous beat inside each semantic block; the
+    // larger channel, rather than a second color, carries hierarchy.
+    return Style.space(1)
   }
 
   function columnGap() {
@@ -157,24 +171,60 @@ Flickable {
     return Style.space(1)
   }
 
-  function quarterGapFor(mode) {
-    return mode === "months" ? Style.space(4) : 0
+  function weekLifeMonthBoundaryAfter(column) {
+    var completedWeeks = column + 1
+    var month = Math.round(completedWeeks * 12 / 52)
+    return month > 0 && month < 12
+      && Math.round(month * 52 / 12) === completedWeeks
   }
 
-  function quarterGap() {
-    return quarterGapFor(projection)
+  function columnGapAfterFor(mode, column) {
+    if (column < 0 || column >= columnsFor(mode) - 1) return 0
+    if (mode === "months")
+      return (column + 1) % 3 === 0 ? semanticColumnGap() : columnGapFor(mode)
+    return weekLifeMonthBoundaryAfter(column)
+      ? semanticColumnGap() : columnGapFor(mode)
+  }
+
+  function totalColumnGapFor(mode) {
+    var total = 0
+    for (var column = 0; column < columnsFor(mode) - 1; column++)
+      total += columnGapAfterFor(mode, column)
+    return total
+  }
+
+  function averageColumnGapFor(mode) {
+    return totalColumnGapFor(mode) / Math.max(1, columnsFor(mode) - 1)
+  }
+
+  function rowGapAfter(row) {
+    if (row < 0 || row >= visibleRowCount - 1) return 0
+    var age = visibleYearStart + row
+    return (age + 1) % 5 === 0 ? semanticRowGap() : rowGap()
+  }
+
+  function totalVisibleRowGap() {
+    var total = 0
+    for (var row = 0; row < visibleRowCount - 1; row++)
+      total += rowGapAfter(row)
+    return total
+  }
+
+  function averageRowGap() {
+    return (4 * rowGap() + semanticRowGap()) / 5
   }
 
   function weekCellSize() {
     var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
-    return Math.max(Style.space(3), (available - 51 * Style.space(1)) / 52)
+    return Math.max(Style.space(3),
+      (available - totalColumnGapFor("weeks")) / 52)
   }
 
   function cellWidthFor(mode) {
     if (mode === "months") {
       var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
       return Math.max(Style.space(14),
-        (available - 11 * columnGapFor(mode) - 3 * quarterGapFor(mode)) / 12)
+        (available - totalColumnGapFor(mode)) / 12)
     }
     return weekCellSize()
   }
@@ -188,8 +238,9 @@ Flickable {
   }
 
   function columnOffsetFor(mode, column) {
-    var offset = column * (cellWidthFor(mode) + columnGapFor(mode))
-    if (mode === "months") offset += Math.floor(column / 3) * quarterGapFor(mode)
+    var offset = column * cellWidthFor(mode)
+    for (var boundary = 0; boundary < column; boundary++)
+      offset += columnGapAfterFor(mode, boundary)
     return offset
   }
 
@@ -198,13 +249,15 @@ Flickable {
   }
 
   function rowOffset(row) {
-    return row * (cellHeight() + rowGap())
+    var offset = row * cellHeight()
+    for (var boundary = 0; boundary < row; boundary++)
+      offset += rowGapAfter(boundary)
+    return offset
   }
 
   function gridWidthFor(mode) {
     return columnsFor(mode) * cellWidthFor(mode)
-      + Math.max(0, columnsFor(mode) - 1) * columnGapFor(mode)
-      + (mode === "months" ? 3 * quarterGapFor(mode) : 0)
+      + totalColumnGapFor(mode)
   }
 
   function gridWidth() {
@@ -212,7 +265,7 @@ Flickable {
   }
 
   function gridHeight() {
-    return visibleRowCount * cellHeight() + Math.max(0, visibleRowCount - 1) * rowGap()
+    return visibleRowCount * cellHeight() + totalVisibleRowGap()
   }
 
   function compactGridHeight() {
@@ -221,7 +274,8 @@ Flickable {
 
   function fittedCompactYearSpan() {
     return Math.max(3, Math.min(totalLifeYears,
-      Math.floor((compactGridHeight() + rowGap()) / (cellHeight() + rowGap()))))
+      Math.floor((compactGridHeight() + averageRowGap())
+        / (cellHeight() + averageRowGap()))))
   }
 
   function gridOriginXFor(mode) {
@@ -312,9 +366,9 @@ Flickable {
   }
 
   function horizontalTraversalInterval() {
-    var weekStride = cellWidthFor("weeks") + columnGapFor("weeks")
-    var activeStride = cellWidthFor(projection) + columnGapFor(projection)
-    if (projection === "months") activeStride += quarterGapFor(projection) / 3
+    var weekStride = cellWidthFor("weeks") + averageColumnGapFor("weeks")
+    var activeStride = cellWidthFor(projection)
+      + averageColumnGapFor(projection)
     return Math.max(horizontalRepeatCadence, Math.min(240,
       Math.round(horizontalRepeatCadence * activeStride / Math.max(1, weekStride))))
   }
@@ -901,9 +955,15 @@ Flickable {
     var localX = x - gridOriginX()
     var localY = y - gridOriginY()
     if (localX < 0 || localY < 0 || localX >= gridWidth() || localY >= gridHeight()) return -1
-    var rowStride = cellHeight() + rowGap()
-    var localRow = Math.floor(localY / rowStride)
-    if (localY - localRow * rowStride > cellHeight()) return -1
+    var localRow = -1
+    for (var rowCandidate = 0; rowCandidate < visibleRowCount; rowCandidate++) {
+      var rowStart = rowOffset(rowCandidate)
+      if (localY >= rowStart && localY <= rowStart + cellHeight()) {
+        localRow = rowCandidate
+        break
+      }
+    }
+    if (localRow < 0) return -1
     var column = -1
     for (var candidate = 0; candidate < columns(); candidate++) {
       var start = columnOffset(candidate)
@@ -932,11 +992,14 @@ Flickable {
   function axisMarks() {
     var marks = []
     if (projection === "weeks") {
-      // Twelve proportional life-month landmarks orient the 52-week row;
-      // exact calendar intervals remain in the canonical hover readout.
-      for (var month = 0; month < 12; month++)
-        marks.push({ position: (month + 0.5) * 52 / 12 - 0.5,
+      // The twelve proportional landmarks now sit inside the visible 4/5-week
+      // life-month groups. Exact calendar intervals remain in inspection.
+      for (var month = 0; month < 12; month++) {
+        var monthStart = Math.round(month * 52 / 12)
+        var monthEnd = Math.round((month + 1) * 52 / 12) - 1
+        marks.push({ position: (monthStart + monthEnd) / 2,
           label: String(month + 1), major: (month + 1) % 3 === 0 })
+      }
     } else {
       for (var exactMonth = 0; exactMonth < 12; exactMonth++)
         marks.push({ position: exactMonth, label: String(exactMonth + 1),
@@ -946,8 +1009,13 @@ Flickable {
   }
 
   function axisMarkX(position) {
-    if (projection === "months") return columnOffset(position) + cellWidth() / 2
-    return position * (cellWidth() + columnGap()) + cellWidth() / 2
+    var leftColumn = Math.max(0, Math.min(columns() - 1,
+      Math.floor(position)))
+    var fraction = Math.max(0, Math.min(1, position - leftColumn))
+    var leftCenter = columnOffset(leftColumn) + cellWidth() / 2
+    if (fraction === 0 || leftColumn >= columns() - 1) return leftCenter
+    var rightCenter = columnOffset(leftColumn + 1) + cellWidth() / 2
+    return leftCenter + (rightCenter - leftCenter) * fraction
   }
 
   function horizontalAxisContains(x, y) {
