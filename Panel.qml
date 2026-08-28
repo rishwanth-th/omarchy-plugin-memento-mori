@@ -288,6 +288,8 @@ Panel {
       lifeTrackLeft: lifeView.lifeTrackLeft,
       lifeTrackRight: lifeView.lifeTrackRight,
       lifeTrackWidth: lifeView.lifeTrackWidth,
+      structurePaintCount: lifeView.structurePaintCount,
+      interactionPaintCount: lifeView.interactionPaintCount,
       visibleRowCount: lifeView.visibleRowCount,
       inspectionMoveBlocked: Date.now() < lifeView.inspectionMoveBlockedUntil,
       pinnedDateKey: lifeView.pinnedDateKey,

@@ -67,6 +67,8 @@ Flickable {
   property real pinRetargetProgress: 1
   property bool gapRhythmEnabled: true
   property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
+  property int structurePaintCount: 0
+  property int interactionPaintCount: 0
   readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
   readonly property bool gapRhythmAnimating: gapRhythmProgress > 0.001
@@ -136,6 +138,15 @@ Flickable {
   contentHeight: contentColumn.implicitHeight
   interactive: false
 
+  function requestStructurePaint() {
+    if (lifeCanvas) lifeCanvas.requestPaint()
+    if (interactionCanvas) interactionCanvas.requestPaint()
+  }
+
+  function requestInteractionPaint() {
+    if (interactionCanvas) interactionCanvas.requestPaint()
+  }
+
   function refreshCells(resetWindow) {
     if (!preparingMorph) finishProjectionMorph()
     cells = Model.projectionCells(projection, birthKey, today, horizonWeeks)
@@ -143,7 +154,7 @@ Flickable {
     if (resetWindow) resetToNow()
     else windowYearStart = Math.max(0,
       Math.min(totalLifeYears - visibleYearCount, windowYearStart))
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function columnsFor(mode) {
@@ -354,7 +365,7 @@ Flickable {
       : ""
     if (keyboardInspecting)
       inspectionMoveBlockedUntil = Date.now() + horizontalTraversalInterval()
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function panRows(delta) {
@@ -365,7 +376,7 @@ Flickable {
     disarmHover()
     keyboardInspecting = false
     keyboardDateKey = ""
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function ensureIndexVisible(index) {
@@ -411,8 +422,11 @@ Flickable {
     var weekStride = cellWidthFor("weeks") + averageColumnGapFor("weeks")
     var activeStride = cellWidthFor(projection)
       + averageColumnGapFor(projection)
-    return Math.max(horizontalRepeatCadence, Math.min(240,
-      Math.round(horizontalRepeatCadence * activeStride / Math.max(1, weekStride))))
+    // One rendered pixel has one temporal cost in either projection. Months
+    // therefore waits for its full stride ratio instead of hitting an
+    // arbitrary ceiling and visually outrunning Weeks at slower repeat rates.
+    return Math.max(horizontalRepeatCadence,
+      Math.round(horizontalRepeatCadence * activeStride / Math.max(1, weekStride)))
   }
 
   function noteHorizontalRequest(now) {
@@ -442,11 +456,13 @@ Flickable {
     var target = Math.max(0, Math.min(cells.length - 1,
       base + dx + dy * columns()))
     if (target < 0 || target >= cells.length) return
+    var previousWindowStart = visibleYearStart
     keyboardDateKey = cells[target].startKey
     keyboardInspecting = true
     disarmHover()
     ensureIndexVisible(target)
-    lifeCanvas.requestPaint()
+    if (visibleYearStart !== previousWindowStart) requestStructurePaint()
+    else requestInteractionPaint()
   }
 
   function moveInspection(dx, dy) {
@@ -488,7 +504,7 @@ Flickable {
     pinRulerHovered = false
     pinnedDateKey = ""
     pinBridgeProgress = 1
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
   }
 
   function startPinBridge() {
@@ -553,7 +569,7 @@ Flickable {
       keyboardDateKey = ""
       hoveredIndex = -1
       pinRulerHovered = true
-      lifeCanvas.requestPaint()
+      requestInteractionPaint()
     }
     return true
   }
@@ -568,7 +584,7 @@ Flickable {
     else {
       pinBridgeProgress = 1
       pinRulerHovered = pinDragMouse.containsMouse
-      lifeCanvas.requestPaint()
+      requestInteractionPaint()
     }
     return true
   }
@@ -582,7 +598,7 @@ Flickable {
     dragOriginalPinnedDateKey = ""
     pinBridgeProgress = 1
     pinRulerHovered = false
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
     return true
   }
 
@@ -592,7 +608,7 @@ Flickable {
     keyboardInspecting = false
     keyboardDateKey = ""
     disarmHover()
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
   }
 
   function togglePinAtIndex(index) {
@@ -609,7 +625,7 @@ Flickable {
     keyboardDateKey = cells[index].startKey
     if (previousPinDateKey !== "") startPinRetarget(previousPinDateKey)
     else startPinBridge()
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
     return true
   }
 
@@ -627,7 +643,7 @@ Flickable {
     morphFromLivedLabel = ""
     morphFromRemainingLabel = ""
     morphUsesDateOverlap = false
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function finishProjectionMorph() {
@@ -654,7 +670,7 @@ Flickable {
     entranceLabelProgress = 0
     entranceGuideProgress = 0
     entranceAnimating = true
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function startPreparedEntrance() {
@@ -675,7 +691,7 @@ Flickable {
     entranceGuideProgress = 1
     entranceAnimating = false
     entranceFull = false
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
     entranceCompleted(completedFullEntrance)
   }
 
@@ -688,7 +704,7 @@ Flickable {
     entranceGuideProgress = 1
     entranceAnimating = false
     entranceFull = false
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function registerAnimationTap(x, y) {
@@ -1001,26 +1017,38 @@ Flickable {
     var localX = x - gridOriginX()
     var localY = y - gridOriginY()
     if (localX < 0 || localY < 0 || localX >= gridWidth() || localY >= gridHeight()) return -1
-    var localRow = -1
-    for (var rowCandidate = 0; rowCandidate < visibleRowCount; rowCandidate++) {
-      var rowStart = rowOffset(rowCandidate)
-      if (localY >= rowStart && localY <= rowStart + cellHeight()) {
-        localRow = rowCandidate
-        break
-      }
-    }
-    if (localRow < 0) return -1
-    var column = -1
-    for (var candidate = 0; candidate < columns(); candidate++) {
-      var start = columnOffset(candidate)
-      if (localX >= start && localX <= start + cellWidth()) {
-        column = candidate
-        break
-      }
-    }
-    if (column < 0) return -1
+    var localRow = nearestRowForPosition(localY)
+    var column = nearestColumnForPosition(localX)
     var index = firstVisibleIndex() + localRow * columns() + column
     return index >= firstVisibleIndex() && index < lastVisibleIndex() ? index : -1
+  }
+
+  function nearestRowForPosition(position) {
+    var low = 0
+    var high = visibleRowCount - 1
+    var size = cellHeight()
+    while (low < high) {
+      var middle = Math.floor((low + high) / 2)
+      var boundary = (rowOffset(middle) + size / 2
+        + rowOffset(middle + 1) + size / 2) / 2
+      if (position < boundary) high = middle
+      else low = middle + 1
+    }
+    return low
+  }
+
+  function nearestColumnForPosition(position) {
+    var low = 0
+    var high = columns() - 1
+    var size = cellWidth()
+    while (low < high) {
+      var middle = Math.floor((low + high) / 2)
+      var boundary = (columnOffset(middle) + size / 2
+        + columnOffset(middle + 1) + size / 2) / 2
+      if (position < boundary) high = middle
+      else low = middle + 1
+    }
+    return low
   }
 
   function gridContains(x, y) {
@@ -1123,7 +1151,7 @@ Flickable {
     refreshCells(false)
     if (keyboardInspecting) ensureIndexVisible(keyboardIndex)
     else if (hasPin) ensureIndexVisible(pinnedIndex)
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
   onBirthKeyChanged: {
     clearTemporalSelection()
@@ -1134,15 +1162,15 @@ Flickable {
     clearTemporalSelection()
     refreshCells(true)
   }
-  onWidthChanged: lifeCanvas.requestPaint()
-  onMorphProgressChanged: lifeCanvas.requestPaint()
-  onEntranceFocusProgressChanged: lifeCanvas.requestPaint()
-  onEntranceGuideProgressChanged: lifeCanvas.requestPaint()
-  onPinBridgeProgressChanged: lifeCanvas.requestPaint()
-  onPinRetargetProgressChanged: lifeCanvas.requestPaint()
-  onPinInspectionActiveChanged: lifeCanvas.requestPaint()
-  onPinTerminalLabelPresenceChanged: lifeCanvas.requestPaint()
-  onGapRhythmProgressChanged: lifeCanvas.requestPaint()
+  onWidthChanged: requestStructurePaint()
+  onMorphProgressChanged: requestStructurePaint()
+  onEntranceFocusProgressChanged: requestStructurePaint()
+  onEntranceGuideProgressChanged: requestInteractionPaint()
+  onPinBridgeProgressChanged: requestInteractionPaint()
+  onPinRetargetProgressChanged: requestInteractionPaint()
+  onPinInspectionActiveChanged: requestInteractionPaint()
+  onPinTerminalLabelPresenceChanged: requestInteractionPaint()
+  onGapRhythmProgressChanged: requestStructurePaint()
   onReducedMotionChanged: {
     if (reducedMotion && pinBridgeAnimation.running) {
       pinBridgeAnimation.stop()
@@ -1591,16 +1619,74 @@ Flickable {
         }
       }
 
-      function paintProjection(ctx, mode, intervalCells, opacity, hoveredIndex) {
+      function paintProjection(ctx, mode, intervalCells, opacity, hoveredIndex,
+                               includeInteraction) {
         if (!intervalCells || opacity <= 0) return
         var first = root.firstVisibleIndexFor(mode)
         var last = root.lastVisibleIndexFor(mode, intervalCells)
         var currentProjection = mode === root.projection && intervalCells === root.cells
+        var paintsInteraction = includeInteraction === true
         for (var index = first; index < last; index++)
           paintCell(ctx, intervalCells[index], root.segmentRect(mode, index, 0, 1),
-            opacity, index === hoveredIndex,
-            currentProjection && root.hasPin && index === root.pinnedIndex,
-            currentProjection && root.keyboardInspecting && index === root.keyboardIndex)
+            opacity, paintsInteraction && index === hoveredIndex,
+            paintsInteraction && currentProjection && root.hasPin
+              && index === root.pinnedIndex,
+            paintsInteraction && currentProjection && root.keyboardInspecting
+              && index === root.keyboardIndex)
+      }
+
+      function paintInteractionCell(ctx, index, hovered, pinned, keyboardFocused) {
+        if (index < root.firstVisibleIndex() || index >= root.lastVisibleIndex()) return
+        var cell = root.cells[index]
+        var rect = root.segmentRect(root.projection, index, 0, 1)
+
+        if (pinned && cell.status !== "current") {
+          ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, (root.pinInspectionActive ? 0.18 : 0.12)
+              * root.pinBridgeProgress)
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, (root.pinInspectionActive ? 0.92 : 0.72)
+              * root.pinBridgeProgress)
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
+          var pinInset = ctx.lineWidth / 2
+          ctx.strokeRect(rect.x + pinInset, rect.y + pinInset,
+            Math.max(0, rect.width - ctx.lineWidth),
+            Math.max(0, rect.height - ctx.lineWidth))
+        }
+
+        if (keyboardFocused && !hovered) {
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.9)
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline)
+          var focusInset = Math.max(1, ctx.lineWidth)
+          ctx.strokeRect(rect.x + focusInset, rect.y + focusInset,
+            Math.max(0, rect.width - focusInset * 2),
+            Math.max(0, rect.height - focusInset * 2))
+        }
+
+        if (hovered) {
+          ctx.strokeStyle = root.foreground
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
+          var hoverInset = ctx.lineWidth / 2
+          ctx.strokeRect(rect.x + hoverInset, rect.y + hoverInset,
+            Math.max(0, rect.width - ctx.lineWidth),
+            Math.max(0, rect.height - ctx.lineWidth))
+        }
+      }
+
+      function paintInteractionCells(ctx) {
+        var candidates = [root.pinnedIndex, root.keyboardIndex, root.hoveredIndex]
+        var seen = {}
+        for (var i = 0; i < candidates.length; i++) {
+          var index = candidates[i]
+          if (index < 0 || seen[index]) continue
+          seen[index] = true
+          paintInteractionCell(ctx, index,
+            index === root.hoveredIndex,
+            root.hasPin && index === root.pinnedIndex,
+            root.keyboardInspecting && index === root.keyboardIndex)
+        }
       }
 
       function clampUnit(value) {
@@ -1887,10 +1973,7 @@ Flickable {
             * root.pinTerminalLabelPresence)
       }
 
-      onPaint: {
-        var ctx = getContext("2d")
-        ctx.reset()
-        ctx.clearRect(0, 0, width, height)
+      function paintInteractionOverlay(ctx) {
         if (!root.cells || root.cells.length === 0) return
 
         var cellWidth = root.cellWidth()
@@ -2067,9 +2150,8 @@ Flickable {
             verticalLength * guideProgress)
         }
 
-        if (root.projectionMorphing) paintProjectionMorph(ctx)
-        else {
-          paintProjection(ctx, root.projection, root.cells, 1, root.hoveredIndex)
+        if (!root.projectionMorphing) {
+          paintInteractionCells(ctx)
           paintPinRuler(ctx)
           paintPinRulerLabels(ctx)
         }
@@ -2082,6 +2164,30 @@ Flickable {
           ctx.fillText("↑", width - rightGutter / 2, originY + cellHeight / 2)
         if (root.canPanLater)
           ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - cellHeight / 2)
+      }
+
+      onPaint: {
+        root.structurePaintCount++
+        var ctx = getContext("2d")
+        ctx.reset()
+        ctx.clearRect(0, 0, width, height)
+        if (!root.cells || root.cells.length === 0) return
+        if (root.projectionMorphing) paintProjectionMorph(ctx)
+        else paintProjection(ctx, root.projection, root.cells, 1, -1, false)
+      }
+
+      Canvas {
+        id: interactionCanvas
+        anchors.fill: parent
+        z: 1
+
+        onPaint: {
+          root.interactionPaintCount++
+          var ctx = getContext("2d")
+          ctx.reset()
+          ctx.clearRect(0, 0, width, height)
+          lifeCanvas.paintInteractionOverlay(ctx)
+        }
       }
 
       MouseArea {
@@ -2104,18 +2210,18 @@ Flickable {
             root.horizontalAxisHovered = overHorizontal
             root.verticalAxisHovered = overVertical
             root.projectionToggleHovered = overToggle
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           }
           var overRuler = root.pinRulerContains(mouse.x, mouse.y)
           if (overRuler !== root.pinRulerHovered) {
             root.pinRulerHovered = overRuler
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           }
           if (overRuler) {
             root.keyboardInspecting = false
             root.keyboardDateKey = ""
             if (root.hoveredIndex !== -1) root.hoveredIndex = -1
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
             return
           }
           var next = root.hitTest(mouse.x, mouse.y)
@@ -2123,11 +2229,11 @@ Flickable {
             root.keyboardInspecting = false
             root.keyboardDateKey = ""
             root.hoveredIndex = next
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           } else if (next < 0 && !root.gridContains(mouse.x, mouse.y)
                      && root.hoveredIndex !== -1) {
             root.hoveredIndex = -1
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           }
         }
         onExited: {
@@ -2136,7 +2242,7 @@ Flickable {
           root.projectionToggleHovered = false
           root.pinRulerHovered = false
           root.disarmHover()
-          lifeCanvas.requestPaint()
+          root.requestInteractionPaint()
         }
         onClicked: function(mouse) {
           root.hoverArmed = true
@@ -2186,11 +2292,11 @@ Flickable {
           root.keyboardInspecting = false
           root.keyboardDateKey = ""
           root.hoveredIndex = -1
-          lifeCanvas.requestPaint()
+          root.requestInteractionPaint()
         }
         onExited: {
           if (!root.draggingPin) root.pinRulerHovered = false
-          lifeCanvas.requestPaint()
+          root.requestInteractionPaint()
         }
         onPressed: function(mouse) {
           var point = pinDragMouse.mapToItem(lifeCanvas, mouse.x, mouse.y)
