@@ -253,46 +253,68 @@ persistence. That is a separately justified personal-history plugin.
 
 ## Workstream 4 — Grid rhythm and contextual spacing
 
-**Status:** active design investigation, tracked in DAZ-279. Runtime geometry
-remains unchanged until the bounded specimens below receive live comparison.
+**Status:** semantic-lattice specimen under live review, tracked in DAZ-279.
 
 Tim Urban's five-year row separation may make age groups more immediately
 legible. Because it changes geometry rather than decoration, it must be tested
 before later guide and viewport motion is refined.
 
-Two hypotheses remain deliberately separate:
+The corrected hypothesis is two-dimensional: larger gaps should reveal the
+next meaningful unit along each axis rather than decorate its labels.
 
-- A slightly larger horizontal gap after every five life-year rows is
-  semantically truthful in both projections.
-- Additional vertical grouping in Weeks must not suggest fixed calendar
-  months. The existing proportional month ticks may remain the most honest
-  expression; any column spacing needs an independently legible meaning.
+- Along age, both projections group five exact life-year rows into one
+  half-decade band.
+- Across Weeks, twelve proportional life-month groups distribute the
+  indivisible 52-week row with an irregular 4/5-week beat.
+- Across Months, the existing larger gap after months 3, 6, and 9 groups four
+  exact quarters.
+
+Calendar-month boundaries cannot become straight gaps in Weeks: they often
+fall inside seven-day cells and drift across 52-week rows. Splitting or
+staggering cells would recreate interference rather than orientation. The
+proportional life-month rhythm is explicitly a twelfth of the visual life-year;
+the exact interval remains in inspection.
 
 ### Bounded specimens
 
 1. **Control — unchanged density.** Keep the current uniform row rhythm as the
    baseline. Familiarity is not evidence against change, but every alternative
    must improve orientation enough to justify disturbing this calm field.
-2. **Redistributed breathing — physical age rhythm.** Borrow a small amount of
-   space from ordinary row gaps and return it after every truthful five
-   life-year group. The Canvas envelope, visible-year capacity, cell size, and
-   average row pitch remain fixed; only the distribution of existing space
-   changes.
-3. **Cadence without geometry — contextual orientation.** Keep cell positions
-   and hit areas unchanged. Strengthen only the existing five-year age cue in
-   the vertical gutter or axis, without drawing a band through the cells. This
-   tests whether orientation needs physical breathing at all.
+2. **Rejected — cadence without geometry.** Stronger five-year gutter gates
+   were imperceptible in ordinary viewing and tested label hierarchy rather
+   than the intended structural rhythm. Commit `982c080` preserves the result.
+3. **Semantic lattice — redistributed physical rhythm.** Return existing gap
+   space at projection-aware horizontal boundaries and exact five-year
+   vertical boundaries. Cell size, grid envelope, visible-year capacity, and
+   total gap budgets remain unchanged.
 
-No specimen adds fixed four-week grouping, month-like columns, alternating
-row fills, or a second accent. Horizontal column rhythm remains out of scope
-unless it gains a truthful meaning independent of calendar months.
+### Semantic-lattice checkpoint — under live review
+
+Weeks uses eleven larger gaps to form twelve proportional groups of
+`4, 5, 4, 4, 5, 4, 4, 5, 4, 4, 5, 4` weeks. Those gaps borrow from the forty
+ordinary week boundaries, preserving the original 51-gap total. Vertically,
+one larger boundary and four nearly continuous boundaries preserve each
+five-gap total. A 31-row attention window therefore retains its exact height
+and capacity for every starting age.
+
+Months retains its established quarter spacing and adopts the same five-year
+bands. The result is a shared age rhythm with projection-specific horizontal
+meaning: twelve life-month groups in Weeks and four quarters in Months.
+Switching projection changes only that horizontal grouping while the vertical
+half-decade bands stay fixed, allowing the existing seam to carry the playful
+resolution change without an additional effect.
+
+No specimen adds fixed four-week months, alternating fills, a second accent,
+or independent animation. Present, inspection, the held ruler, and exact date
+semantics retain their existing ownership.
 
 ### Questions
 
-- Does five-year rhythm improve orientation inside the compact attention
-  window, or merely reduce useful row capacity?
-- Can redistributed spacing preserve the exact visible-year count and cell
-  legibility, or does borrowing from ordinary rows make the field harsher?
+- Does the two-dimensional lattice improve orientation before labels are read?
+- Does the 4/5-week beat communicate proportional life-months without being
+  mistaken for exact calendar-month boundaries?
+- Do nearly continuous ordinary gaps make individual cells too dense, or do
+  the larger semantic boundaries provide enough breathing?
 - Can the present retain a calm default position when variable row gaps are
   introduced?
 - Do hit-testing, axis guides, wheel movement, pin coordinates, LIFE entrance,
@@ -303,11 +325,11 @@ unless it gains a truthful meaning independent of calendar months.
 
 - The panel or grid changes dimensions.
 - Fewer visible rows make the viewport feel cramped.
-- Weeks imply false four-week months or calendar quarters.
+- Weeks imply fixed four-week or exact calendar months.
 - Existing motion must distort exact temporal coordinates to accommodate the
   gaps.
-- The cadence-only specimen becomes a decorative stripe or competes with the
-  present accent.
+- The block field creates stronger moire, feels like a spreadsheet, or
+  competes with the present and held ruler.
 
 ## Workstream 5 — Hover-guide motion
 
