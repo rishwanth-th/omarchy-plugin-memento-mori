@@ -193,10 +193,10 @@ The corrected proof assigns distinct jobs to inspection and pinning:
 
 1. Pointer hover and keyboard inspection show the exact date, coordinates, and
    full projection-aware delta from the shared present origin.
-2. Clicking or pressing Enter holds that interval without freezing its prose
-   readout: a quiet cell outline, secondary axis coordinates, an orthogonal
-   present-to-pin ruler, LIFE marker, and LIFE span remain while inspection
-   moves elsewhere.
+2. Clicking or pressing Enter holds that interval without freezing its full
+   prose readout: a quiet cell outline, signed axis dimensions, a compact total
+   on the orthogonal present-to-pin ruler, LIFE marker, and LIFE span remain
+   while inspection moves elsewhere.
 3. The local ruler travels horizontally from present to the pin column, then
    vertically into the held cell. It never colors the cells it crosses; the
    grid itself supplies the ruler's divisions.
@@ -215,6 +215,13 @@ The corrected proof assigns distinct jobs to inspection and pinning:
 9. Horizontal key repeat is normalized by rendered cell distance, preserving
    one interval per deliberate press while giving Weeks and Months coherent
    traversal speed.
+10. Present remains the accented origin coordinate, inspection remains a
+    transient coordinate, and the hold becomes a dimension rather than a
+    third peer tick. Its horizontal bracket uses signed Weeks or Months, its
+    vertical bracket uses signed life-years, and zero-length brackets vanish.
+11. Exact coordinate overlaps merge. For near collisions the present label
+    stays nearest the axis, inspection moves into a second lane with a short
+    leader, and the held bracket remains fixed in its outer measurement lane.
 
 Weeks count weekly grid intervals and Months count exact birth-anchored
 calendar-month intervals. A pin inside the present interval produces no

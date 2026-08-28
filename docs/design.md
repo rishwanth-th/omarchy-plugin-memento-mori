@@ -117,16 +117,17 @@ The interface has three temporal roles, not three competing pins:
   "what is here, and how far is it from now?" through the shared date readout,
   axes, foreground guides, and a live projection-aware delta.
 - **Hold** is one deliberate, session-only pin. It answers "keep this
-  relationship visible" through a quiet cell outline, secondary axis
-  coordinates, a local orthogonal ruler, and the LIFE segment between that
-  exact date and present.
+  relationship visible" through a quiet cell outline, signed axis dimensions,
+  a local orthogonal ruler with a compact total, and the LIFE segment between
+  that exact date and present.
 
 Inspection is the live temporal measure; hold is the retained spatial measure.
 The full `109 WEEKS AFTER NOW` treatment remains visible while a non-present
 cell is actively inspected, then leaves with the pointer or keyboard probe. A
-pin never freezes that transient sentence into the composition. It preserves
-the selected point and its relationship to the common present origin while
-inspection continues elsewhere.
+hold retains the quieter `109W AFTER` beside its ruler: enough to keep its
+temporal significance apparent without freezing the full inspection sentence
+into the header. It preserves the selected point and its relationship to the
+common present origin while inspection continues elsewhere.
 
 The local ruler always leaves present horizontally, reaches the held point's
 column, then turns vertically into the pin. A same-row or same-column
@@ -135,11 +136,21 @@ cells without filling, striking through, or selecting them; their existing
 boundaries become implicit ruler ticks. The elbow has no marker because it is
 not a third temporal point.
 
-Present retains its accented axis guides. The pin retains quiet axis labels and
-ticks, but not a second full pin-to-axis guide: that duplicate geometry would
-visually merge with the ruler and obscure its origin. The pin's neutral outline
-and ruler strengthen together only while the held point, either ruler leg, or
-the LIFE span is inspected.
+Present retains its accented origin tick and guides. Inspection owns a
+transient coordinate tick. The hold is not a third peer tick: brackets between
+present and the held column and row label the ruler's signed components, such
+as `+8W` and `+2Y`. A zero-length component disappears. Row wrap remains
+truthful, so `+9M` and `−2Y` may combine into `15M BEFORE` rather than being
+rewritten into a more familiar but geometrically false duration.
+
+Exact present/inspection coordinates merge. When their text would collide,
+the present label stays nearest its axis while only the inspection label moves
+to a second lane with a short leader back to its exact tick. The held dimension
+occupies its own outer lane and never moves, because it encodes the retained
+measurement. These lanes remove competition without displacing temporal
+coordinates. The pin's neutral outline, dimensions, and ruler strengthen
+together only while the held point, either ruler leg, or the LIFE span is
+inspected.
 
 Pin creation draws the horizontal leg before the vertical leg at a bounded,
 distance-aware speed, then settles into quiet geometry. Retargeting reshapes

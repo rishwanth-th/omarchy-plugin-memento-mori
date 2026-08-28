@@ -453,6 +453,57 @@ function projectionDelta(cells, mode, dateKey) {
   }
 }
 
+// Decompose the same exact projection delta into the two dimensions drawn by
+// LIFE's orthogonal ruler. A row is one life-year in either projection; the
+// horizontal component is the signed within-row week or month displacement.
+// The two components therefore always reconstruct the total interval count.
+function projectionRulerDelta(cells, mode, dateKey) {
+  var intervals = Array.isArray(cells) ? cells : []
+  var presentIndex = -1
+  for (var i = 0; i < intervals.length; i++) {
+    if (intervals[i].status === "current") {
+      presentIndex = i
+      break
+    }
+  }
+  var targetIndex = projectionIndexForDate(intervals, dateKey)
+  if (presentIndex < 0 || targetIndex < 0 || targetIndex === presentIndex)
+    return {
+      configured: false,
+      horizontalCount: 0,
+      horizontalLabel: "",
+      verticalCount: 0,
+      verticalLabel: "",
+      totalCount: 0,
+      totalLabel: ""
+    }
+
+  var columnCount = mode === "months" ? 12 : 52
+  var presentColumn = presentIndex % columnCount
+  var targetColumn = targetIndex % columnCount
+  var horizontalCount = targetColumn - presentColumn
+  var verticalCount = Math.floor(targetIndex / columnCount)
+    - Math.floor(presentIndex / columnCount)
+  var totalCount = targetIndex - presentIndex
+  var horizontalUnit = mode === "months" ? "M" : "W"
+  var totalDirection = totalCount < 0 ? "BEFORE" : "AFTER"
+
+  function signedLabel(value, unit) {
+    if (value === 0) return ""
+    return (value < 0 ? "−" : "+") + Math.abs(value) + unit
+  }
+
+  return {
+    configured: true,
+    horizontalCount: horizontalCount,
+    horizontalLabel: signedLabel(horizontalCount, horizontalUnit),
+    verticalCount: verticalCount,
+    verticalLabel: signedLabel(verticalCount, "Y"),
+    totalCount: Math.abs(totalCount),
+    totalLabel: Math.abs(totalCount) + horizontalUnit + " " + totalDirection
+  }
+}
+
 // LIFE's horizon is canonically week-based. Map an exact day to that same
 // scale so a secondary rail marker agrees with the settled present marker
 // and remains stable while the grid changes projection.
@@ -679,6 +730,7 @@ if (typeof module !== "undefined") {
     projectionStats: projectionStats,
     projectionIndexForDate: projectionIndexForDate,
     projectionDelta: projectionDelta,
+    projectionRulerDelta: projectionRulerDelta,
     lifeProgressForDate: lifeProgressForDate,
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,

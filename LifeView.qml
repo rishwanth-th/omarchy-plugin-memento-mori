@@ -75,6 +75,8 @@ Flickable {
   readonly property int keyboardIndex: Model.projectionIndexForDate(cells, keyboardDateKey)
   readonly property bool hasPin: pinnedDateKey !== "" && pinnedIndex >= 0
   readonly property var pinDelta: Model.projectionDelta(cells, projection, pinnedDateKey)
+  readonly property var pinRulerDelta: Model.projectionRulerDelta(
+    cells, projection, pinnedDateKey)
   readonly property real pinProgress: Model.lifeProgressForDate(
     birthKey, pinnedDateKey, horizonWeeks)
   readonly property real pinRetargetFromProgress: Model.lifeProgressForDate(
@@ -975,12 +977,12 @@ Flickable {
 
   function verticalMarks() {
     var nowRow = currentGridRow()
-    var inspectedRow = inspectedGridRow()
-    var pinnedRow = hasPin && pinnedIndex >= firstVisibleIndex()
-        && pinnedIndex < lastVisibleIndex()
-      ? Math.floor((pinnedIndex - firstVisibleIndex()) / columns())
+    var inspectedRow = activeInspectionIndex >= firstVisibleIndex()
+        && activeInspectionIndex < lastVisibleIndex()
+        && (!hasPin || activeInspectionIndex !== pinnedIndex)
+      ? Math.floor((activeInspectionIndex - firstVisibleIndex()) / columns())
       : -1
-    var candidates = [0, nowRow, pinnedRow, inspectedRow, visibleRowCount - 1]
+    var candidates = [0, nowRow, inspectedRow, visibleRowCount - 1]
     var firstMultiple = Math.ceil(visibleYearStart / 5) * 5
     for (var age = firstMultiple; age < visibleYearStart + visibleYearCount; age += 5)
       candidates.push(age - visibleYearStart)
@@ -992,7 +994,7 @@ Flickable {
       seen[row] = true
       var markAge = visibleYearStart + row
       marks.push({ row: row, age: markAge,
-        current: row === nowRow, pinned: row === pinnedRow,
+        current: row === nowRow,
         inspected: row === inspectedRow,
         fiveYear: markAge % 5 === 0 })
     }
@@ -1389,9 +1391,9 @@ Flickable {
 
     Canvas {
       id: lifeCanvas
-      readonly property real leftGutter: Style.space(42)
+      readonly property real leftGutter: Style.space(48)
       readonly property real rightGutter: Style.space(14)
-      readonly property real topGutter: Style.space(20)
+      readonly property real topGutter: Style.space(26)
 
       width: parent.width
       height: root.compactCanvasHeight
@@ -1655,6 +1657,115 @@ Flickable {
         }
       }
 
+      function paintBackedLabel(ctx, text, centerX, centerY, color, opacity) {
+        if (!text) return 0
+        var width = ctx.measureText(text).width + Style.space(6)
+        var height = Style.space(12)
+        var x = Math.max(width / 2 + Style.space(1),
+          Math.min(lifeCanvas.width - width / 2 - Style.space(1), centerX))
+        var y = Math.max(height / 2,
+          Math.min(lifeCanvas.height - height / 2, centerY))
+        ctx.fillStyle = Color.popups.background
+        ctx.fillRect(x - width / 2, y - height / 2, width, height)
+        ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+        ctx.textAlign = "center"
+        ctx.fillText(text, x, y)
+        return width
+      }
+
+      function paintPinDimensions(ctx) {
+        var geometry = root.displayedPinRulerGeometry()
+        var delta = root.pinRulerDelta
+        if (!geometry.visible || !delta.configured) return
+
+        var reveal = root.pinRetargeting ? 1
+          : Math.max(0, Math.min(1, root.pinBridgeProgress))
+        var revealedLength = geometry.totalLength * reveal
+        var horizontalRevealed = Math.min(geometry.horizontalLength, revealedLength)
+        var verticalRevealed = Math.max(0,
+          Math.min(geometry.verticalLength, revealedLength - geometry.horizontalLength))
+        var dimensionOpacity = root.pinInspectionActive ? 0.78 : 0.52
+        var capHalf = Style.space(2)
+        var originX = root.gridOriginX()
+        var originY = root.gridOriginY()
+
+        // The held point is a dimension, not a third coordinate tick. Its
+        // horizontal bracket measures the signed within-row displacement.
+        if (geometry.horizontalLength > 0 && horizontalRevealed > 0) {
+          var horizontalY = originY - Style.space(2)
+          var horizontalEndX = geometry.startX
+            + geometry.horizontalDirection * horizontalRevealed
+          ctx.beginPath()
+          ctx.moveTo(geometry.startX, horizontalY)
+          ctx.lineTo(horizontalEndX, horizontalY)
+          ctx.moveTo(geometry.startX, horizontalY - capHalf)
+          ctx.lineTo(geometry.startX, horizontalY + capHalf)
+          ctx.moveTo(horizontalEndX, horizontalY - capHalf)
+          ctx.lineTo(horizontalEndX, horizontalY + capHalf)
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, dimensionOpacity)
+          ctx.lineWidth = Style.spacing.hairline
+          ctx.stroke()
+
+          if (horizontalRevealed >= geometry.horizontalLength - 0.5) {
+            var horizontalWidth = ctx.measureText(delta.horizontalLabel).width
+              + Style.space(6)
+            var horizontalLabelX = geometry.endX
+              + geometry.horizontalDirection
+                * (horizontalWidth / 2 + Style.space(3))
+            paintBackedLabel(ctx, delta.horizontalLabel, horizontalLabelX,
+              originY - Style.space(20), root.foreground, dimensionOpacity)
+          }
+        }
+
+        // The vertical bracket uses life-years because every rendered row is
+        // one birth-anchored life-year in both Weeks and Months.
+        if (geometry.verticalLength > 0 && verticalRevealed > 0) {
+          var verticalX = originX - Style.space(2)
+          var verticalEndY = geometry.elbowY
+            + geometry.verticalDirection * verticalRevealed
+          ctx.beginPath()
+          ctx.moveTo(verticalX, geometry.elbowY)
+          ctx.lineTo(verticalX, verticalEndY)
+          ctx.moveTo(verticalX - capHalf, geometry.elbowY)
+          ctx.lineTo(verticalX + capHalf, geometry.elbowY)
+          ctx.moveTo(verticalX - capHalf, verticalEndY)
+          ctx.lineTo(verticalX + capHalf, verticalEndY)
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, dimensionOpacity)
+          ctx.lineWidth = Style.spacing.hairline
+          ctx.stroke()
+
+          if (verticalRevealed >= geometry.verticalLength - 0.5) {
+            var verticalLabelY = geometry.endY
+              + geometry.verticalDirection * Style.space(7)
+            paintBackedLabel(ctx, delta.verticalLabel,
+              originX - Style.space(32), verticalLabelY,
+              root.foreground, dimensionOpacity)
+          }
+        }
+
+        // The compact total names the relationship at rest; the full sentence
+        // remains available through ordinary pin/ruler/LIFE inspection.
+        if (reveal < 0.999 || !delta.totalLabel) return
+        var totalWidth = ctx.measureText(delta.totalLabel).width + Style.space(6)
+        var totalX
+        var totalY
+        if (geometry.horizontalLength > 0 && geometry.verticalLength > 0) {
+          totalX = geometry.elbowX + geometry.horizontalDirection
+            * (totalWidth / 2 + Style.space(4))
+          totalY = geometry.elbowY - geometry.verticalDirection * Style.space(8)
+        } else if (geometry.horizontalLength > 0) {
+          totalX = (geometry.startX + geometry.endX) / 2
+          totalY = geometry.startY - Style.space(8)
+        } else {
+          totalX = geometry.startX + totalWidth / 2 + Style.space(4)
+          totalY = (geometry.startY + geometry.endY) / 2
+        }
+        paintBackedLabel(ctx, delta.totalLabel, totalX, totalY,
+          root.foreground, root.pinInspectionActive ? 0.92 : 0.66)
+      }
+
       onPaint: {
         var ctx = getContext("2d")
         ctx.reset()
@@ -1688,6 +1799,9 @@ Flickable {
 
         var vertical = root.verticalMarks()
         var inspectionIndex = root.inspectedIndex()
+        var axisInspectionIndex = root.activeInspectionIndex
+        if (root.hasPin && axisInspectionIndex === root.pinnedIndex)
+          axisInspectionIndex = -1
         var inspectedColor = inspectionIndex !== root.presentCellIndex
           ? root.foreground
           : Color.accent
@@ -1695,36 +1809,52 @@ Flickable {
         for (var v = 0; v < vertical.length; v++) {
           ctx.fillStyle = vertical[v].current
             ? Color.accent
-            : (vertical[v].pinned
-              ? root.foreground
-              : (vertical[v].inspected
+            : (vertical[v].inspected
               ? inspectedColor
               : (root.verticalAxisHovered
                 ? Color.accent
-                : Qt.darker(root.foreground, 1.8))))
-          ctx.fillText(String(vertical[v].age), originX - Style.space(4),
-            originY + root.rowOffset(vertical[v].row) + cellHeight / 2)
+                : Qt.darker(root.foreground, 1.8)))
+          var verticalY = originY + root.rowOffset(vertical[v].row)
+            + cellHeight / 2
+          var verticalOuterLane = false
+          if (vertical[v].inspected && !vertical[v].current) {
+            for (var compare = 0; compare < vertical.length; compare++) {
+              if (compare === v) continue
+              var compareY = originY + root.rowOffset(vertical[compare].row)
+                + cellHeight / 2
+              if (Math.abs(compareY - verticalY)
+                  < Style.font.caption + Style.space(2)) {
+                verticalOuterLane = true
+                break
+              }
+            }
+          }
+          var verticalLabelX = originX
+            - Style.space(verticalOuterLane ? 18 : 4)
+          if (verticalOuterLane) {
+            ctx.fillRect(verticalLabelX + Style.space(2), verticalY,
+              Style.space(15), Style.spacing.hairline)
+          }
+          ctx.fillText(String(vertical[v].age), verticalLabelX, verticalY)
           ctx.fillRect(originX - (vertical[v].fiveYear ? Style.space(3) : Style.space(1)),
-            originY + root.rowOffset(vertical[v].row) + cellHeight / 2,
+            verticalY,
             vertical[v].fiveYear ? Style.space(3) : Style.space(1),
             Style.spacing.hairline)
         }
 
-        // Present, pin, and ephemeral inspection all read on the same axes.
-        // Duplicate row/column coordinates collapse to one value rather than
-        // printing the same week, month, or age on top of itself.
+        // Present owns the base coordinate lane. Ephemeral inspection keeps an
+        // exact tick, moving only its text outward when nearby labels collide.
+        // The hold is represented separately by dimension brackets.
         var horizontalTicks = []
         var horizontalCandidates = [
-          { index: root.presentCellIndex, current: true, pinned: false },
-          { index: root.pinnedIndex, current: false, pinned: true },
-          { index: inspectionIndex, current: false, pinned: false }
+          { index: root.presentCellIndex, current: true },
+          { index: axisInspectionIndex, current: false }
         ]
         var seenColumns = {}
         for (var candidate = 0; candidate < horizontalCandidates.length; candidate++) {
           var horizontalCandidate = horizontalCandidates[candidate]
           if (horizontalCandidate.index < root.firstVisibleIndex()
               || horizontalCandidate.index >= root.lastVisibleIndex()) continue
-          if (horizontalCandidate.pinned && !root.hasPin) continue
           var candidateColumn = (horizontalCandidate.index
             - root.firstVisibleIndex()) % columns
           if (seenColumns[candidateColumn]) continue
@@ -1741,13 +1871,32 @@ Flickable {
             ? tickParts.position.replace("MONTH ", "M ")
             : tickParts.position.replace("WEEK ", "W ")
           var tickWidth = ctx.measureText(tickLabel).width + Style.space(6)
+          horizontalTicks[h].x = tickX
+          horizontalTicks[h].label = tickLabel
+          horizontalTicks[h].width = tickWidth
+        }
+
+        if (horizontalTicks.length === 2
+            && Math.abs(horizontalTicks[0].x - horizontalTicks[1].x)
+              < (horizontalTicks[0].width + horizontalTicks[1].width) / 2
+                + Style.space(2))
+          horizontalTicks[1].outerLane = true
+
+        for (var paintedTick = 0; paintedTick < horizontalTicks.length; paintedTick++) {
+          var horizontalTick = horizontalTicks[paintedTick]
+          var tickY = originY - Style.space(horizontalTick.outerLane ? 20 : 10)
           ctx.fillStyle = Color.popups.background
-          ctx.fillRect(tickX - tickWidth / 2, originY - Style.space(17),
-            tickWidth, Style.space(12))
-          ctx.fillStyle = horizontalTicks[h].current ? Color.accent : root.foreground
+          ctx.fillRect(horizontalTick.x - horizontalTick.width / 2,
+            tickY - Style.space(6), horizontalTick.width, Style.space(12))
+          ctx.fillStyle = horizontalTick.current ? Color.accent : root.foreground
           ctx.textAlign = "center"
-          ctx.fillText(tickLabel, tickX, originY - Style.space(10))
-          ctx.fillRect(tickX, originY - Style.space(6),
+          ctx.fillText(horizontalTick.label, horizontalTick.x, tickY)
+          if (horizontalTick.outerLane)
+            ctx.fillRect(horizontalTick.x, tickY + Style.space(6),
+              Style.spacing.hairline,
+              Math.max(0, originY - Style.space(6)
+                - (tickY + Style.space(6))))
+          ctx.fillRect(horizontalTick.x, originY - Style.space(6),
             Style.spacing.hairline, Style.space(6))
         }
 
@@ -1801,6 +1950,7 @@ Flickable {
         else {
           paintProjection(ctx, root.projection, root.cells, 1, root.hoveredIndex)
           paintPinRuler(ctx)
+          paintPinDimensions(ctx)
         }
 
         // Small edge cues disclose that compact mode is a movable viewport
