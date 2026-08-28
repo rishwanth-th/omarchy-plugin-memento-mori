@@ -1673,7 +1673,7 @@ Flickable {
         return width
       }
 
-      function paintPinDimensions(ctx) {
+      function paintPinRulerLabels(ctx) {
         var geometry = root.displayedPinRulerGeometry()
         var delta = root.pinRulerDelta
         if (!geometry.visible || !delta.configured) return
@@ -1684,86 +1684,69 @@ Flickable {
         var horizontalRevealed = Math.min(geometry.horizontalLength, revealedLength)
         var verticalRevealed = Math.max(0,
           Math.min(geometry.verticalLength, revealedLength - geometry.horizontalLength))
-        var dimensionOpacity = root.pinInspectionActive ? 0.78 : 0.52
-        var capHalf = Style.space(2)
-        var originX = root.gridOriginX()
-        var originY = root.gridOriginY()
+        var componentOpacity = root.pinInspectionActive ? 0.92 : 0.70
+        var totalOpacity = root.pinInspectionActive ? 1 : 0.82
+        var horizontalOnlyTotalPainted = false
 
-        // The held point is a dimension, not a third coordinate tick. Its
-        // horizontal bracket measures the signed within-row displacement.
-        if (geometry.horizontalLength > 0 && horizontalRevealed > 0) {
-          var horizontalY = originY - Style.space(2)
-          var horizontalEndX = geometry.startX
-            + geometry.horizontalDirection * horizontalRevealed
-          ctx.beginPath()
-          ctx.moveTo(geometry.startX, horizontalY)
-          ctx.lineTo(horizontalEndX, horizontalY)
-          ctx.moveTo(geometry.startX, horizontalY - capHalf)
-          ctx.lineTo(geometry.startX, horizontalY + capHalf)
-          ctx.moveTo(horizontalEndX, horizontalY - capHalf)
-          ctx.lineTo(horizontalEndX, horizontalY + capHalf)
-          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-            root.foreground.b, dimensionOpacity)
-          ctx.lineWidth = Style.spacing.hairline
-          ctx.stroke()
-
-          if (horizontalRevealed >= geometry.horizontalLength - 0.5) {
-            var horizontalWidth = ctx.measureText(delta.horizontalLabel).width
-              + Style.space(6)
-            var horizontalLabelX = geometry.endX
-              + geometry.horizontalDirection
-                * (horizontalWidth / 2 + Style.space(3))
-            paintBackedLabel(ctx, delta.horizontalLabel, horizontalLabelX,
-              originY - Style.space(20), root.foreground, dimensionOpacity)
+        // Engrave the week/month component into the horizontal leg. A very
+        // short leg yields to the terminal total instead of becoming a label
+        // cluster; a merely tight leg carries its value just outside the line.
+        if (geometry.horizontalLength > 0
+            && horizontalRevealed >= geometry.horizontalLength - 0.5) {
+          var horizontalText = geometry.verticalLength > 0
+            ? delta.horizontalLabel : delta.totalLabel
+          var horizontalWidth = ctx.measureText(horizontalText).width
+            + Style.space(6)
+          if (geometry.horizontalLength >= Style.space(12)) {
+            var horizontalY = geometry.startY
+            if (geometry.horizontalLength < horizontalWidth + Style.space(10)) {
+              var outsideDirection = geometry.verticalDirection !== 0
+                ? -geometry.verticalDirection : -1
+              horizontalY += outsideDirection * Style.space(8)
+            }
+            paintBackedLabel(ctx, horizontalText,
+              (geometry.startX + geometry.elbowX) / 2, horizontalY,
+              root.foreground, componentOpacity)
+            horizontalOnlyTotalPainted = geometry.verticalLength === 0
           }
         }
 
-        // The vertical bracket uses life-years because every rendered row is
-        // one birth-anchored life-year in both Weeks and Months.
-        if (geometry.verticalLength > 0 && verticalRevealed > 0) {
-          var verticalX = originX - Style.space(2)
-          var verticalEndY = geometry.elbowY
-            + geometry.verticalDirection * verticalRevealed
-          ctx.beginPath()
-          ctx.moveTo(verticalX, geometry.elbowY)
-          ctx.lineTo(verticalX, verticalEndY)
-          ctx.moveTo(verticalX - capHalf, geometry.elbowY)
-          ctx.lineTo(verticalX + capHalf, geometry.elbowY)
-          ctx.moveTo(verticalX - capHalf, verticalEndY)
-          ctx.lineTo(verticalX + capHalf, verticalEndY)
-          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-            root.foreground.b, dimensionOpacity)
-          ctx.lineWidth = Style.spacing.hairline
-          ctx.stroke()
-
-          if (verticalRevealed >= geometry.verticalLength - 0.5) {
-            var verticalLabelY = geometry.endY
-              + geometry.verticalDirection * Style.space(7)
-            paintBackedLabel(ctx, delta.verticalLabel,
-              originX - Style.space(32), verticalLabelY,
-              root.foreground, dimensionOpacity)
-          }
+        // Keep the life-year value horizontal and beside its leg. It sits on
+        // the inner side of the L, leaving the pin's outer side to the total.
+        if (geometry.verticalLength > 0
+            && verticalRevealed >= geometry.verticalLength - 0.5) {
+          var verticalWidth = ctx.measureText(delta.verticalLabel).width
+            + Style.space(6)
+          var innerSide = geometry.horizontalDirection !== 0
+            ? -geometry.horizontalDirection : -1
+          var verticalX = geometry.endX
+            + innerSide * (verticalWidth / 2 + Style.space(4))
+          var verticalY = geometry.verticalLength < Style.space(18)
+            ? geometry.endY : (geometry.elbowY + geometry.endY) / 2
+          paintBackedLabel(ctx, delta.verticalLabel, verticalX,
+            verticalY,
+            root.foreground, componentOpacity)
         }
 
-        // The compact total names the relationship at rest; the full sentence
-        // remains available through ordinary pin/ruler/LIFE inspection.
-        if (reveal < 0.999 || !delta.totalLabel) return
+        // The terminal reading belongs to the held endpoint. The route from
+        // accented present to this neutral pin already supplies before/after
+        // direction, so the ruler needs no sign or prose suffix.
+        if (reveal < 0.999 || !delta.totalLabel || horizontalOnlyTotalPainted) return
         var totalWidth = ctx.measureText(delta.totalLabel).width + Style.space(6)
-        var totalX
-        var totalY
-        if (geometry.horizontalLength > 0 && geometry.verticalLength > 0) {
-          totalX = geometry.elbowX + geometry.horizontalDirection
-            * (totalWidth / 2 + Style.space(4))
-          totalY = geometry.elbowY - geometry.verticalDirection * Style.space(8)
-        } else if (geometry.horizontalLength > 0) {
-          totalX = (geometry.startX + geometry.endX) / 2
-          totalY = geometry.startY - Style.space(8)
-        } else {
-          totalX = geometry.startX + totalWidth / 2 + Style.space(4)
-          totalY = (geometry.startY + geometry.endY) / 2
-        }
-        paintBackedLabel(ctx, delta.totalLabel, totalX, totalY,
-          root.foreground, root.pinInspectionActive ? 0.92 : 0.66)
+        var outerSide = geometry.horizontalDirection
+        if (outerSide === 0)
+          outerSide = geometry.endX < lifeCanvas.width / 2 ? 1 : -1
+        var endpointClearance = root.cellWidth() / 2 + Style.space(3)
+        var preferredTotalX = geometry.endX
+          + outerSide * (endpointClearance + totalWidth / 2)
+        var preferredFits = preferredTotalX - totalWidth / 2 >= Style.space(1)
+          && preferredTotalX + totalWidth / 2
+            <= lifeCanvas.width - Style.space(1)
+        if (!preferredFits) outerSide *= -1
+        var totalX = geometry.endX
+          + outerSide * (endpointClearance + totalWidth / 2)
+        paintBackedLabel(ctx, delta.totalLabel, totalX, geometry.endY,
+          root.foreground, totalOpacity)
       }
 
       onPaint: {
@@ -1950,7 +1933,7 @@ Flickable {
         else {
           paintProjection(ctx, root.projection, root.cells, 1, root.hoveredIndex)
           paintPinRuler(ctx)
-          paintPinDimensions(ctx)
+          paintPinRulerLabels(ctx)
         }
 
         // Small edge cues disclose that compact mode is a movable viewport

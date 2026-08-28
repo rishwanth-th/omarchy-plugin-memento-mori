@@ -202,28 +202,28 @@ test("the orthogonal ruler decomposes projection distance without losing time", 
   assert.deepEqual(Model.projectionRulerDelta(weeks, "weeks", futureWeek), {
     configured: true,
     horizontalCount: 4,
-    horizontalLabel: "+4W",
+    horizontalLabel: "4W",
     verticalCount: 1,
-    verticalLabel: "+1Y",
+    verticalLabel: "1Y",
     totalCount: 56,
-    totalLabel: "56W AFTER"
+    totalLabel: "56W"
   })
 
   const wrappedWeek = weeks[presentWeek + 4].startKey
   const wrappedDelta = Model.projectionRulerDelta(weeks, "weeks", wrappedWeek)
   assert.equal(wrappedDelta.verticalCount * 52 + wrappedDelta.horizontalCount, 4)
-  assert.match(wrappedDelta.horizontalLabel, /^[−+]\d+W$/)
-  assert.equal(wrappedDelta.totalLabel, "4W AFTER")
+  assert.match(wrappedDelta.horizontalLabel, /^\d+W$/)
+  assert.equal(wrappedDelta.totalLabel, "4W")
 
   const pastMonth = months[presentMonth - 15].startKey
   assert.deepEqual(Model.projectionRulerDelta(months, "months", pastMonth), {
     configured: true,
     horizontalCount: 9,
-    horizontalLabel: "+9M",
+    horizontalLabel: "9M",
     verticalCount: -2,
-    verticalLabel: "−2Y",
+    verticalLabel: "2Y",
     totalCount: 15,
-    totalLabel: "15M BEFORE"
+    totalLabel: "15M"
   })
 
   assert.equal(Model.projectionRulerDelta(weeks, "weeks",

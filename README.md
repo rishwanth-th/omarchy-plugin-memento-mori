@@ -77,10 +77,10 @@ animation. The calm seam remains the startup default. Press `T` or Space to
 return inspection to now; press Enter to hold or retarget one temporal pin.
 LIFE opens from present even if the pointer is already parked over the panel;
 move the pointer deliberately to hand inspection back to hover.
-The held pin may be dragged between cells. Its orthogonal ruler keeps a compact
-total beside the line and signed week/month and life-year dimensions on the
-axes; hover its endpoint, either ruler leg, or the LIFE span to recall the full
-distance from now.
+The held pin may be dragged between cells. Its orthogonal ruler engraves the
+week/month and life-year components into its legs and keeps an unsigned total
+at the endpoint; the route from present supplies direction. Hover its endpoint,
+either ruler leg, or the LIFE span to recall the full distance from now.
 
 The birth date and horizon are stored as widget settings in
 `~/.config/omarchy/shell.json`. Do not commit that file unchanged to a public

@@ -486,21 +486,19 @@ function projectionRulerDelta(cells, mode, dateKey) {
     - Math.floor(presentIndex / columnCount)
   var totalCount = targetIndex - presentIndex
   var horizontalUnit = mode === "months" ? "M" : "W"
-  var totalDirection = totalCount < 0 ? "BEFORE" : "AFTER"
-
-  function signedLabel(value, unit) {
+  function magnitudeLabel(value, unit) {
     if (value === 0) return ""
-    return (value < 0 ? "−" : "+") + Math.abs(value) + unit
+    return Math.abs(value) + unit
   }
 
   return {
     configured: true,
     horizontalCount: horizontalCount,
-    horizontalLabel: signedLabel(horizontalCount, horizontalUnit),
+    horizontalLabel: magnitudeLabel(horizontalCount, horizontalUnit),
     verticalCount: verticalCount,
-    verticalLabel: signedLabel(verticalCount, "Y"),
+    verticalLabel: magnitudeLabel(verticalCount, "Y"),
     totalCount: Math.abs(totalCount),
-    totalLabel: Math.abs(totalCount) + horizontalUnit + " " + totalDirection
+    totalLabel: Math.abs(totalCount) + horizontalUnit
   }
 }
 
