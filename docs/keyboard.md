@@ -105,9 +105,11 @@ fields.
   or click the pinned cell or present to clear it.
 - Hover the pin, either orthogonal ruler leg, or the LIFE span to recall the
   held interval and its full delta from now.
-- The held ruler keeps an unsigned total at rest. Week/month and life-year
-  magnitudes live on their corresponding L legs; the route from present gives
-  direction, and a zero-length leg and its label disappear.
+- When space permits, the held ruler keeps an unsigned total at rest and puts
+  week/month and life-year magnitudes inline on their corresponding L legs.
+  Nearby geometry stays silent, while hover or keyboard inspection supplies
+  the exact full delta. The route from present gives direction, and a
+  zero-length leg and its label disappear.
 - Drag the pinned cell to snap the held endpoint to another interval. Release
   to commit, press Escape to restore its original date, or drop it on present
   to clear the ruler.

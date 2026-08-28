@@ -218,13 +218,19 @@ The corrected proof assigns distinct jobs to inspection and pinning:
 10. Present remains the accented origin coordinate, inspection remains a
     transient coordinate, and the hold becomes a self-describing ruler rather
     than a third peer tick. Weeks or Months live on the horizontal leg,
-    life-years live beside the vertical leg, and zero-length components vanish.
+    life-years remain horizontally readable inline with the vertical leg, and
+    zero-length components vanish.
 11. Exact coordinate overlaps merge. For near collisions the present label
     stays nearest the axis and inspection moves into a second lane with a short
     leader. The held measurement no longer occupies either axis.
-12. The terminal total omits signs and BEFORE/AFTER wording. The route from
-    accented present to neutral pin supplies direction; tight labels fold
-    around the L, and horizontal-only rulers avoid duplicate totals.
+12. Both component labels interrupt their own legs and emerge only when the
+    rendered leg gives them enough room. Near rulers remain silent rather than
+    moving measurements onto the axes; horizontal-only rulers avoid duplicate
+    totals.
+13. The terminal total omits signs and BEFORE/AFTER wording, requires enough
+    overall ruler length and endpoint room, and fades when inspection of the
+    held relationship gives the full header readout ownership. The route from
+    accented present to neutral pin supplies direction.
 
 Weeks count weekly grid intervals and Months count exact birth-anchored
 calendar-month intervals. A pin inside the present interval produces no

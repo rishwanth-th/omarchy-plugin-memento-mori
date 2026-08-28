@@ -101,6 +101,7 @@ Flickable {
     && (lifeRail.pinHovered || pinRulerHovered)
   readonly property bool pinInspectionActive: hasPin
     && (pinMeasureHovered || activeInspectionIndex === pinnedIndex)
+  property real pinTerminalLabelPresence: pinInspectionActive ? 0 : 1
   readonly property var visibleDelta: pinMeasureHovered
     ? pinDelta
     : inspectionDelta
@@ -1026,6 +1027,7 @@ Flickable {
   onPinBridgeProgressChanged: lifeCanvas.requestPaint()
   onPinRetargetProgressChanged: lifeCanvas.requestPaint()
   onPinInspectionActiveChanged: lifeCanvas.requestPaint()
+  onPinTerminalLabelPresenceChanged: lifeCanvas.requestPaint()
   onReducedMotionChanged: {
     if (reducedMotion && pinBridgeAnimation.running) {
       pinBridgeAnimation.stop()
@@ -1034,6 +1036,13 @@ Flickable {
     if (reducedMotion && pinRetargetAnimation.running) finishPinRetarget()
   }
   Component.onCompleted: refreshCells(true)
+
+  Behavior on pinTerminalLabelPresence {
+    NumberAnimation {
+      duration: root.reducedMotion ? 0 : 110
+      easing.type: Easing.OutCubic
+    }
+  }
 
   Timer {
     id: horizontalMoveTimer
@@ -1658,19 +1667,26 @@ Flickable {
       }
 
       function paintBackedLabel(ctx, text, centerX, centerY, color, opacity) {
-        if (!text) return 0
+        if (!text || opacity <= 0.01) return 0
         var width = ctx.measureText(text).width + Style.space(6)
         var height = Style.space(12)
         var x = Math.max(width / 2 + Style.space(1),
           Math.min(lifeCanvas.width - width / 2 - Style.space(1), centerX))
         var y = Math.max(height / 2,
           Math.min(lifeCanvas.height - height / 2, centerY))
-        ctx.fillStyle = Color.popups.background
+        var backgroundOpacity = Math.max(0, Math.min(1, opacity * 1.3))
+        ctx.fillStyle = Qt.rgba(Color.popups.background.r,
+          Color.popups.background.g, Color.popups.background.b,
+          backgroundOpacity)
         ctx.fillRect(x - width / 2, y - height / 2, width, height)
         ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
         ctx.textAlign = "center"
         ctx.fillText(text, x, y)
         return width
+      }
+
+      function labelFitProgress(available, required, transition) {
+        return smoothUnit((available - required) / Math.max(1, transition))
       }
 
       function paintPinRulerLabels(ctx) {
@@ -1685,47 +1701,38 @@ Flickable {
         var verticalRevealed = Math.max(0,
           Math.min(geometry.verticalLength, revealedLength - geometry.horizontalLength))
         var componentOpacity = root.pinInspectionActive ? 0.92 : 0.70
-        var totalOpacity = root.pinInspectionActive ? 1 : 0.82
+        var totalOpacity = 0.82
         var horizontalOnlyTotalPainted = false
 
-        // Engrave the week/month component into the horizontal leg. A very
-        // short leg yields to the terminal total instead of becoming a label
-        // cluster; a merely tight leg carries its value just outside the line.
+        // Engrave the week/month component into the horizontal leg only after
+        // that leg has earned enough rendered room. Short geometry stays
+        // silent instead of moving its measurement elsewhere.
         if (geometry.horizontalLength > 0
             && horizontalRevealed >= geometry.horizontalLength - 0.5) {
           var horizontalText = geometry.verticalLength > 0
             ? delta.horizontalLabel : delta.totalLabel
           var horizontalWidth = ctx.measureText(horizontalText).width
             + Style.space(6)
-          if (geometry.horizontalLength >= Style.space(12)) {
-            var horizontalY = geometry.startY
-            if (geometry.horizontalLength < horizontalWidth + Style.space(10)) {
-              var outsideDirection = geometry.verticalDirection !== 0
-                ? -geometry.verticalDirection : -1
-              horizontalY += outsideDirection * Style.space(8)
-            }
+          var horizontalFit = labelFitProgress(geometry.horizontalLength,
+            horizontalWidth + Style.space(6), Style.space(12))
+          if (horizontalFit > 0) {
             paintBackedLabel(ctx, horizontalText,
-              (geometry.startX + geometry.elbowX) / 2, horizontalY,
-              root.foreground, componentOpacity)
+              (geometry.startX + geometry.elbowX) / 2, geometry.startY,
+              root.foreground, componentOpacity * horizontalFit)
             horizontalOnlyTotalPainted = geometry.verticalLength === 0
           }
         }
 
-        // Keep the life-year value horizontal and beside its leg. It sits on
-        // the inner side of the L, leaving the pin's outer side to the total.
+        // The life-year label stays horizontally readable but interrupts the
+        // vertical line at its own midpoint, matching the horizontal leg's
+        // engraved treatment without rotating typography.
         if (geometry.verticalLength > 0
             && verticalRevealed >= geometry.verticalLength - 0.5) {
-          var verticalWidth = ctx.measureText(delta.verticalLabel).width
-            + Style.space(6)
-          var innerSide = geometry.horizontalDirection !== 0
-            ? -geometry.horizontalDirection : -1
-          var verticalX = geometry.endX
-            + innerSide * (verticalWidth / 2 + Style.space(4))
-          var verticalY = geometry.verticalLength < Style.space(18)
-            ? geometry.endY : (geometry.elbowY + geometry.endY) / 2
-          paintBackedLabel(ctx, delta.verticalLabel, verticalX,
-            verticalY,
-            root.foreground, componentOpacity)
+          var verticalFit = labelFitProgress(geometry.verticalLength,
+            Style.space(10), Style.space(8))
+          paintBackedLabel(ctx, delta.verticalLabel, geometry.endX,
+            (geometry.elbowY + geometry.endY) / 2,
+            root.foreground, componentOpacity * verticalFit)
         }
 
         // The terminal reading belongs to the held endpoint. The route from
@@ -1733,6 +1740,9 @@ Flickable {
         // direction, so the ruler needs no sign or prose suffix.
         if (reveal < 0.999 || !delta.totalLabel || horizontalOnlyTotalPainted) return
         var totalWidth = ctx.measureText(delta.totalLabel).width + Style.space(6)
+        var totalFit = labelFitProgress(geometry.totalLength,
+          totalWidth + Style.space(20), Style.space(14))
+        if (totalFit <= 0) return
         var outerSide = geometry.horizontalDirection
         if (outerSide === 0)
           outerSide = geometry.endX < lifeCanvas.width / 2 ? 1 : -1
@@ -1745,8 +1755,12 @@ Flickable {
         if (!preferredFits) outerSide *= -1
         var totalX = geometry.endX
           + outerSide * (endpointClearance + totalWidth / 2)
+        var totalFits = totalX - totalWidth / 2 >= Style.space(1)
+          && totalX + totalWidth / 2 <= lifeCanvas.width - Style.space(1)
+        if (!totalFits) return
         paintBackedLabel(ctx, delta.totalLabel, totalX, geometry.endY,
-          root.foreground, totalOpacity)
+          root.foreground, totalOpacity * totalFit
+            * root.pinTerminalLabelPresence)
       }
 
       onPaint: {
