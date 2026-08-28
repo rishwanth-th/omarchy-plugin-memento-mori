@@ -32,8 +32,9 @@ a different product.
 The article's slightly stronger separation between five-year row groups is a
 useful contextual-spacing specimen. It groups truthful age intervals rather
 than pretending birth-anchored weeks align into fixed calendar months. A
-future geometry experiment may test that rhythm under the panel's fixed
-height, viewport, and hit-testing constraints.
+bounded geometry experiment now compares redistributed physical breathing
+against a cadence-only age cue under the panel's fixed height, viewport, and
+hit-testing constraints. The unchanged grid remains the control.
 
 ### Tim Urban — “The Tail End”
 

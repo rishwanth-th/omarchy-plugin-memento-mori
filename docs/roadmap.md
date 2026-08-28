@@ -153,8 +153,8 @@ compact viewport contains all 4,000 weeks.
 
 ## Workstream 3 — Temporal-distance pin
 
-**Status:** orthogonal held-ruler refinement under live review, following the
-completed DAZ-277 temporal-distance foundation.
+**Status:** complete. Live temporal measure and the orthogonal held ruler were
+graduated through DAZ-277 and DAZ-278.
 
 Clicking a cell pins one deliberate comparison with the present. The LIFE rail
 gains a quiet second marker and highlights only the segment between now and
@@ -187,7 +187,7 @@ useful while the pointer or keyboard cursor is moving because inspection is
 already transient and explicitly asks how the chosen interval relates to now.
 It must leave with inspection rather than become permanent dashboard copy.
 
-### Active experiment — live measure and held ruler
+### Stable grammar — live measure and held ruler
 
 The corrected proof assigns distinct jobs to inspection and pinning:
 
@@ -253,7 +253,8 @@ persistence. That is a separately justified personal-history plugin.
 
 ## Workstream 4 — Grid rhythm and contextual spacing
 
-**Status:** queued after the held-span workstream.
+**Status:** active design investigation, tracked in DAZ-279. Runtime geometry
+remains unchanged until the bounded specimens below receive live comparison.
 
 Tim Urban's five-year row separation may make age groups more immediately
 legible. Because it changes geometry rather than decoration, it must be tested
@@ -267,10 +268,31 @@ Two hypotheses remain deliberately separate:
   months. The existing proportional month ticks may remain the most honest
   expression; any column spacing needs an independently legible meaning.
 
+### Bounded specimens
+
+1. **Control — unchanged density.** Keep the current uniform row rhythm as the
+   baseline. Familiarity is not evidence against change, but every alternative
+   must improve orientation enough to justify disturbing this calm field.
+2. **Redistributed breathing — physical age rhythm.** Borrow a small amount of
+   space from ordinary row gaps and return it after every truthful five
+   life-year group. The Canvas envelope, visible-year capacity, cell size, and
+   average row pitch remain fixed; only the distribution of existing space
+   changes.
+3. **Cadence without geometry — contextual orientation.** Keep cell positions
+   and hit areas unchanged. Strengthen only the existing five-year age cue in
+   the vertical gutter or axis, without drawing a band through the cells. This
+   tests whether orientation needs physical breathing at all.
+
+No specimen adds fixed four-week grouping, month-like columns, alternating
+row fills, or a second accent. Horizontal column rhythm remains out of scope
+unless it gains a truthful meaning independent of calendar months.
+
 ### Questions
 
 - Does five-year rhythm improve orientation inside the compact attention
   window, or merely reduce useful row capacity?
+- Can redistributed spacing preserve the exact visible-year count and cell
+  legibility, or does borrowing from ordinary rows make the field harsher?
 - Can the present retain a calm default position when variable row gaps are
   introduced?
 - Do hit-testing, axis guides, wheel movement, pin coordinates, LIFE entrance,
@@ -284,6 +306,8 @@ Two hypotheses remain deliberately separate:
 - Weeks imply false four-week months or calendar quarters.
 - Existing motion must distort exact temporal coordinates to accommodate the
   gaps.
+- The cadence-only specimen becomes a decorative stripe or competes with the
+  present accent.
 
 ## Workstream 5 — Hover-guide motion
 
@@ -338,8 +362,8 @@ point; it cannot become an independent particle layer.
 
 1. Weeks ↔ Months semantic morph — complete.
 2. LIFE entrance — complete.
-3. Temporal-distance pin — next.
-4. Grid rhythm and contextual spacing.
+3. Temporal-distance pin — complete.
+4. Grid rhythm and contextual spacing — active.
 5. Hover-guide motion.
 6. Viewport movement.
 7. Transition light treatment.
