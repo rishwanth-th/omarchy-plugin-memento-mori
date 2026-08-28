@@ -57,6 +57,14 @@ Flickable {
   property double inspectionMoveBlockedUntil: 0
   property int pendingHorizontalDirection: 0
   property real pinBridgeProgress: 1
+  property bool pinRulerHovered: false
+  property bool pinPressActive: false
+  property bool draggingPin: false
+  property string dragOriginalPinnedDateKey: ""
+  property real pinPressX: 0
+  property real pinPressY: 0
+  property string pinRetargetFromDateKey: ""
+  property real pinRetargetProgress: 1
   readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
 
@@ -67,8 +75,19 @@ Flickable {
   readonly property int keyboardIndex: Model.projectionIndexForDate(cells, keyboardDateKey)
   readonly property bool hasPin: pinnedDateKey !== "" && pinnedIndex >= 0
   readonly property var pinDelta: Model.projectionDelta(cells, projection, pinnedDateKey)
+  readonly property var pinRulerDelta: Model.projectionRulerDelta(
+    cells, projection, pinnedDateKey)
   readonly property real pinProgress: Model.lifeProgressForDate(
     birthKey, pinnedDateKey, horizonWeeks)
+  readonly property real pinRetargetFromProgress: Model.lifeProgressForDate(
+    birthKey, pinRetargetFromDateKey, horizonWeeks)
+  readonly property bool pinRetargeting: pinRetargetFromDateKey !== ""
+    && pinRetargetProgress < 1
+  readonly property real displayedPinProgress: pinRetargeting
+    && pinRetargetFromProgress >= 0
+    ? pinRetargetFromProgress
+      + (pinProgress - pinRetargetFromProgress) * pinRetargetProgress
+    : pinProgress
   readonly property int activeInspectionIndex: hoveredIndex >= 0
     ? hoveredIndex
     : (keyboardInspecting ? keyboardIndex : -1)
@@ -78,11 +97,16 @@ Flickable {
     : ""
   readonly property var inspectionDelta: Model.projectionDelta(
     cells, projection, activeInspectionDateKey)
-  readonly property var visibleDelta: lifeRail.pinHovered && hasPin
+  readonly property bool pinMeasureHovered: hasPin
+    && (lifeRail.pinHovered || pinRulerHovered)
+  readonly property bool pinInspectionActive: hasPin
+    && (pinMeasureHovered || activeInspectionIndex === pinnedIndex)
+  property real pinTerminalLabelPresence: pinInspectionActive ? 0 : 1
+  readonly property var visibleDelta: pinMeasureHovered
     ? pinDelta
     : inspectionDelta
   readonly property bool deltaVisible: (activeInspectionIndex >= 0
-    || (lifeRail.pinHovered && hasPin)) && visibleDelta.configured
+    || pinMeasureHovered) && visibleDelta.configured
   readonly property int totalLifeYears: Math.max(1, Math.ceil(horizonWeeks / 52))
   readonly property int visibleYearCount: Math.min(compactYearSpan, totalLifeYears)
   readonly property int visibleYearStart: Math.max(0,
@@ -359,6 +383,13 @@ Flickable {
   function clearPin() {
     cancelPendingInspectionMove()
     if (pinBridgeAnimation.running) pinBridgeAnimation.stop()
+    if (pinRetargetAnimation.running) pinRetargetAnimation.stop()
+    pinPressActive = false
+    draggingPin = false
+    dragOriginalPinnedDateKey = ""
+    pinRetargetFromDateKey = ""
+    pinRetargetProgress = 1
+    pinRulerHovered = false
     pinnedDateKey = ""
     pinBridgeProgress = 1
     lifeCanvas.requestPaint()
@@ -366,12 +397,97 @@ Flickable {
 
   function startPinBridge() {
     if (pinBridgeAnimation.running) pinBridgeAnimation.stop()
+    if (pinRetargetAnimation.running) pinRetargetAnimation.stop()
+    pinRetargetFromDateKey = ""
+    pinRetargetProgress = 1
     if (reducedMotion) {
       pinBridgeProgress = 1
       return
     }
     pinBridgeProgress = 0
     pinBridgeAnimation.start()
+  }
+
+  function startPinRetarget(fromDateKey) {
+    if (pinBridgeAnimation.running) pinBridgeAnimation.stop()
+    if (pinRetargetAnimation.running) pinRetargetAnimation.stop()
+    pinBridgeProgress = 1
+    if (reducedMotion || fromDateKey === "") {
+      pinRetargetFromDateKey = ""
+      pinRetargetProgress = 1
+      return
+    }
+    pinRetargetFromDateKey = fromDateKey
+    pinRetargetProgress = 0
+    pinRetargetAnimation.start()
+  }
+
+  function finishPinRetarget() {
+    if (pinRetargetAnimation.running) pinRetargetAnimation.stop()
+    pinRetargetProgress = 1
+    pinRetargetFromDateKey = ""
+  }
+
+  function beginPinDrag(x, y) {
+    if (!hasPin || pinnedIndex < 0) return false
+    finishPinRetarget()
+    pinPressActive = true
+    draggingPin = false
+    dragOriginalPinnedDateKey = pinnedDateKey
+    pinPressX = x
+    pinPressY = y
+    return true
+  }
+
+  function updatePinDrag(x, y) {
+    if (!pinPressActive) return false
+    if (!draggingPin) {
+      var dx = x - pinPressX
+      var dy = y - pinPressY
+      if (Math.sqrt(dx * dx + dy * dy) < hoverActivationDistance()) return false
+      if (pinBridgeAnimation.running) pinBridgeAnimation.stop()
+      pinBridgeProgress = 1
+      draggingPin = true
+    }
+    var target = hitTest(x, y)
+    if (target < 0 || target >= cells.length) return true
+    if (target !== pinnedIndex) {
+      pinnedDateKey = cells[target].startKey
+      keyboardInspecting = false
+      keyboardDateKey = ""
+      hoveredIndex = -1
+      pinRulerHovered = true
+      lifeCanvas.requestPaint()
+    }
+    return true
+  }
+
+  function finishPinDrag() {
+    if (!pinPressActive || !draggingPin) return false
+    var landedOnPresent = pinnedIndex === presentCellIndex
+    pinPressActive = false
+    draggingPin = false
+    dragOriginalPinnedDateKey = ""
+    if (landedOnPresent) clearPin()
+    else {
+      pinBridgeProgress = 1
+      pinRulerHovered = pinDragMouse.containsMouse
+      lifeCanvas.requestPaint()
+    }
+    return true
+  }
+
+  function cancelPinDrag() {
+    if (!pinPressActive) return false
+    if (draggingPin && dragOriginalPinnedDateKey !== "")
+      pinnedDateKey = dragOriginalPinnedDateKey
+    pinPressActive = false
+    draggingPin = false
+    dragOriginalPinnedDateKey = ""
+    pinBridgeProgress = 1
+    pinRulerHovered = false
+    lifeCanvas.requestPaint()
+    return true
   }
 
   function clearTemporalSelection() {
@@ -392,9 +508,11 @@ Flickable {
       clearPin()
       return false
     }
+    var previousPinDateKey = hasPin ? pinnedDateKey : ""
     pinnedDateKey = cells[index].startKey
     keyboardDateKey = cells[index].startKey
-    startPinBridge()
+    if (previousPinDateKey !== "") startPinRetarget(previousPinDateKey)
+    else startPinBridge()
     lifeCanvas.requestPaint()
     return true
   }
@@ -587,6 +705,121 @@ Flickable {
     }
   }
 
+  function pinRulerGeometryForIndex(targetIndex) {
+    var first = firstVisibleIndex()
+    var last = lastVisibleIndex()
+    if (!hasPin || presentCellIndex < first || presentCellIndex >= last
+        || targetIndex < first || targetIndex >= last
+        || targetIndex === presentCellIndex) return { visible: false }
+
+    var presentRect = segmentRect(projection, presentCellIndex, 0, 1)
+    var pinRect = segmentRect(projection, targetIndex, 0, 1)
+    var presentCenterX = presentRect.x + presentRect.width / 2
+    var presentCenterY = presentRect.y + presentRect.height / 2
+    var pinCenterX = pinRect.x + pinRect.width / 2
+    var pinCenterY = pinRect.y + pinRect.height / 2
+    var horizontalDirection = pinCenterX === presentCenterX
+      ? 0 : (pinCenterX > presentCenterX ? 1 : -1)
+    var verticalDirection = pinCenterY === presentCenterY
+      ? 0 : (pinCenterY > presentCenterY ? 1 : -1)
+    var startX = presentCenterX
+    var startY = presentCenterY
+    var elbowX = pinCenterX
+    var elbowY = presentCenterY
+    var endX = pinCenterX
+    var endY = pinCenterY
+
+    // Center-to-center geometry keeps even adjacent intervals measurable.
+    // The hairline passes through the two endpoint cells without recoloring
+    // them, then crosses only the present row and the pin column.
+    var horizontalLength = Math.abs(elbowX - startX)
+    var verticalLength = Math.abs(endY - elbowY)
+    return {
+      visible: true,
+      startX: startX,
+      startY: startY,
+      elbowX: elbowX,
+      elbowY: elbowY,
+      endX: endX,
+      endY: endY,
+      horizontalLength: horizontalLength,
+      verticalLength: verticalLength,
+      totalLength: horizontalLength + verticalLength,
+      horizontalDirection: horizontalDirection,
+      verticalDirection: verticalDirection
+    }
+  }
+
+  function pinRulerGeometry() {
+    return pinRulerGeometryForIndex(pinnedIndex)
+  }
+
+  function displayedPinRulerGeometry() {
+    var target = pinRulerGeometry()
+    if (!pinRetargeting) return target
+    var previousIndex = Model.projectionIndexForDate(cells, pinRetargetFromDateKey)
+    var source = pinRulerGeometryForIndex(previousIndex)
+    if (!source.visible || !target.visible) return target
+    var t = Math.max(0, Math.min(1, pinRetargetProgress))
+    var geometry = {
+      visible: true,
+      startX: source.startX + (target.startX - source.startX) * t,
+      startY: source.startY + (target.startY - source.startY) * t,
+      elbowX: source.elbowX + (target.elbowX - source.elbowX) * t,
+      elbowY: source.elbowY + (target.elbowY - source.elbowY) * t,
+      endX: source.endX + (target.endX - source.endX) * t,
+      endY: source.endY + (target.endY - source.endY) * t
+    }
+    geometry.horizontalLength = Math.abs(geometry.elbowX - geometry.startX)
+    geometry.verticalLength = Math.abs(geometry.endY - geometry.elbowY)
+    geometry.totalLength = geometry.horizontalLength + geometry.verticalLength
+    geometry.horizontalDirection = geometry.elbowX === geometry.startX
+      ? 0 : (geometry.elbowX > geometry.startX ? 1 : -1)
+    geometry.verticalDirection = geometry.endY === geometry.elbowY
+      ? 0 : (geometry.endY > geometry.elbowY ? 1 : -1)
+    return geometry
+  }
+
+  function pinBridgeDuration() {
+    var geometry = pinRulerGeometry()
+    if (!geometry.visible || geometry.totalLength <= 0) return 220
+    return Math.max(180, Math.min(280,
+      Math.round(geometry.totalLength * 0.7)))
+  }
+
+  function pointSegmentDistance(x, y, x1, y1, x2, y2) {
+    var dx = x2 - x1
+    var dy = y2 - y1
+    var lengthSquared = dx * dx + dy * dy
+    if (lengthSquared <= 0) {
+      var pointDx = x - x1
+      var pointDy = y - y1
+      return Math.sqrt(pointDx * pointDx + pointDy * pointDy)
+    }
+    var t = Math.max(0, Math.min(1,
+      ((x - x1) * dx + (y - y1) * dy) / lengthSquared))
+    var nearestX = x1 + t * dx
+    var nearestY = y1 + t * dy
+    var distanceX = x - nearestX
+    var distanceY = y - nearestY
+    return Math.sqrt(distanceX * distanceX + distanceY * distanceY)
+  }
+
+  function pinRulerContains(x, y) {
+    if (projectionMorphing || pinRetargeting || pinBridgeProgress < 1) return false
+    var geometry = pinRulerGeometry()
+    if (!geometry.visible) return false
+    var tolerance = Math.max(2, Style.spacing.hairline * 3)
+    if (geometry.horizontalLength > 0
+        && pointSegmentDistance(x, y, geometry.startX, geometry.startY,
+          geometry.verticalLength > 0 ? geometry.elbowX : geometry.endX,
+          geometry.verticalLength > 0 ? geometry.elbowY : geometry.endY) <= tolerance)
+      return true
+    return geometry.verticalLength > 0
+      && pointSegmentDistance(x, y, geometry.elbowX, geometry.elbowY,
+        geometry.endX, geometry.endY) <= tolerance
+  }
+
   function visibleRectsFor(mode, intervalCells) {
     var rects = []
     var first = firstVisibleIndexFor(mode)
@@ -745,12 +978,12 @@ Flickable {
 
   function verticalMarks() {
     var nowRow = currentGridRow()
-    var inspectedRow = inspectedGridRow()
-    var pinnedRow = hasPin && pinnedIndex >= firstVisibleIndex()
-        && pinnedIndex < lastVisibleIndex()
-      ? Math.floor((pinnedIndex - firstVisibleIndex()) / columns())
+    var inspectedRow = activeInspectionIndex >= firstVisibleIndex()
+        && activeInspectionIndex < lastVisibleIndex()
+        && (!hasPin || activeInspectionIndex !== pinnedIndex)
+      ? Math.floor((activeInspectionIndex - firstVisibleIndex()) / columns())
       : -1
-    var candidates = [0, nowRow, pinnedRow, inspectedRow, visibleRowCount - 1]
+    var candidates = [0, nowRow, inspectedRow, visibleRowCount - 1]
     var firstMultiple = Math.ceil(visibleYearStart / 5) * 5
     for (var age = firstMultiple; age < visibleYearStart + visibleYearCount; age += 5)
       candidates.push(age - visibleYearStart)
@@ -762,7 +995,7 @@ Flickable {
       seen[row] = true
       var markAge = visibleYearStart + row
       marks.push({ row: row, age: markAge,
-        current: row === nowRow, pinned: row === pinnedRow,
+        current: row === nowRow,
         inspected: row === inspectedRow,
         fiveYear: markAge % 5 === 0 })
     }
@@ -772,6 +1005,7 @@ Flickable {
 
   onProjectionChanged: {
     cancelPendingInspectionMove()
+    finishPinRetarget()
     refreshCells(false)
     if (keyboardInspecting) ensureIndexVisible(keyboardIndex)
     else if (hasPin) ensureIndexVisible(pinnedIndex)
@@ -791,13 +1025,24 @@ Flickable {
   onEntranceFocusProgressChanged: lifeCanvas.requestPaint()
   onEntranceGuideProgressChanged: lifeCanvas.requestPaint()
   onPinBridgeProgressChanged: lifeCanvas.requestPaint()
+  onPinRetargetProgressChanged: lifeCanvas.requestPaint()
+  onPinInspectionActiveChanged: lifeCanvas.requestPaint()
+  onPinTerminalLabelPresenceChanged: lifeCanvas.requestPaint()
   onReducedMotionChanged: {
     if (reducedMotion && pinBridgeAnimation.running) {
       pinBridgeAnimation.stop()
       pinBridgeProgress = 1
     }
+    if (reducedMotion && pinRetargetAnimation.running) finishPinRetarget()
   }
   Component.onCompleted: refreshCells(true)
+
+  Behavior on pinTerminalLabelPresence {
+    NumberAnimation {
+      duration: root.reducedMotion ? 0 : 110
+      easing.type: Easing.OutCubic
+    }
+  }
 
   Timer {
     id: horizontalMoveTimer
@@ -922,8 +1167,19 @@ Flickable {
     property: "pinBridgeProgress"
     from: 0
     to: 1
-    duration: 220
-    easing.type: Easing.OutCubic
+    duration: root.pinBridgeDuration()
+    easing.type: Easing.Linear
+  }
+
+  NumberAnimation {
+    id: pinRetargetAnimation
+    target: root
+    property: "pinRetargetProgress"
+    from: 0
+    to: 1
+    duration: 180
+    easing.type: Easing.InOutCubic
+    onFinished: root.pinRetargetFromDateKey = ""
   }
 
   NumberAnimation {
@@ -1015,8 +1271,8 @@ Flickable {
       passageProgress: root.entrancePassageProgress
       passageActive: root.entranceAnimating
       pinActive: root.hasPin && root.pinProgress >= 0
-      pinProgress: Math.max(0, root.pinProgress)
-      pinRevealProgress: root.pinBridgeProgress
+      pinProgress: Math.max(0, root.displayedPinProgress)
+      pinRevealProgress: root.pinRetargeting ? 1 : root.pinBridgeProgress
       previousLivedLabel: root.morphFromLivedLabel
       previousRemainingLabel: root.morphFromRemainingLabel
       livedLabel: root.projectionStats.lived.toLocaleString(Qt.locale("en_US"), "f", 0)
@@ -1105,29 +1361,48 @@ Flickable {
         }
       }
 
-      Text {
+      Item {
         id: deltaReadout
         visible: root.deltaVisible
         anchors.right: parent.right
         anchors.rightMargin: Style.space(4)
         anchors.verticalCenter: parent.verticalCenter
         width: Style.space(150)
-        text: visible ? root.visibleDelta.label : ""
-        color: Qt.rgba(root.foreground.r, root.foreground.g,
-          root.foreground.b, 0.72)
-        font.family: root.fontFamily
-        font.pixelSize: Math.max(8, Style.font.caption - 1)
-        font.letterSpacing: 0.5
-        horizontalAlignment: Text.AlignRight
-        elide: Text.ElideLeft
+        height: deltaParts.implicitHeight
+
+        Row {
+          id: deltaParts
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: Style.space(4)
+
+          Text {
+            text: root.deltaVisible
+              ? root.visibleDelta.count + " " + root.visibleDelta.unit : ""
+            color: Qt.rgba(root.foreground.r, root.foreground.g,
+              root.foreground.b, 0.78)
+            font.family: root.fontFamily
+            font.pixelSize: Math.max(8, Style.font.caption - 1)
+            font.letterSpacing: 0.5
+          }
+
+          Text {
+            text: root.deltaVisible ? root.visibleDelta.direction : ""
+            color: Qt.rgba(root.foreground.r, root.foreground.g,
+              root.foreground.b, 0.48)
+            font.family: root.fontFamily
+            font.pixelSize: Math.max(8, Style.font.caption - 1)
+            font.letterSpacing: 0.5
+          }
+        }
       }
     }
 
     Canvas {
       id: lifeCanvas
-      readonly property real leftGutter: Style.space(42)
+      readonly property real leftGutter: Style.space(48)
       readonly property real rightGutter: Style.space(14)
-      readonly property real topGutter: Style.space(20)
+      readonly property real topGutter: Style.space(26)
 
       width: parent.width
       height: root.compactCanvasHeight
@@ -1159,10 +1434,12 @@ Flickable {
 
         if (pinned && cell.status !== "current" && alpha >= 0.99) {
           ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-            root.foreground.b, 0.14 * root.pinBridgeProgress)
+            root.foreground.b, (root.pinInspectionActive ? 0.18 : 0.12)
+              * root.pinBridgeProgress)
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
           ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-            root.foreground.b, 0.72 * root.pinBridgeProgress)
+            root.foreground.b, (root.pinInspectionActive ? 0.92 : 0.72)
+              * root.pinBridgeProgress)
           ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
           var pinInset = ctx.lineWidth / 2
           ctx.strokeRect(rect.x + pinInset, rect.y + pinInset,
@@ -1330,6 +1607,162 @@ Flickable {
         else paintProjectionSeam(ctx, t)
       }
 
+      function paintPinRuler(ctx) {
+        var geometry = root.displayedPinRulerGeometry()
+        if (!geometry.visible || geometry.totalLength <= 0) return
+        var reveal = root.pinRetargeting ? 1
+          : Math.max(0, Math.min(1, root.pinBridgeProgress))
+        var revealedLength = geometry.totalLength * reveal
+        var horizontalRevealed = Math.min(geometry.horizontalLength, revealedLength)
+        var verticalRevealed = Math.max(0,
+          Math.min(geometry.verticalLength, revealedLength - geometry.horizontalLength))
+        var lineOpacity = root.pinInspectionActive ? 0.78 : 0.46
+        var lineWidth = Math.max(Style.spacing.hairline,
+          root.pinInspectionActive ? Style.spacing.hairline * 1.5 : Style.spacing.hairline)
+
+        ctx.beginPath()
+        ctx.moveTo(geometry.startX, geometry.startY)
+        var headX = geometry.startX
+        var headY = geometry.startY
+        var headVertical = false
+        if (horizontalRevealed > 0) {
+          headX = geometry.startX
+            + geometry.horizontalDirection * horizontalRevealed
+          headY = geometry.startY
+          ctx.lineTo(headX, headY)
+        }
+        if (verticalRevealed > 0) {
+          if (horizontalRevealed >= geometry.horizontalLength)
+            ctx.lineTo(geometry.elbowX, geometry.elbowY)
+          headX = geometry.elbowX
+          headY = geometry.elbowY
+            + geometry.verticalDirection * verticalRevealed
+          ctx.lineTo(headX, headY)
+          headVertical = true
+        }
+        ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, lineOpacity)
+        ctx.lineWidth = lineWidth
+        ctx.lineJoin = "miter"
+        ctx.lineCap = "square"
+        ctx.stroke()
+
+        // A short advancing cap makes the one-time measurement legible. It is
+        // a drawing head, not a third temporal marker, and disappears on land.
+        if (reveal > 0 && reveal < 1) {
+          var headHalf = Style.space(2)
+          ctx.beginPath()
+          if (headVertical) {
+            ctx.moveTo(headX - headHalf, headY)
+            ctx.lineTo(headX + headHalf, headY)
+          } else {
+            ctx.moveTo(headX, headY - headHalf)
+            ctx.lineTo(headX, headY + headHalf)
+          }
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.68 * Math.sin(Math.PI * reveal))
+          ctx.lineWidth = Math.max(lineWidth, Style.spacing.hairline * 2)
+          ctx.stroke()
+        }
+      }
+
+      function paintBackedLabel(ctx, text, centerX, centerY, color, opacity) {
+        if (!text || opacity <= 0.01) return 0
+        var width = ctx.measureText(text).width + Style.space(6)
+        var height = Style.space(12)
+        var x = Math.max(width / 2 + Style.space(1),
+          Math.min(lifeCanvas.width - width / 2 - Style.space(1), centerX))
+        var y = Math.max(height / 2,
+          Math.min(lifeCanvas.height - height / 2, centerY))
+        var backgroundOpacity = Math.max(0, Math.min(1, opacity * 1.3))
+        ctx.fillStyle = Qt.rgba(Color.popups.background.r,
+          Color.popups.background.g, Color.popups.background.b,
+          backgroundOpacity)
+        ctx.fillRect(x - width / 2, y - height / 2, width, height)
+        ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+        ctx.textAlign = "center"
+        ctx.fillText(text, x, y)
+        return width
+      }
+
+      function labelFitProgress(available, required, transition) {
+        return smoothUnit((available - required) / Math.max(1, transition))
+      }
+
+      function paintPinRulerLabels(ctx) {
+        var geometry = root.displayedPinRulerGeometry()
+        var delta = root.pinRulerDelta
+        if (!geometry.visible || !delta.configured) return
+
+        var reveal = root.pinRetargeting ? 1
+          : Math.max(0, Math.min(1, root.pinBridgeProgress))
+        var revealedLength = geometry.totalLength * reveal
+        var horizontalRevealed = Math.min(geometry.horizontalLength, revealedLength)
+        var verticalRevealed = Math.max(0,
+          Math.min(geometry.verticalLength, revealedLength - geometry.horizontalLength))
+        var componentOpacity = root.pinInspectionActive ? 0.92 : 0.70
+        var totalOpacity = 0.82
+        var horizontalOnlyTotalPainted = false
+
+        // Engrave the week/month component into the horizontal leg only after
+        // that leg has earned enough rendered room. Short geometry stays
+        // silent instead of moving its measurement elsewhere.
+        if (geometry.horizontalLength > 0
+            && horizontalRevealed >= geometry.horizontalLength - 0.5) {
+          var horizontalText = geometry.verticalLength > 0
+            ? delta.horizontalLabel : delta.totalLabel
+          var horizontalWidth = ctx.measureText(horizontalText).width
+            + Style.space(6)
+          var horizontalFit = labelFitProgress(geometry.horizontalLength,
+            horizontalWidth + Style.space(6), Style.space(12))
+          if (horizontalFit > 0) {
+            paintBackedLabel(ctx, horizontalText,
+              (geometry.startX + geometry.elbowX) / 2, geometry.startY,
+              root.foreground, componentOpacity * horizontalFit)
+            horizontalOnlyTotalPainted = geometry.verticalLength === 0
+          }
+        }
+
+        // The life-year label stays horizontally readable but interrupts the
+        // vertical line at its own midpoint, matching the horizontal leg's
+        // engraved treatment without rotating typography.
+        if (geometry.verticalLength > 0
+            && verticalRevealed >= geometry.verticalLength - 0.5) {
+          var verticalFit = labelFitProgress(geometry.verticalLength,
+            Style.space(10), Style.space(8))
+          paintBackedLabel(ctx, delta.verticalLabel, geometry.endX,
+            (geometry.elbowY + geometry.endY) / 2,
+            root.foreground, componentOpacity * verticalFit)
+        }
+
+        // The terminal reading belongs to the held endpoint. The route from
+        // accented present to this neutral pin already supplies before/after
+        // direction, so the ruler needs no sign or prose suffix.
+        if (reveal < 0.999 || !delta.totalLabel || horizontalOnlyTotalPainted) return
+        var totalWidth = ctx.measureText(delta.totalLabel).width + Style.space(6)
+        var totalFit = labelFitProgress(geometry.totalLength,
+          totalWidth + Style.space(20), Style.space(14))
+        if (totalFit <= 0) return
+        var outerSide = geometry.horizontalDirection
+        if (outerSide === 0)
+          outerSide = geometry.endX < lifeCanvas.width / 2 ? 1 : -1
+        var endpointClearance = root.cellWidth() / 2 + Style.space(3)
+        var preferredTotalX = geometry.endX
+          + outerSide * (endpointClearance + totalWidth / 2)
+        var preferredFits = preferredTotalX - totalWidth / 2 >= Style.space(1)
+          && preferredTotalX + totalWidth / 2
+            <= lifeCanvas.width - Style.space(1)
+        if (!preferredFits) outerSide *= -1
+        var totalX = geometry.endX
+          + outerSide * (endpointClearance + totalWidth / 2)
+        var totalFits = totalX - totalWidth / 2 >= Style.space(1)
+          && totalX + totalWidth / 2 <= lifeCanvas.width - Style.space(1)
+        if (!totalFits) return
+        paintBackedLabel(ctx, delta.totalLabel, totalX, geometry.endY,
+          root.foreground, totalOpacity * totalFit
+            * root.pinTerminalLabelPresence)
+      }
+
       onPaint: {
         var ctx = getContext("2d")
         ctx.reset()
@@ -1363,6 +1796,9 @@ Flickable {
 
         var vertical = root.verticalMarks()
         var inspectionIndex = root.inspectedIndex()
+        var axisInspectionIndex = root.activeInspectionIndex
+        if (root.hasPin && axisInspectionIndex === root.pinnedIndex)
+          axisInspectionIndex = -1
         var inspectedColor = inspectionIndex !== root.presentCellIndex
           ? root.foreground
           : Color.accent
@@ -1370,36 +1806,52 @@ Flickable {
         for (var v = 0; v < vertical.length; v++) {
           ctx.fillStyle = vertical[v].current
             ? Color.accent
-            : (vertical[v].pinned
-              ? root.foreground
-              : (vertical[v].inspected
+            : (vertical[v].inspected
               ? inspectedColor
               : (root.verticalAxisHovered
                 ? Color.accent
-                : Qt.darker(root.foreground, 1.8))))
-          ctx.fillText(String(vertical[v].age), originX - Style.space(4),
-            originY + root.rowOffset(vertical[v].row) + cellHeight / 2)
+                : Qt.darker(root.foreground, 1.8)))
+          var verticalY = originY + root.rowOffset(vertical[v].row)
+            + cellHeight / 2
+          var verticalOuterLane = false
+          if (vertical[v].inspected && !vertical[v].current) {
+            for (var compare = 0; compare < vertical.length; compare++) {
+              if (compare === v) continue
+              var compareY = originY + root.rowOffset(vertical[compare].row)
+                + cellHeight / 2
+              if (Math.abs(compareY - verticalY)
+                  < Style.font.caption + Style.space(2)) {
+                verticalOuterLane = true
+                break
+              }
+            }
+          }
+          var verticalLabelX = originX
+            - Style.space(verticalOuterLane ? 18 : 4)
+          if (verticalOuterLane) {
+            ctx.fillRect(verticalLabelX + Style.space(2), verticalY,
+              Style.space(15), Style.spacing.hairline)
+          }
+          ctx.fillText(String(vertical[v].age), verticalLabelX, verticalY)
           ctx.fillRect(originX - (vertical[v].fiveYear ? Style.space(3) : Style.space(1)),
-            originY + root.rowOffset(vertical[v].row) + cellHeight / 2,
+            verticalY,
             vertical[v].fiveYear ? Style.space(3) : Style.space(1),
             Style.spacing.hairline)
         }
 
-        // Present, pin, and ephemeral inspection all read on the same axes.
-        // Duplicate row/column coordinates collapse to one value rather than
-        // printing the same week, month, or age on top of itself.
+        // Present owns the base coordinate lane. Ephemeral inspection keeps an
+        // exact tick, moving only its text outward when nearby labels collide.
+        // The hold is represented separately by dimension brackets.
         var horizontalTicks = []
         var horizontalCandidates = [
-          { index: root.presentCellIndex, current: true, pinned: false },
-          { index: root.pinnedIndex, current: false, pinned: true },
-          { index: inspectionIndex, current: false, pinned: false }
+          { index: root.presentCellIndex, current: true },
+          { index: axisInspectionIndex, current: false }
         ]
         var seenColumns = {}
         for (var candidate = 0; candidate < horizontalCandidates.length; candidate++) {
           var horizontalCandidate = horizontalCandidates[candidate]
           if (horizontalCandidate.index < root.firstVisibleIndex()
               || horizontalCandidate.index >= root.lastVisibleIndex()) continue
-          if (horizontalCandidate.pinned && !root.hasPin) continue
           var candidateColumn = (horizontalCandidate.index
             - root.firstVisibleIndex()) % columns
           if (seenColumns[candidateColumn]) continue
@@ -1416,22 +1868,41 @@ Flickable {
             ? tickParts.position.replace("MONTH ", "M ")
             : tickParts.position.replace("WEEK ", "W ")
           var tickWidth = ctx.measureText(tickLabel).width + Style.space(6)
+          horizontalTicks[h].x = tickX
+          horizontalTicks[h].label = tickLabel
+          horizontalTicks[h].width = tickWidth
+        }
+
+        if (horizontalTicks.length === 2
+            && Math.abs(horizontalTicks[0].x - horizontalTicks[1].x)
+              < (horizontalTicks[0].width + horizontalTicks[1].width) / 2
+                + Style.space(2))
+          horizontalTicks[1].outerLane = true
+
+        for (var paintedTick = 0; paintedTick < horizontalTicks.length; paintedTick++) {
+          var horizontalTick = horizontalTicks[paintedTick]
+          var tickY = originY - Style.space(horizontalTick.outerLane ? 20 : 10)
           ctx.fillStyle = Color.popups.background
-          ctx.fillRect(tickX - tickWidth / 2, originY - Style.space(17),
-            tickWidth, Style.space(12))
-          ctx.fillStyle = horizontalTicks[h].current ? Color.accent : root.foreground
+          ctx.fillRect(horizontalTick.x - horizontalTick.width / 2,
+            tickY - Style.space(6), horizontalTick.width, Style.space(12))
+          ctx.fillStyle = horizontalTick.current ? Color.accent : root.foreground
           ctx.textAlign = "center"
-          ctx.fillText(tickLabel, tickX, originY - Style.space(10))
-          ctx.fillRect(tickX, originY - Style.space(6),
+          ctx.fillText(horizontalTick.label, horizontalTick.x, tickY)
+          if (horizontalTick.outerLane)
+            ctx.fillRect(horizontalTick.x, tickY + Style.space(6),
+              Style.spacing.hairline,
+              Math.max(0, originY - Style.space(6)
+                - (tickY + Style.space(6))))
+          ctx.fillRect(horizontalTick.x, originY - Style.space(6),
             Style.spacing.hairline, Style.space(6))
         }
 
-        // Each deliberate point reaches only upward to X and leftward to Y.
-        // Present stays accented, the pin persists in foreground, and hover or
-        // keyboard inspection remains the quietest temporary layer.
+        // Present and ephemeral inspection reach the axes. The pin keeps its
+        // secondary axis labels and ticks, but the orthogonal ruler is its only
+        // full connecting geometry; a second pin-to-axis L would obscure the
+        // present-to-pin measurement.
         var guideCandidates = [
           { index: root.presentCellIndex, current: true, pinned: false },
-          { index: root.pinnedIndex, current: false, pinned: true },
           { index: inspectionIndex, current: false, pinned: false }
         ]
         var guides = []
@@ -1442,6 +1913,7 @@ Flickable {
           var guideCandidate = guideCandidates[guideCandidateIndex]
           if (guideCandidate.index < root.firstVisibleIndex()
               || guideCandidate.index >= root.lastVisibleIndex()) continue
+          if (root.hasPin && guideCandidate.index === root.pinnedIndex) continue
           if (guideCandidate.pinned && !root.hasPin) continue
           if (seenGuides[guideCandidate.index]) continue
           seenGuides[guideCandidate.index] = true
@@ -1472,7 +1944,11 @@ Flickable {
         }
 
         if (root.projectionMorphing) paintProjectionMorph(ctx)
-        else paintProjection(ctx, root.projection, root.cells, 1, root.hoveredIndex)
+        else {
+          paintProjection(ctx, root.projection, root.cells, 1, root.hoveredIndex)
+          paintPinRuler(ctx)
+          paintPinRulerLabels(ctx)
+        }
 
         // Small edge cues disclose that compact mode is a movable viewport
         // rather than a cropped dataset.
@@ -1506,6 +1982,18 @@ Flickable {
             root.projectionToggleHovered = overToggle
             lifeCanvas.requestPaint()
           }
+          var overRuler = root.pinRulerContains(mouse.x, mouse.y)
+          if (overRuler !== root.pinRulerHovered) {
+            root.pinRulerHovered = overRuler
+            lifeCanvas.requestPaint()
+          }
+          if (overRuler) {
+            root.keyboardInspecting = false
+            root.keyboardDateKey = ""
+            if (root.hoveredIndex !== -1) root.hoveredIndex = -1
+            lifeCanvas.requestPaint()
+            return
+          }
           var next = root.hitTest(mouse.x, mouse.y)
           if (next >= 0 && next !== root.hoveredIndex) {
             root.keyboardInspecting = false
@@ -1522,6 +2010,7 @@ Flickable {
           root.horizontalAxisHovered = false
           root.verticalAxisHovered = false
           root.projectionToggleHovered = false
+          root.pinRulerHovered = false
           root.disarmHover()
           lifeCanvas.requestPaint()
         }
@@ -1545,6 +2034,56 @@ Flickable {
           root.panRows(wheel.angleDelta.y > 0 ? -1 : 1)
           wheel.accepted = true
         }
+      }
+
+      MouseArea {
+        id: pinDragMouse
+        readonly property bool pinVisible: root.hasPin
+          && root.pinnedIndex >= root.firstVisibleIndex()
+          && root.pinnedIndex < root.lastVisibleIndex()
+          && (root.draggingPin || root.pinnedIndex !== root.presentCellIndex)
+        readonly property var pinRect: pinVisible
+          ? root.segmentRect(root.projection, root.pinnedIndex, 0, 1)
+          : ({ x: 0, y: 0, width: 0, height: 0 })
+
+        visible: pinVisible && !root.projectionMorphing
+        x: pinRect.x - Style.space(2)
+        y: pinRect.y - Style.space(2)
+        width: pinRect.width + Style.space(4)
+        height: pinRect.height + Style.space(4)
+        z: 2
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton
+        preventStealing: true
+        cursorShape: root.draggingPin ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+
+        onEntered: {
+          root.pinRulerHovered = true
+          root.keyboardInspecting = false
+          root.keyboardDateKey = ""
+          root.hoveredIndex = -1
+          lifeCanvas.requestPaint()
+        }
+        onExited: {
+          if (!root.draggingPin) root.pinRulerHovered = false
+          lifeCanvas.requestPaint()
+        }
+        onPressed: function(mouse) {
+          var point = pinDragMouse.mapToItem(lifeCanvas, mouse.x, mouse.y)
+          root.beginPinDrag(point.x, point.y)
+        }
+        onPositionChanged: function(mouse) {
+          if (!pressed) return
+          var point = pinDragMouse.mapToItem(lifeCanvas, mouse.x, mouse.y)
+          root.updatePinDrag(point.x, point.y)
+        }
+        onReleased: function(mouse) {
+          if (root.finishPinDrag()) return
+          root.pinPressActive = false
+          root.dragOriginalPinnedDateKey = ""
+          root.togglePinAtIndex(root.pinnedIndex)
+        }
+        onCanceled: root.cancelPinDrag()
       }
     }
 

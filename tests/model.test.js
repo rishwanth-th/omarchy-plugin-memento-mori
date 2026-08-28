@@ -190,6 +190,46 @@ test("live temporal inspection stays symmetric and follows the active projection
   })
 })
 
+test("the orthogonal ruler decomposes projection distance without losing time", () => {
+  const today = localDate(2026, 8, 28)
+  const birth = "2001-08-23"
+  const weeks = Model.projectionCells("weeks", birth, today, 4000)
+  const months = Model.projectionCells("months", birth, today, 4000)
+  const presentWeek = weeks.findIndex(cell => cell.status === "current")
+  const presentMonth = months.findIndex(cell => cell.status === "current")
+
+  const futureWeek = weeks[presentWeek + 56].startKey
+  assert.deepEqual(Model.projectionRulerDelta(weeks, "weeks", futureWeek), {
+    configured: true,
+    horizontalCount: 4,
+    horizontalLabel: "4W",
+    verticalCount: 1,
+    verticalLabel: "1Y",
+    totalCount: 56,
+    totalLabel: "56W"
+  })
+
+  const wrappedWeek = weeks[presentWeek + 4].startKey
+  const wrappedDelta = Model.projectionRulerDelta(weeks, "weeks", wrappedWeek)
+  assert.equal(wrappedDelta.verticalCount * 52 + wrappedDelta.horizontalCount, 4)
+  assert.match(wrappedDelta.horizontalLabel, /^\d+W$/)
+  assert.equal(wrappedDelta.totalLabel, "4W")
+
+  const pastMonth = months[presentMonth - 15].startKey
+  assert.deepEqual(Model.projectionRulerDelta(months, "months", pastMonth), {
+    configured: true,
+    horizontalCount: 9,
+    horizontalLabel: "9M",
+    verticalCount: -2,
+    verticalLabel: "2Y",
+    totalCount: 15,
+    totalLabel: "15M"
+  })
+
+  assert.equal(Model.projectionRulerDelta(weeks, "weeks",
+    weeks[presentWeek].startKey).configured, false)
+})
+
 test("an exact temporal pin uses the canonical week-based LIFE rail", () => {
   const birth = "2001-08-23"
 

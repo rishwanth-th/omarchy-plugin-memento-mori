@@ -19,8 +19,9 @@ without leaving the native panel.
 - Hover resolves a cell to its exact date interval and coordinates on both
   axes, and continuously measures its active projection distance from now,
   without adding a pointer-following tooltip.
-- One session-only pin can hold an interval as quiet grid and LIFE-rail
-  geometry while hover continues exploring from the same present origin.
+- One session-only pin holds an interval with a quiet orthogonal grid ruler and
+  whole-horizon LIFE ruler while hover continues measuring from the same
+  present origin; its endpoint can be dragged between exact cells.
 - The existing clock label, calendar, navigation, timezone action, and format
   cycling remain intact.
 - Birth date and horizon settings stay local. The plugin has no telemetry,
@@ -76,6 +77,12 @@ animation. The calm seam remains the startup default. Press `T` or Space to
 return inspection to now; press Enter to hold or retarget one temporal pin.
 LIFE opens from present even if the pointer is already parked over the panel;
 move the pointer deliberately to hand inspection back to hover.
+The held pin may be dragged between cells. Its orthogonal ruler engraves the
+week/month and life-year components into their own legs only when each leg has
+room, and adds an unsigned endpoint total only when the whole ruler has room.
+Nearby pins stay visually silent because their distance is already legible in
+the grid. The route from present supplies direction; hover the endpoint, either
+ruler leg, or the LIFE span to recall the full distance from now.
 
 The birth date and horizon are stored as widget settings in
 `~/.config/omarchy/shell.json`. Do not commit that file unchanged to a public

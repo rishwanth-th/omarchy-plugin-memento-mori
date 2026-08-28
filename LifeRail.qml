@@ -111,7 +111,8 @@ Item {
         Math.round(parent.width * Math.abs(revealedPoint - presentPoint)))
       height: Math.max(Style.spacing.hairline, Style.space(2))
       anchors.verticalCenter: parent.verticalCenter
-      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.22)
+      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b,
+        root.pinHovered ? 0.56 : 0.34)
     }
 
     Rectangle {
@@ -123,7 +124,8 @@ Item {
         parent.width * Math.max(0, Math.min(1, root.pinProgress)) - width / 2)))
       anchors.verticalCenter: parent.verticalCenter
       radius: width / 2
-      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.72)
+      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b,
+        root.pinHovered ? 0.96 : 0.82)
     }
 
     Item {
