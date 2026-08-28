@@ -273,6 +273,15 @@ Panel {
       deltaLabel: lifeView.visibleDelta.label,
       deltaVisible: lifeView.deltaVisible,
       pinBridgeProgress: lifeView.pinBridgeProgress,
+      pinRetargeting: lifeView.pinRetargeting,
+      pinRetargetProgress: lifeView.pinRetargetProgress,
+      pinRulerHovered: lifeView.pinRulerHovered,
+      pinInspectionActive: lifeView.pinInspectionActive,
+      pinPressActive: lifeView.pinPressActive,
+      draggingPin: lifeView.draggingPin,
+      pinRulerVisible: lifeView.pinRulerGeometry().visible,
+      pinRulerLength: lifeView.pinRulerGeometry().visible
+        ? lifeView.pinRulerGeometry().totalLength : 0,
       visibleYearStart: lifeView.visibleYearStart
     })
   }
@@ -332,7 +341,8 @@ Panel {
         }
       }
       onCloseRequested: {
-        if (root.showingLife && lifeView.hasPin) lifeView.clearPin()
+        if (root.showingLife && lifeView.pinPressActive) lifeView.cancelPinDrag()
+        else if (root.showingLife && lifeView.hasPin) lifeView.clearPin()
         else root.close()
       }
       onTabRequested: function(direction) { root.switchPanel(direction) }

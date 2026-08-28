@@ -32,7 +32,7 @@ These keys are intercepted by Omarchy before Calendar or LIFE receives text:
 
 | Key | Active behavior |
 | --- | --- |
-| `Escape` | Close the popup. While editing LIFE settings, cancel the edit instead; in LIFE, clear an active temporal pin first. |
+| `Escape` | Close the popup. While editing LIFE settings, cancel the edit instead; in LIFE, cancel an active pin drag, otherwise clear the temporal pin first. |
 | `Tab` / `Shift+Tab` | Open the next or previous visible panel in the same bar region. |
 | `Enter` / `Space` | Activate the page action. Both return to today in Calendar; LIFE distinguishes pin (`Enter`) from now (`Space`). |
 | Arrow keys | Send directional movement to the active page. |
@@ -103,6 +103,11 @@ fields.
 - Hover a cell to inspect its exact interval and coordinate guides.
 - Click a non-present cell to pin it, click another to retarget the one pin,
   or click the pinned cell or present to clear it.
+- Hover the pin, either orthogonal ruler leg, or the LIFE span to recall the
+  held interval and its full delta from now.
+- Drag the pinned cell to snap the held endpoint to another interval. Release
+  to commit, press Escape to restore its original date, or drop it on present
+  to clear the ruler.
 - Hover an axis or its unit to emphasize that scale.
 - Click the `M →` projection cue to toggle Weeks and Months.
 - Triple-click an otherwise inert part of the grid to toggle projection

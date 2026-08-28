@@ -153,8 +153,8 @@ compact viewport contains all 4,000 weeks.
 
 ## Workstream 3 — Temporal-distance pin
 
-**Status:** live-measure and held-ruler experiment under live review. Tracked
-in DAZ-277.
+**Status:** orthogonal held-ruler refinement under live review, following the
+completed DAZ-277 temporal-distance foundation.
 
 Clicking a cell pins one deliberate comparison with the present. The LIFE rail
 gains a quiet second marker and highlights only the segment between now and
@@ -194,16 +194,25 @@ The corrected proof assigns distinct jobs to inspection and pinning:
 1. Pointer hover and keyboard inspection show the exact date, coordinates, and
    full projection-aware delta from the shared present origin.
 2. Clicking or pressing Enter holds that interval without freezing its prose
-   readout: a quiet cell outline, secondary axis coordinates, LIFE marker, and
-   present-to-pin segment remain while inspection moves elsewhere.
-3. Pin creation draws one restrained LIFE bridge from present to the held
-   point. Retargeting cancels stale motion and forms the new span once.
-4. Hovering the held cell or LIFE span recalls the same full delta through the
-   ordinary inspection grammar; no separate pin tooltip or countdown exists.
-5. Reduced motion resolves directly to the same held geometry.
-6. Opening and T/Space begin from present without inheriting a parked pointer;
+   readout: a quiet cell outline, secondary axis coordinates, an orthogonal
+   present-to-pin ruler, LIFE marker, and LIFE span remain while inspection
+   moves elsewhere.
+3. The local ruler travels horizontally from present to the pin column, then
+   vertically into the held cell. It never colors the cells it crosses; the
+   grid itself supplies the ruler's divisions.
+4. Pin creation draws horizontal then vertical at a bounded distance-aware
+   speed. Retargeting reshapes the existing ruler, while pointer dragging snaps
+   its held endpoint between exact cells. Escape cancels a drag and dropping on
+   present clears it.
+5. Hovering the held cell, either local ruler leg, or the LIFE span recalls the
+   same full delta through the ordinary inspection grammar; no separate pin
+   tooltip or countdown exists.
+6. The LIFE ruler gains clearer neutral contrast and remains the global
+   relationship when local endpoints leave the viewport.
+7. Reduced motion resolves directly to the same held geometry.
+8. Opening and T/Space begin from present without inheriting a parked pointer;
    deliberate mouse movement transfers inspection back to hover.
-7. Horizontal key repeat is normalized by rendered cell distance, preserving
+9. Horizontal key repeat is normalized by rendered cell distance, preserving
    one interval per deliberate press while giving Weeks and Months coherent
    traversal speed.
 

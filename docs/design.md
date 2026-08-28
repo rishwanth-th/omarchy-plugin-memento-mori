@@ -117,8 +117,9 @@ The interface has three temporal roles, not three competing pins:
   "what is here, and how far is it from now?" through the shared date readout,
   axes, foreground guides, and a live projection-aware delta.
 - **Hold** is one deliberate, session-only pin. It answers "keep this
-  relationship visible" through a quiet cell outline, complete secondary axis
-  coordinates, and the LIFE segment between that exact date and present.
+  relationship visible" through a quiet cell outline, secondary axis
+  coordinates, a local orthogonal ruler, and the LIFE segment between that
+  exact date and present.
 
 Inspection is the live temporal measure; hold is the retained spatial measure.
 The full `109 WEEKS AFTER NOW` treatment remains visible while a non-present
@@ -127,12 +128,33 @@ pin never freezes that transient sentence into the composition. It preserves
 the selected point and its relationship to the common present origin while
 inspection continues elsewhere.
 
-Pin creation draws one restrained bridge along the LIFE rail from present to
-the held point, then settles into quiet geometry. No direct diagonal crosses
-the grid: the LIFE rail can connect dates outside the attention viewport
-without turning intervening cells into a false path. Hovering the held cell or
-rail span naturally recalls its full delta through the same inspection
-grammar; the settled pin itself needs no second sentence.
+The local ruler always leaves present horizontally, reaches the held point's
+column, then turns vertically into the pin. A same-row or same-column
+measurement naturally collapses to one straight segment. The hairline crosses
+cells without filling, striking through, or selecting them; their existing
+boundaries become implicit ruler ticks. The elbow has no marker because it is
+not a third temporal point.
+
+Present retains its accented axis guides. The pin retains quiet axis labels and
+ticks, but not a second full pin-to-axis guide: that duplicate geometry would
+visually merge with the ruler and obscure its origin. The pin's neutral outline
+and ruler strengthen together only while the held point, either ruler leg, or
+the LIFE span is inspected.
+
+Pin creation draws the horizontal leg before the vertical leg at a bounded,
+distance-aware speed, then settles into quiet geometry. Retargeting reshapes
+the existing ruler in `180ms` instead of collapsing it back to present. The
+LIFE rail simultaneously carries the same relationship at whole-horizon scale;
+it remains the fallback when either local endpoint is outside the attention
+viewport. Hovering the held cell, local ruler, or rail span recalls the full
+delta through the ordinary inspection grammar.
+
+The held endpoint is also the ruler's pointer handle. Dragging it beyond a
+deliberate movement threshold snaps the exact date between cells, reshapes both
+rulers, and updates the live delta. Release commits, Escape restores the
+original date, and dropping onto present clears the measurement. The pin cell
+uses an open-hand cursor at rest and a closed hand while moving; no separate
+drag handle or persistent instruction is added.
 
 Horizontal keyboard traversal preserves one interval per deliberate press.
 During key repeat, its cadence is scaled by rendered cell stride, so traversing
