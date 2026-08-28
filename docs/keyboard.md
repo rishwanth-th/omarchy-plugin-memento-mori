@@ -19,6 +19,7 @@ The plugin exposes IPC entry points for profile-owned shortcuts:
 omarchy-shell rishwanth.memento-mori toggle
 omarchy-shell rishwanth.memento-mori showCalendar
 omarchy-shell rishwanth.memento-mori showLife
+omarchy-shell rishwanth.memento-mori toggleGaps
 ```
 
 Omarchy's stock `Super+Ctrl+Alt+D` binding targets `omarchy.clock`. Replacing
@@ -94,6 +95,7 @@ fields.
 | `T` or `Space` | Return the viewport and inspection cursor to now without changing an existing pin. |
 | `P` | Toggle the projection between Weeks and Months. |
 | `A` | Toggle the session-only projection animation style. |
+| `G` | Open or close the session-only semantic gap rhythm. |
 | `M` | Return to Calendar. |
 | `Escape` | Clear an active temporal pin first; close the popup when no pin remains. |
 
@@ -117,6 +119,9 @@ fields.
 - Click the `M →` projection cue to toggle Weeks and Months.
 - Triple-click an otherwise inert part of the grid to toggle projection
   animation style.
+- Gap rhythm currently uses the `G` key or `toggleGaps` IPC entry point. Its
+  live-review specimen intentionally adds no permanent mode bar or pointer
+  control.
 - Click the back action to return to Calendar.
 - Click the now action, when visible, to restore the present-centered viewport.
 - The pin is session-only. Leaving LIFE clears it; it is never written to

@@ -253,6 +253,10 @@ Panel {
     setWeekStart(Model.toggledWeekStart(root.weekStart))
   }
 
+  function toggleGapRhythm() {
+    lifeView.toggleGapRhythm()
+  }
+
   function interactionState() {
     return JSON.stringify({
       page: root.panelPage,
@@ -260,6 +264,9 @@ Panel {
       morphFromProjection: lifeView.morphFromProjection,
       morphProgress: lifeView.morphProgress,
       projectionMorphing: lifeView.projectionMorphing,
+      gapRhythmEnabled: lifeView.gapRhythmEnabled,
+      gapRhythmProgress: lifeView.gapRhythmProgress,
+      gapRhythmAnimating: lifeView.gapRhythmAnimating,
       presentIndex: lifeView.presentCellIndex,
       inspectedIndex: lifeView.inspectedIndex(),
       keyboardInspecting: lifeView.keyboardInspecting,
@@ -367,6 +374,7 @@ Panel {
           else if (t === "m" || t === "M") root.showCalendar()
           else if (t === "p" || t === "P") lifeView.toggleProjection()
           else if (t === "a" || t === "A") lifeView.toggleAnimationStyle()
+          else if (t === "g" || t === "G") lifeView.toggleGapRhythm()
           return
         }
         if (t === "m" || t === "M") root.showLife()

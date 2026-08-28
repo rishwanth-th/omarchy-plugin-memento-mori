@@ -65,8 +65,12 @@ Flickable {
   property real pinPressY: 0
   property string pinRetargetFromDateKey: ""
   property real pinRetargetProgress: 1
+  property bool gapRhythmEnabled: true
+  property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
   readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
+  readonly property bool gapRhythmAnimating: gapRhythmProgress > 0.001
+    && gapRhythmProgress < 0.999
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
   readonly property var projectionStats: Model.projectionStats(cells, projection)
@@ -145,15 +149,16 @@ Flickable {
     return columnsFor(projection)
   }
 
-  function semanticColumnGap() {
+  function targetSemanticColumnGap() {
     // Column groups need enough air to remain visible between narrow Weeks
-    // cells without breaking the year into twelve unrelated panels.
-    return Style.spaceReal(6.25)
+    // cells, but remain slightly quieter than the five-year rhythm.
+    return Style.spaceReal(4.5)
   }
 
-  function semanticRowGap() {
-    // A five-year band is read across the whole field, so it can speak more
-    // quietly than a column channel and still remain structurally legible.
+  function targetSemanticRowGap() {
+    // The age axis owns the larger structural interval. At the active theme
+    // scale this is only a quarter-pixel stronger than the column channel,
+    // enough to reverse hierarchy without making detached horizontal cards.
     return Style.space(5)
   }
 
@@ -163,61 +168,91 @@ Flickable {
     return Style.space(1)
   }
 
-  function columnGap() {
-    return columnGapFor(projection)
-  }
-
   function rowGap() {
     return Style.space(1)
   }
 
-  function weekLifeMonthBoundaryAfter(column) {
-    var completedWeeks = column + 1
-    var month = Math.round(completedWeeks * 12 / 52)
-    return month > 0 && month < 12
-      && Math.round(month * 52 / 12) === completedWeeks
+  function semanticColumnGapForProgress(progress) {
+    var t = Math.max(0, Math.min(1, progress))
+    return columnGapFor("weeks")
+      + (targetSemanticColumnGap() - columnGapFor("weeks")) * t
   }
 
-  function columnGapAfterFor(mode, column) {
-    if (column < 0 || column >= columnsFor(mode) - 1) return 0
-    if (mode === "months")
-      return (column + 1) % 3 === 0 ? semanticColumnGap() : columnGapFor(mode)
-    return weekLifeMonthBoundaryAfter(column)
-      ? semanticColumnGap() : columnGapFor(mode)
+  function semanticColumnGap() {
+    return semanticColumnGapForProgress(gapRhythmProgress)
+  }
+
+  function semanticRowGapForProgress(progress) {
+    var t = Math.max(0, Math.min(1, progress))
+    return rowGap() + (targetSemanticRowGap() - rowGap()) * t
+  }
+
+  function semanticRowGap() {
+    return semanticRowGapForProgress(gapRhythmProgress)
+  }
+
+  function weekLifeMonthBoundaryCountBefore(column) {
+    // Boundaries at completed weeks 4, 9, 13, 17, 22, 26, 30, 35, 39,
+    // 43, and 48. This closed form replaces a scan inside every cell paint.
+    var bounded = Math.max(0, Math.min(52, column))
+    return Math.max(0, Math.min(11, Math.floor((3 * bounded + 1) / 13)))
+  }
+
+  function semanticColumnBoundaryCountBefore(mode, column) {
+    var bounded = Math.max(0, Math.min(columnsFor(mode), column))
+    return mode === "months"
+      ? Math.max(0, Math.min(3, Math.floor(bounded / 3)))
+      : weekLifeMonthBoundaryCountBefore(bounded)
+  }
+
+  function totalSemanticColumnBoundaryCount(mode) {
+    return mode === "months" ? 3 : 11
   }
 
   function totalColumnGapFor(mode) {
-    var total = 0
-    for (var column = 0; column < columnsFor(mode) - 1; column++)
-      total += columnGapAfterFor(mode, column)
-    return total
+    return totalColumnGapForProgress(mode, gapRhythmProgress)
+  }
+
+  function totalColumnGapForProgress(mode, progress) {
+    var boundaryCount = totalSemanticColumnBoundaryCount(mode)
+    var ordinaryCount = columnsFor(mode) - 1 - boundaryCount
+    return ordinaryCount * columnGapFor(mode)
+      + boundaryCount * semanticColumnGapForProgress(progress)
   }
 
   function averageColumnGapFor(mode) {
     return totalColumnGapFor(mode) / Math.max(1, columnsFor(mode) - 1)
   }
 
-  function rowGapAfter(row) {
-    if (row < 0 || row >= visibleRowCount - 1) return 0
-    var age = visibleYearStart + row
-    return (age + 1) % 5 === 0 ? semanticRowGap() : rowGap()
+  function semanticRowBoundaryCountBefore(row) {
+    var bounded = Math.max(0, Math.min(visibleRowCount - 1, row))
+    return Math.floor((visibleYearStart + bounded) / 5)
+      - Math.floor(visibleYearStart / 5)
   }
 
   function totalVisibleRowGap() {
-    var total = 0
-    for (var row = 0; row < visibleRowCount - 1; row++)
-      total += rowGapAfter(row)
-    return total
+    var boundaryCount = Math.max(0, visibleRowCount - 1)
+    var semanticCount = semanticRowBoundaryCountBefore(boundaryCount)
+    return semanticCount * semanticRowGap()
+      + (boundaryCount - semanticCount) * rowGap()
   }
 
-  function averageRowGap() {
-    return (4 * rowGap() + semanticRowGap()) / 5
+  function targetAverageRowGap() {
+    return (4 * rowGap() + targetSemanticRowGap()) / 5
+  }
+
+  function weekCellSizeForProgress(progress) {
+    var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
+    return Math.max(Style.space(3),
+      (available - totalColumnGapForProgress("weeks", progress)) / 52)
   }
 
   function weekCellSize() {
-    var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
-    return Math.max(Style.space(3),
-      (available - totalColumnGapFor("weeks")) / 52)
+    return weekCellSizeForProgress(gapRhythmProgress)
+  }
+
+  function targetWeekCellSize() {
+    return weekCellSizeForProgress(1)
   }
 
   function cellWidthFor(mode) {
@@ -238,10 +273,11 @@ Flickable {
   }
 
   function columnOffsetFor(mode, column) {
-    var offset = column * cellWidthFor(mode)
-    for (var boundary = 0; boundary < column; boundary++)
-      offset += columnGapAfterFor(mode, boundary)
-    return offset
+    var semanticCount = semanticColumnBoundaryCountBefore(mode, column)
+    var ordinaryCount = column - semanticCount
+    return column * cellWidthFor(mode)
+      + semanticCount * semanticColumnGap()
+      + ordinaryCount * columnGapFor(mode)
   }
 
   function columnOffset(column) {
@@ -249,10 +285,11 @@ Flickable {
   }
 
   function rowOffset(row) {
-    var offset = row * cellHeight()
-    for (var boundary = 0; boundary < row; boundary++)
-      offset += rowGapAfter(boundary)
-    return offset
+    var semanticCount = semanticRowBoundaryCountBefore(row)
+    var ordinaryCount = row - semanticCount
+    return row * cellHeight()
+      + semanticCount * semanticRowGap()
+      + ordinaryCount * rowGap()
   }
 
   function gridWidthFor(mode) {
@@ -274,8 +311,8 @@ Flickable {
 
   function fittedCompactYearSpan() {
     return Math.max(3, Math.min(totalLifeYears,
-      Math.floor((compactGridHeight() + averageRowGap())
-        / (cellHeight() + averageRowGap()))))
+      Math.floor((compactGridHeight() + targetAverageRowGap())
+        / (targetWeekCellSize() + targetAverageRowGap()))))
   }
 
   function gridOriginXFor(mode) {
@@ -597,6 +634,10 @@ Flickable {
   function toggleAnimationStyle() {
     finishProjectionMorph()
     dateOverlapEnabled = !dateOverlapEnabled
+  }
+
+  function toggleGapRhythm() {
+    gapRhythmEnabled = !gapRhythmEnabled
   }
 
   function prepareEntrance(fullEntrance) {
@@ -1096,6 +1137,7 @@ Flickable {
   onPinRetargetProgressChanged: lifeCanvas.requestPaint()
   onPinInspectionActiveChanged: lifeCanvas.requestPaint()
   onPinTerminalLabelPresenceChanged: lifeCanvas.requestPaint()
+  onGapRhythmProgressChanged: lifeCanvas.requestPaint()
   onReducedMotionChanged: {
     if (reducedMotion && pinBridgeAnimation.running) {
       pinBridgeAnimation.stop()
@@ -1108,6 +1150,13 @@ Flickable {
   Behavior on pinTerminalLabelPresence {
     NumberAnimation {
       duration: root.reducedMotion ? 0 : 110
+      easing.type: Easing.OutCubic
+    }
+  }
+
+  Behavior on gapRhythmProgress {
+    NumberAnimation {
+      duration: root.reducedMotion ? 0 : 220
       easing.type: Easing.OutCubic
     }
   }

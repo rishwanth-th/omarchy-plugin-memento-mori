@@ -144,6 +144,9 @@ BarWidget {
     function refresh(): void { root.broadcast("refresh") }
     function cycleFormat(): void { root.cycleFormat() }
     function toggleWeekStart(): void { root.toggleWeekStart() }
+    function toggleGaps(): void {
+      if (panelLoader.item) panelLoader.item.toggleGapRhythm()
+    }
     function showLife(): void { root.showLife() }
     function showCalendar(): void { root.showCalendar() }
     function interactionState(): string {

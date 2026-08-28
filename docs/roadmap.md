@@ -253,7 +253,7 @@ persistence. That is a separately justified personal-history plugin.
 
 ## Workstream 4 — Grid rhythm and contextual spacing
 
-**Status:** refined negative-space specimen under live review, tracked in
+**Status:** optimized negative-space lens under live review, tracked in
 DAZ-279. The active branch remains separate from `main`.
 
 Tim Urban's five-year row separation may make age groups more immediately
@@ -284,10 +284,17 @@ that precision.
 4. **Topology specimen.** Deliberately strong uninterrupted channels proved
    the 12-by-five-year and 4-by-five-year compositions, but equal channel
    widths fragmented Weeks and made Months resemble detached tables.
-5. **Refined rhythm — active.** Cells keep a quiet continuous beat inside each
-   group. Column channels remain strong enough to articulate projection units;
-   five-year row channels speak more quietly because they span the whole field.
-   Present remains the sole accent and the held ruler remains foreground.
+5. **Refined rhythm — `f30a222`.** The visual composition succeeded, but its
+   implementation rescanned preceding boundaries inside every Canvas cell
+   paint. Calendar and LIFE interaction became unacceptably slow, especially
+   during projection motion. The live plugin was restored to `main` before the
+   geometry was rebuilt.
+6. **Optimized gap lens — active.** Closed-form boundary counts make cell
+   geometry constant-time. Projection channels are now slightly thinner than
+   five-year channels, reversing the previous hierarchy while preserving one
+   continuous field. `G` or the `toggleGaps` IPC entry point opens and closes
+   the rhythm over a short session-only transition. Present remains the sole
+   accent and the held ruler remains foreground.
 
 No specimen adds alternating fills, a second accent, fixed four-week months,
 or decorative animation.
@@ -301,8 +308,14 @@ The workstream follows the method established by the held ruler:
 3. Test coexistence with present, inspection, pin, ruler, and motion.
 4. Accept playful behavior only when it emerges from temporal structure.
 
-The refined specimen lets the existing projection seam resolve twelve Weeks
+The optimized specimen lets the existing projection seam resolve twelve Weeks
 phrases into four Month quarters while the five-year bands remain anchored.
+The gap toggle itself makes the temporal phrases breathe out of, or settle
+back into, the uniform field without changing the panel, grid width, visible
+31-row context, exact date, or pin identity. At the reviewed theme scale the
+open-state projection channel is `3.75`, the five-year channel is `4`, and the
+open and closed grid heights differ by only `0.03`.
+
 Crossing a semantic channel retains the existing no-flicker inspection
 contract; direct physical pointer review must decide whether that pause feels
 tactile or sticky before the behavior is promoted.
@@ -314,6 +327,8 @@ tactile or sticky before the behavior is promoted.
 - Are the column and row channels perceptually coherent without being
   numerically identical?
 - Do Weeks retain enough individual-cell legibility at the refined density?
+- Does opening and closing the rhythm feel like a useful temporal lens rather
+  than a settings toggle or a layout trick?
 - Can the present retain a calm default position when variable row gaps are
   introduced?
 - Do hit-testing, axis guides, wheel movement, pin coordinates, LIFE entrance,
@@ -326,6 +341,7 @@ tactile or sticky before the behavior is promoted.
 - Weeks imply fixed four-week or exact calendar months.
 - Existing motion must distort exact temporal coordinates to accommodate the
   gaps.
+- Calendar or LIFE interaction regresses in latency or frame pacing.
 - The field resembles detached cards, a spreadsheet, or decorative striping.
 - The channels compete with present, inspection, or the held ruler.
 
