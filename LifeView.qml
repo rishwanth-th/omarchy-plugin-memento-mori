@@ -1804,13 +1804,39 @@ Flickable {
           : Color.accent
         ctx.textAlign = "right"
         for (var v = 0; v < vertical.length; v++) {
+          // Five-year rhythm belongs to the age scale, not the cell field.
+          // A short gate before each five-year row makes the grouping visible
+          // in peripheral vision while leaving cell geometry and hit areas
+          // completely unchanged. Decades receive one extra measure of reach.
+          if (vertical[v].fiveYear && vertical[v].row > 0) {
+            var decadeBoundary = vertical[v].age % 10 === 0
+            var cadenceLength = Style.space(decadeBoundary ? 12 : 9)
+            var cadenceGap = Style.space(2)
+            var cadenceY = originY + root.rowOffset(vertical[v].row)
+              - root.rowGap() / 2
+            var cadenceColor = root.verticalAxisHovered
+              ? Color.accent : root.foreground
+            var cadenceOpacity = root.verticalAxisHovered
+              ? 0.42 : (decadeBoundary ? 0.24 : 0.18)
+            ctx.fillStyle = Qt.rgba(cadenceColor.r, cadenceColor.g,
+              cadenceColor.b, cadenceOpacity)
+            ctx.fillRect(originX - cadenceLength, cadenceY,
+              cadenceLength - cadenceGap, Style.spacing.hairline)
+          }
+
           ctx.fillStyle = vertical[v].current
             ? Color.accent
             : (vertical[v].inspected
               ? inspectedColor
               : (root.verticalAxisHovered
                 ? Color.accent
-                : Qt.darker(root.foreground, 1.8)))
+                : (vertical[v].age % 10 === 0
+                  ? Qt.rgba(root.foreground.r, root.foreground.g,
+                    root.foreground.b, 0.48)
+                  : (vertical[v].fiveYear
+                    ? Qt.rgba(root.foreground.r, root.foreground.g,
+                      root.foreground.b, 0.42)
+                    : Qt.darker(root.foreground, 1.8)))))
           var verticalY = originY + root.rowOffset(vertical[v].row)
             + cellHeight / 2
           var verticalOuterLane = false
@@ -1833,9 +1859,12 @@ Flickable {
               Style.space(15), Style.spacing.hairline)
           }
           ctx.fillText(String(vertical[v].age), verticalLabelX, verticalY)
-          ctx.fillRect(originX - (vertical[v].fiveYear ? Style.space(3) : Style.space(1)),
+          var verticalTickLength = vertical[v].age % 10 === 0
+            ? Style.space(4)
+            : (vertical[v].fiveYear ? Style.space(3) : Style.space(1))
+          ctx.fillRect(originX - verticalTickLength,
             verticalY,
-            vertical[v].fiveYear ? Style.space(3) : Style.space(1),
+            verticalTickLength,
             Style.spacing.hairline)
         }
 

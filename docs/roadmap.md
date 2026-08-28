@@ -287,6 +287,21 @@ No specimen adds fixed four-week grouping, month-like columns, alternating
 row fills, or a second accent. Horizontal column rhythm remains out of scope
 unless it gains a truthful meaning independent of calendar months.
 
+### Cadence-only checkpoint — under live review
+
+The first specimen leaves every cell and hit area unchanged. A short neutral
+gate sits in the age gutter immediately before each five-year row; decade
+gates reach slightly farther, and decade labels carry only one restrained step
+more contrast than half-decades. Present and inspection still override this
+contextual hierarchy, and axis hover may temporarily accent it as one scale.
+
+The initial Weeks/Months comparison makes five-year anchors easier to find in
+peripheral vision without segmenting the cell field. A held ruler crossing a
+five-year boundary remains visually independent. This is an experiment
+checkpoint rather than a stable decision: live review must still decide
+whether the orientation gain is sufficient, or whether redistributed physical
+breathing earns a second specimen.
+
 ### Questions
 
 - Does five-year rhythm improve orientation inside the compact attention
