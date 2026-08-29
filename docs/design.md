@@ -65,10 +65,11 @@ window one life-year at a time, and returning to now restores the default.
 
 Calendar defines the stable panel dimensions. LIFE uses the same panel frame
 with a deliberately wider temporal field: Weeks and Months share one grid
-envelope and vertical row stride, and the LIFE rail track aligns exactly with
-that envelope. Entering LIFE or changing resolution therefore moves neither
-the widget nor the temporal frame. The rail supplies global horizon context
-while the grid remains a movable 31-life-year local view.
+envelope and vertical row stride. The LIFE rail shares the field's left edge,
+then yields its right end to the terminal percentage instead of drawing under
+copy. Entering LIFE or changing resolution therefore moves neither the widget
+nor the temporal frame. The rail supplies global horizon context while the
+grid remains a movable 32-life-year local view at the reviewed theme scale.
 
 ## Progress grammar
 
@@ -103,6 +104,9 @@ cell.
 Present retains accent ticks on both axes while hover adds foreground ticks
 without replacing them. When both points share an axis coordinate, the one
 accent tick remains rather than drawing competing labels in one place.
+The twelve-part horizontal scale is a stationary reference shared by Weeks
+and Months. During a projection change, active source and destination ticks
+dissolve at their own fixed coordinates instead of sliding across that scale.
 Hairline guides connect each point only upward to the horizontal axis and
 leftward to the vertical axis; they never continue into later columns or
 lower ages. Quiet edge arrows disclose whether earlier or later rows remain.
@@ -199,11 +203,12 @@ this plugin.
 
 ## V2 motion grammar
 
-Projection changes use a calm left-to-right resolution seam by default. It
-finishes in `360ms`, never overlays the two settled grids, and preserves the
-panel, viewport, axes, row stride, and present anchor. The pinned lived and
-remaining readouts resolve through simultaneous local shimmers constrained to
-their text envelopes, rather than one tracer crossing the empty rail. The
+Projection changes use a calm stationary resolution exchange by default. It
+finishes in `360ms`: the source topology recedes in place before the
+destination resolves in place, avoiding both a traveling structural wipe and
+a strong 52-by-12 moire overlap. The panel, viewport, axes, row stride, and
+present anchor remain fixed. The pinned lived and remaining readouts resolve
+through simultaneous local shimmers constrained to their text envelopes. The
 lived readout owns the active unit; remaining stays unitless before, during,
 and after the transition so its envelope never expands temporarily.
 
@@ -213,14 +218,17 @@ grid, alternates the motion style without creating a third projection or a
 visible setting. `P` toggles Weeks and Months as one reversible projection
 action. The lens splits intervals only at their real shared dates, holds their
 interference at a stable midpoint, and resolves in `520ms`. It is never
-persisted; the calm seam remains the startup default.
+persisted; the calm exchange remains the startup default.
 
 In both styles, the active coordinate is one synchronized atom. Present,
-inspection, and the held endpoint each derive their displayed cell, axis
-ticks, guides, and local ruler from the same interpolation progress. This
-prevents guides from arriving before the point they locate. It is a foundation
-for the projection transition, not the final aesthetic treatment of the whole
-grid seam.
+inspection, and the held endpoint each derive their displayed cell, guides,
+and local ruler from the same interpolation progress. Horizontal source and
+destination ticks stay fixed and cross-dissolve around that traveling atom.
+Five-year and quarter channels are masked back over moving content as a stable
+scaffold; Weeks-only life-month channels emerge or recede globally at their
+fixed positions. This prevents reference geometry from appearing to chase the
+point it locates. It remains a foundation for focused aesthetic iteration on
+both projection styles.
 
 ## Implementation boundary
 

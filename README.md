@@ -14,7 +14,7 @@ without leaving the native panel.
 - 4,000 weeks is the default horizon, not a productivity target.
 - Weeks and Months are two views of the same exact birth-anchored timeline.
 - A compact, scrollable attention window keeps the present legible while the
-  aligned LIFE rail retains whole-horizon context.
+  left-aligned, label-safe LIFE rail retains whole-horizon context.
 - Lived, present, and remaining time inherit the active Omarchy theme.
 - Hover resolves a cell to its exact date interval and coordinates on both
   axes, and continuously measures its active projection distance from now,
@@ -75,8 +75,9 @@ Press `G` to open or close the session-only semantic gap rhythm. Its visible
 channels still belong to the nearest cell, so pointer inspection remains
 continuous across the negative space.
 Press `A`, or triple-click an otherwise inert part of the grid, to alternate
-between the calm projection seam and the exact date-overlap interference
-animation. The calm seam remains the startup default. Press `T` or Space to
+between the calm stationary projection exchange and the exact date-overlap
+interference animation. The calm exchange remains the startup default. Press
+`T` or Space to
 return inspection to now; press Enter to hold or retarget one temporal pin.
 LIFE opens from present even if the pointer is already parked over the panel;
 move the pointer deliberately to hand inspection back to hover.

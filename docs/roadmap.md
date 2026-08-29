@@ -32,9 +32,9 @@ here with a short reason so the same ambiguity is not rediscovered.
 
 ## Workstream 1 — Weeks ↔ Months semantic morph
 
-**Status:** complete. Stable seam retained as the default; exact-overlap
-interference retained as an optional session lens. Tracked in DAZ-272 and
-DAZ-274.
+**Status:** reopened for focused aesthetic iteration after the reference-frame
+correction. The calm exchange remains the default; exact-overlap interference
+remains an optional session lens. Tracked in DAZ-272 and DAZ-274.
 
 Weeks and Months are two resolutions of one exact birth-anchored timeline.
 Their transition should disclose that containment without pretending every
@@ -42,11 +42,12 @@ month contains four weeks.
 
 ### Stable grammar
 
-1. A narrow resolution seam travels left-to-right across the stable grid.
-2. Ahead of the seam the source projection remains settled; behind it the
-   destination projection is already settled.
-3. Cells switch only at the seam. The two resolutions never overlap and cells
-   do not travel to a false one-to-one spatial destination.
+1. The source topology recedes in place before the destination resolves in
+   place; structural channels do not travel across the field.
+2. Five-year and quarter channels remain a fixed scaffold. Weeks-only
+   life-month channels emerge or recede globally at their fixed positions.
+3. The active point, guide, and held ruler may travel because they represent
+   one exact date; structural axes and their annotations remain stationary.
 4. No fixed four-week grouping is shown: both endpoints retain their exact
    birth-anchored week and calendar-month semantics.
 5. Axis precision switches with the destination while panel and viewport
@@ -55,20 +56,20 @@ month contains four weeks.
    shimmers resolve their units simultaneously inside the text envelopes;
    no filament crosses the empty space between them.
 
-### Why the seam remains the default
+### Why the calm exchange remains the default
 
 Because 52-week life-year rows drift against birth-anchored calendar months,
 moving exact overlap fragments forms dense interference fields across ages.
 Even when mathematically faithful, that motion asks for more attention than a
-frequently used widget transition should require. The clean cutover therefore
-remains the startup behavior and primary product expression.
+frequently used widget transition should require. A calm in-place exchange is
+therefore the startup behavior and primary product expression.
 
 ### Retained alternative — exact date-overlap lens
 
 The DAZ-274 refinement precomputes every real date-overlap fragment, eases the
 fragments into a stationary midpoint, holds that structure for roughly
 `104ms`, and then resolves it. It is educational and visually distinctive,
-but deliberately subordinate to the stable seam.
+but deliberately subordinate to the calm exchange.
 
 - `A` alternates the motion style for subsequent `P` projection changes.
 - A triple-click on an otherwise inert grid region provides the pointer
@@ -310,6 +311,16 @@ that precision.
    held ruler from one progress value. This removes the observed lead where
    rulers reached the destination before their point. Broader aesthetic
    composition of the Weeks-Months seam remains the next focused experiment.
+10. **Anchored reference frame — `3a3c506`.** Exact rail/grid width equality is
+    rejected because the terminal percentage has a different spatial
+    obligation from the grid. The rail now shares the field's left edge and
+    reserves its right label. The 1–12 scale and source/destination coordinate
+    ticks stay fixed; five-year and quarter channels remain a stationary
+    scaffold while Weeks-only phrases breathe globally. The default traveling
+    wipe becomes an in-place resolution exchange, while the active cell,
+    guides, and held ruler preserve their coherent transfer. A 32-row frame
+    gives the `437 × 267.92` grid a `1.631` aspect ratio without increasing
+    width or abandoning Omarchy's exact vertical centering.
 
 No specimen adds alternating fills, a second accent, fixed four-week months,
 or decorative animation.
@@ -323,15 +334,16 @@ The workstream follows the method established by the held ruler:
 3. Test coexistence with present, inspection, pin, ruler, and motion.
 4. Accept playful behavior only when it emerges from temporal structure.
 
-The optimized specimen lets the existing projection seam resolve twelve Weeks
+The optimized specimen lets the projection exchange resolve twelve Weeks
 phrases into four Month quarters while the five-year bands remain anchored.
 The gap toggle itself makes the temporal phrases breathe out of, or settle
 back into, the uniform field without changing the panel during interaction,
-the visible 31-row context, exact date, or pin identity. The shared temporal
-frame intentionally widens the earlier grid once, then remains invariant. At
-the reviewed theme scale its grid and LIFE track are both `437px`; the
+the visible context, exact date, or pin identity. The shared temporal frame
+intentionally widens the earlier grid once, then remains invariant. At the
+reviewed theme scale the grid is `437px`, the label-safe LIFE track is
+`411.05px`, and 32 visible rows produce a `267.92px` grid height. The
 open-state projection channel is `3.75`, the five-year channel is `4`, and the
-open and closed grid heights differ by only `0.03`.
+open and closed grid heights remain effectively identical.
 
 Crossing a semantic channel now transfers ownership at the nearest-cell
 midpoint. The negative space stays visible, but no longer pauses inspection.
