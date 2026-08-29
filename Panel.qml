@@ -297,6 +297,12 @@ Panel {
       cellHeight: lifeView.cellHeight(),
       gridWidth: lifeView.gridWidth(),
       gridHeight: lifeView.gridHeight(),
+      panelContentWidth: panel.contentWidth,
+      panelContentHeight: panel.contentHeight,
+      panelOriginY: panel.cardOrigin.y,
+      panelScreenHeight: panel.screenH,
+      panelAnchorY: panel.anchorScreenPos.y,
+      panelAnchorHeight: panel.anchorH,
       temporalFrameLeft: lifeView.temporalFrameLeft,
       temporalFrameRight: lifeView.temporalFrameRight,
       lifeTrackLeft: lifeView.lifeTrackLeft,
@@ -357,7 +363,7 @@ Panel {
     // Calendar is the size contract for both pages. LIFE spends the recovered
     // height on its Canvas rather than resizing the anchored widget.
     contentHeight: panel.fittedContentHeight(Math.max(root.calendarFrameImplicitHeight,
-      calendarColumn.implicitHeight) + Style.space(36))
+      calendarColumn.implicitHeight) + Style.space(46))
 
     PanelKeyCatcher {
       id: keyCatcher

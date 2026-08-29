@@ -79,12 +79,18 @@ Item {
 
   Rectangle {
     id: track
+    // The grid and rail belong to one temporal field, but the meter also owns
+    // terminal copy. Share the field's left edge while yielding the right end
+    // before the percentage instead of drawing underneath it.
+    readonly property real naturalLeft: lifeLabel.x + lifeLabel.width
+      + Style.space(12)
+    readonly property real naturalRight: lifePercent.x - Style.space(12)
     x: root.usesTemporalFrame
-      ? root.temporalFrameLeft
-      : lifeLabel.x + lifeLabel.width + Style.space(12)
+      ? Math.max(root.temporalFrameLeft, naturalLeft)
+      : naturalLeft
     width: Math.max(0, (root.usesTemporalFrame
-      ? root.temporalFrameRight
-      : lifePercent.x - Style.space(12)) - x)
+      ? Math.min(root.temporalFrameRight, naturalRight)
+      : naturalRight) - x)
     y: root.showYearScale
       ? Math.round((lifeLabel.implicitHeight - height) / 2)
       : Math.round((root.height - height) / 2)

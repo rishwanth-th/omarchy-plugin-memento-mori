@@ -1126,9 +1126,7 @@ Flickable {
       // The twelve proportional landmarks now sit inside the visible 4/5-week
       // life-month groups. Exact calendar intervals remain in inspection.
       for (var month = 0; month < 12; month++) {
-        var monthStart = Math.round(month * 52 / 12)
-        var monthEnd = Math.round((month + 1) * 52 / 12) - 1
-        marks.push({ position: (monthStart + monthEnd) / 2,
+        marks.push({ position: month,
           label: String(month + 1), major: (month + 1) % 3 === 0 })
       }
     } else {
@@ -1140,13 +1138,10 @@ Flickable {
   }
 
   function axisMarkX(position) {
-    var leftColumn = Math.max(0, Math.min(columns() - 1,
-      Math.floor(position)))
-    var fraction = Math.max(0, Math.min(1, position - leftColumn))
-    var leftCenter = columnOffset(leftColumn) + cellWidth() / 2
-    if (fraction === 0 || leftColumn >= columns() - 1) return leftCenter
-    var rightCenter = columnOffset(leftColumn + 1) + cellWidth() / 2
-    return leftCenter + (rightCenter - leftCenter) * fraction
+    // The twelve-part horizontal scale is the shared reference frame, not a
+    // child of either rendered projection. Its landmarks therefore remain
+    // stationary while Weeks and Months resolve beneath them.
+    return gridWidth() * (Math.max(0, Math.min(11, position)) + 0.5) / 12
   }
 
   function horizontalAxisContains(x, y) {
@@ -1758,38 +1753,16 @@ Flickable {
       }
 
       function paintProjectionSeam(ctx, t) {
-        var sourceLeft = root.gridOriginXFor(root.morphFromProjection)
-        var targetLeft = root.gridOriginXFor(root.projection)
-        var sourceRight = sourceLeft + root.gridWidthFor(root.morphFromProjection)
-        var targetRight = targetLeft + root.gridWidthFor(root.projection)
-        var left = sourceLeft + (targetLeft - sourceLeft) * t
-        var right = sourceRight + (targetRight - sourceRight) * t
-        var seamX = left + (right - left) * t
-
-        // The two resolutions never overlap: superimposing 52 and 12 columns
-        // creates a moire fan even when every cell is stationary.
-        ctx.save()
-        ctx.beginPath()
-        ctx.rect(0, 0, Math.max(0, seamX), height)
-        ctx.clip()
-        paintProjection(ctx, root.projection, root.cells, 1, -1, false, true)
-        ctx.restore()
-
-        ctx.save()
-        ctx.beginPath()
-        ctx.rect(seamX, 0, Math.max(0, width - seamX), height)
-        ctx.clip()
+        // Structural channels are a reference frame, not a traveling object.
+        // Let the source topology recede in place before the destination
+        // resolves in place. The small, very-low-opacity overlap avoids a hard
+        // blackout without recreating the 52-by-12 moire fan.
+        var sourceOpacity = 1 - smoothUnit(t / 0.55)
+        var targetOpacity = smoothUnit((t - 0.45) / 0.55)
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
-          1, -1, false, true)
-        ctx.restore()
-
-        // Mark the local change in resolution without implying that a week
-        // has one spatial destination inside a calendar month.
-        var seamAlpha = Math.sin(Math.PI * t) * 0.22
-        ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-          root.foreground.b, seamAlpha)
-        ctx.fillRect(seamX, root.gridOriginY() - Style.space(2),
-          Style.spacing.hairline, root.gridHeight() + Style.space(4))
+          sourceOpacity, -1, false, true)
+        paintProjection(ctx, root.projection, root.cells,
+          targetOpacity, -1, false, true)
       }
 
       function paintProjectionWireframe(ctx, rects, opacity) {
@@ -1878,6 +1851,48 @@ Flickable {
         var t = clampUnit(root.morphProgress)
         if (root.morphUsesDateOverlap) paintDateOverlapMorph(ctx, t)
         else paintProjectionSeam(ctx, t)
+        paintStableMorphChannels(ctx, t)
+      }
+
+      function paintStableMorphChannels(ctx, t) {
+        if (root.gapRhythmProgress <= 0.001) return
+        var originX = root.gridOriginX()
+        var originY = root.gridOriginY()
+        var columnGap = root.semanticColumnGap()
+        var rowGap = root.semanticRowGap()
+
+        // Five-year age bands and quarters belong to both projections. Mask
+        // them back over moving cells so they remain a fixed scaffold.
+        ctx.fillStyle = Color.popups.background
+        for (var row = 1; row < root.visibleRowCount; row++) {
+          if ((root.visibleYearStart + row) % 5 !== 0) continue
+          ctx.fillRect(originX,
+            originY + root.rowOffset(row) - rowGap,
+            root.gridWidth(), rowGap)
+        }
+        for (var quarter = 3; quarter < 12; quarter += 3) {
+          ctx.fillRect(originX + root.columnOffsetFor("months", quarter)
+              - columnGap,
+            originY, columnGap, root.gridHeight())
+        }
+
+        // The eight additional life-month phrases belong only to Weeks. They
+        // emerge or recede globally at their fixed Weeks positions rather
+        // than being carried across the field by the projection motion.
+        var weeksPresence = root.projection === "weeks"
+          ? smoothUnit(t)
+          : 1 - smoothUnit(t)
+        if (weeksPresence <= 0.001) return
+        ctx.fillStyle = Qt.rgba(Color.popups.background.r,
+          Color.popups.background.g, Color.popups.background.b,
+          weeksPresence)
+        for (var month = 1; month < 12; month++) {
+          if (month % 3 === 0) continue
+          var boundaryColumn = Math.round(month * 52 / 12)
+          ctx.fillRect(originX + root.columnOffsetFor("weeks", boundaryColumn)
+              - columnGap,
+            originY, columnGap, root.gridHeight())
+        }
       }
 
       function paintPinRuler(ctx) {
@@ -2036,10 +2051,7 @@ Flickable {
             * root.pinTerminalLabelPresence)
       }
 
-      function morphLabelForDate(dateKey) {
-        var sourceSide = root.morphGeometryProgress() < 0.5
-        var mode = sourceSide ? root.morphFromProjection : root.projection
-        var intervalCells = sourceSide ? root.morphFromCells : root.cells
+      function morphLabelForDateInProjection(mode, intervalCells, dateKey) {
         var index = Model.projectionIndexForDate(intervalCells, dateKey)
         if (index < 0 || index >= intervalCells.length)
           return { position: "", age: "" }
@@ -2050,6 +2062,49 @@ Flickable {
             : parts.position.replace("WEEK ", "W "),
           age: String(Math.floor(index / root.columnsFor(mode)))
         }
+      }
+
+      function morphLabelForDate(dateKey) {
+        var sourceSide = root.morphGeometryProgress() < 0.5
+        return morphLabelForDateInProjection(
+          sourceSide ? root.morphFromProjection : root.projection,
+          sourceSide ? root.morphFromCells : root.cells,
+          dateKey)
+      }
+
+      function paintFixedMorphHorizontalTick(ctx, rect, label, color, opacity) {
+        if (!rect.visible || !label || opacity <= 0) return
+        var originY = root.gridOriginY()
+        var centerX = rect.x + rect.width / 2
+        var tickY = originY - Style.space(10)
+        var tickWidth = ctx.measureText(label).width + Style.space(6)
+        ctx.fillStyle = Color.popups.background
+        ctx.fillRect(centerX - tickWidth / 2, tickY - Style.space(6),
+          tickWidth, Style.space(12))
+        ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+        ctx.textAlign = "center"
+        ctx.fillText(label, centerX, tickY)
+        ctx.fillRect(centerX, originY - Style.space(6),
+          Style.spacing.hairline, Style.space(6))
+      }
+
+      function paintMorphHorizontalTicks(ctx, dateKey, color) {
+        if (!dateKey) return
+        var progress = root.morphGeometryProgress()
+        var sourceRect = root.coordinateRectForDate(root.morphFromProjection,
+          root.morphFromCells, dateKey)
+        var targetRect = root.coordinateRectForDate(root.projection,
+          root.cells, dateKey)
+        var sourceLabel = morphLabelForDateInProjection(root.morphFromProjection,
+          root.morphFromCells, dateKey).position
+        var targetLabel = morphLabelForDateInProjection(root.projection,
+          root.cells, dateKey).position
+        var sourceOpacity = 1 - smoothUnit(progress / 0.44)
+        var targetOpacity = smoothUnit((progress - 0.56) / 0.44)
+        paintFixedMorphHorizontalTick(ctx, sourceRect, sourceLabel, color,
+          sourceOpacity)
+        paintFixedMorphHorizontalTick(ctx, targetRect, targetLabel, color,
+          targetOpacity)
       }
 
       function paintMorphGuide(ctx, rect, dateKey, color, opacity) {
@@ -2064,24 +2119,13 @@ Flickable {
         ctx.fillRect(originX - Style.space(3), centerY,
           Math.max(0, centerX - originX + Style.space(3)),
           Style.spacing.hairline)
-        ctx.fillRect(centerX, originY - Style.space(6),
-          Style.spacing.hairline,
-          Math.max(0, centerY - originY + Style.space(6)))
+        // The moving guide belongs to the cell. It stops at the grid edge;
+        // fixed source/destination ticks own the axis during the morph.
+        ctx.fillRect(centerX, originY, Style.spacing.hairline,
+          Math.max(0, centerY - originY))
 
         ctx.font = Style.font.caption + "px " + root.fontFamily
         ctx.textBaseline = "middle"
-        if (label.position) {
-          var tickY = originY - Style.space(10)
-          var tickWidth = ctx.measureText(label.position).width + Style.space(6)
-          ctx.fillStyle = Color.popups.background
-          ctx.fillRect(centerX - tickWidth / 2, tickY - Style.space(6),
-            tickWidth, Style.space(12))
-          ctx.fillStyle = color
-          ctx.textAlign = "center"
-          ctx.fillText(label.position, centerX, tickY)
-          ctx.fillRect(centerX, originY - Style.space(6),
-            Style.spacing.hairline, Style.space(6))
-        }
         if (label.age) {
           ctx.fillStyle = Color.popups.background
           ctx.fillRect(originX - Style.space(18), centerY - Style.space(6),
@@ -2148,6 +2192,9 @@ Flickable {
         if (inspectionRect.visible)
           paintMorphGuide(ctx, inspectionRect, inspectionKey,
             root.foreground, 0.18)
+        paintMorphHorizontalTicks(ctx, presentKey, Color.accent)
+        if (inspectionRect.visible)
+          paintMorphHorizontalTicks(ctx, inspectionKey, root.foreground)
         paintMorphRuler(ctx, root.morphPinRulerGeometry())
         paintMorphCell(ctx, presentRect, "present")
         if (inspectionRect.visible) paintMorphCell(ctx, inspectionRect, "inspection")
