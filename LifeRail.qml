@@ -69,27 +69,38 @@ Item {
 
   Text {
     id: lifePercent
-    anchors.right: parent.right
+    x: root.usesTemporalFrame
+      ? root.temporalFrameRight - width
+      : parent.width - width
     y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
+    z: 2
     text: Number(root.percent).toFixed(1).replace(/\.0$/, "") + "%"
     color: root.foreground
     font.family: root.fontFamily
     font.pixelSize: Style.font.bodySmall
+
+    Rectangle {
+      x: -Style.space(3)
+      y: -Style.space(1)
+      width: parent.width + Style.space(6)
+      height: parent.height + Style.space(2)
+      z: -1
+      radius: Style.cornerRadius
+      color: Color.popups.background
+    }
   }
 
   Rectangle {
     id: track
-    // The grid and rail belong to one temporal field, but the meter also owns
-    // terminal copy. Share the field's left edge while yielding the right end
-    // before the percentage instead of drawing underneath it.
+    // In LIFE the percentage is an engraved terminal value: the complete
+    // temporal span continues behind a small background knockout. Compact
+    // rails without a shared frame retain the ordinary label-safe interval.
     readonly property real naturalLeft: lifeLabel.x + lifeLabel.width
       + Style.space(12)
     readonly property real naturalRight: lifePercent.x - Style.space(12)
-    x: root.usesTemporalFrame
-      ? Math.max(root.temporalFrameLeft, naturalLeft)
-      : naturalLeft
+    x: root.usesTemporalFrame ? root.temporalFrameLeft : naturalLeft
     width: Math.max(0, (root.usesTemporalFrame
-      ? Math.min(root.temporalFrameRight, naturalRight)
+      ? root.temporalFrameRight
       : naturalRight) - x)
     y: root.showYearScale
       ? Math.round((lifeLabel.implicitHeight - height) / 2)

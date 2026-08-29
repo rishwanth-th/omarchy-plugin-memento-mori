@@ -1796,11 +1796,6 @@ Flickable {
           ctx.fillStyle = Qt.rgba(color.r, color.g, color.b,
             alpha * (isPresent ? 0.92 : 0.24))
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
-        } else {
-          ctx.strokeStyle = Qt.rgba(color.r, color.g, color.b, alpha * 0.28)
-          ctx.lineWidth = Style.spacing.hairline
-          ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
-            Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
         }
       }
 
@@ -1815,8 +1810,11 @@ Flickable {
         if (t < arrivalEnd) interference = smoothUnit(t / arrivalEnd)
         else if (t <= resolveStart) interference = 1
         else interference = 1 - smoothUnit((t - resolveStart) / (1 - resolveStart))
-        var wireOpacity = 0.09 * interference
-        var fragmentOpacity = 0.66 * interference
+        // Keep the exact-date depth cue local to the present threshold. A
+        // moving field of every past/future edge reads as moire; a narrow
+        // lived-time fold says where the projection is resolving.
+        var wireOpacity = 0.012 * interference
+        var fragmentOpacity = 0.56 * interference
 
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
           sourceSettled, -1, false, true)
@@ -1827,6 +1825,12 @@ Flickable {
         paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity)
         paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity)
 
+        var presentRect = root.interpolatedMorphRect(
+          Model.keyForDate(root.today))
+        var presentCenterY = presentRect.visible
+          ? presentRect.y + presentRect.height / 2
+          : -1
+        var presentFoldRadius = root.cellHeight() * 1.6
         for (var i = 0; i < root.morphGeometry.length; i++) {
           var geometry = root.morphGeometry[i]
           var sourceRect = geometry.sourceRect
@@ -1839,8 +1843,14 @@ Flickable {
             height: sourceRect.height + (targetRect.height - sourceRect.height)
               * geometryProgress
           }
-          paintOverlapFragment(ctx, geometry.sourceCell, geometry.targetCell,
-            rect, fragmentOpacity, true)
+          var isPresent = geometry.sourceCell.status === "current"
+            && geometry.targetCell.status === "current"
+          var nearPresent = presentCenterY >= 0
+            && Math.abs(rect.y + rect.height / 2 - presentCenterY)
+              <= presentFoldRadius
+          if (isPresent || nearPresent)
+            paintOverlapFragment(ctx, geometry.sourceCell, geometry.targetCell,
+              rect, fragmentOpacity, true)
         }
 
         paintProjection(ctx, root.projection, root.cells,
@@ -1876,22 +1886,33 @@ Flickable {
             originY, columnGap, root.gridHeight())
         }
 
-        // The eight additional life-month phrases belong only to Weeks. They
-        // emerge or recede globally at their fixed Weeks positions rather
-        // than being carried across the field by the projection motion.
+        // Ordinary Month boundaries and the eight additional Weeks phrases
+        // cross-dissolve at their own fixed positions. Neither topology is
+        // carried across the field by moving fragment geometry.
         var weeksPresence = root.projection === "weeks"
           ? smoothUnit(t)
           : 1 - smoothUnit(t)
-        if (weeksPresence <= 0.001) return
-        ctx.fillStyle = Qt.rgba(Color.popups.background.r,
-          Color.popups.background.g, Color.popups.background.b,
-          weeksPresence)
+        var monthsPresence = 1 - weeksPresence
+        var ordinaryMonthGap = root.columnGapFor("months")
         for (var month = 1; month < 12; month++) {
           if (month % 3 === 0) continue
-          var boundaryColumn = Math.round(month * 52 / 12)
-          ctx.fillRect(originX + root.columnOffsetFor("weeks", boundaryColumn)
-              - columnGap,
-            originY, columnGap, root.gridHeight())
+          if (monthsPresence > 0.001) {
+            ctx.fillStyle = Qt.rgba(Color.popups.background.r,
+              Color.popups.background.g, Color.popups.background.b,
+              monthsPresence)
+            ctx.fillRect(originX + root.columnOffsetFor("months", month)
+                - ordinaryMonthGap,
+              originY, ordinaryMonthGap, root.gridHeight())
+          }
+          if (weeksPresence > 0.001) {
+            var boundaryColumn = Math.round(month * 52 / 12)
+            ctx.fillStyle = Qt.rgba(Color.popups.background.r,
+              Color.popups.background.g, Color.popups.background.b,
+              weeksPresence)
+            ctx.fillRect(originX + root.columnOffsetFor("weeks", boundaryColumn)
+                - columnGap,
+              originY, columnGap, root.gridHeight())
+          }
         }
       }
 
@@ -2072,24 +2093,54 @@ Flickable {
           dateKey)
       }
 
-      function paintFixedMorphHorizontalTick(ctx, rect, label, color, opacity) {
+      function horizontalIntervalsOverlap(firstX, firstWidth, secondX, secondWidth) {
+        return Math.abs(firstX - secondX)
+          < (firstWidth + secondWidth) / 2 + Style.space(2)
+      }
+
+      function horizontalLabelConflictsScale(ctx, centerX, width) {
+        var marks = root.axisMarks()
+        var originX = root.gridOriginX()
+        for (var index = 0; index < marks.length; index++) {
+          var markX = originX + root.axisMarkX(marks[index].position)
+          var markWidth = ctx.measureText(marks[index].label).width
+            + Style.space(4)
+          if (horizontalIntervalsOverlap(centerX, width, markX, markWidth))
+            return true
+        }
+        return false
+      }
+
+      function paintFixedMorphHorizontalTick(ctx, candidate) {
+        var rect = candidate.rect
+        var label = candidate.label
+        var color = candidate.color
+        var opacity = candidate.opacity
         if (!rect.visible || !label || opacity <= 0) return
         var originY = root.gridOriginY()
         var centerX = rect.x + rect.width / 2
-        var tickY = originY - Style.space(10)
+        var tickY = originY - Style.space(candidate.lane === 1 ? 20 : 10)
         var tickWidth = ctx.measureText(label).width + Style.space(6)
-        ctx.fillStyle = Color.popups.background
-        ctx.fillRect(centerX - tickWidth / 2, tickY - Style.space(6),
-          tickWidth, Style.space(12))
+        if (candidate.labelVisible !== false) {
+          ctx.fillStyle = Color.popups.background
+          ctx.fillRect(centerX - tickWidth / 2, tickY - Style.space(6),
+            tickWidth, Style.space(12))
+          ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+          ctx.textAlign = "center"
+          ctx.fillText(label, centerX, tickY)
+          if (candidate.lane === 1)
+            ctx.fillRect(centerX, tickY + Style.space(6),
+              Style.spacing.hairline,
+              Math.max(0, originY - Style.space(6)
+                - (tickY + Style.space(6))))
+        }
         ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
-        ctx.textAlign = "center"
-        ctx.fillText(label, centerX, tickY)
         ctx.fillRect(centerX, originY - Style.space(6),
           Style.spacing.hairline, Style.space(6))
       }
 
-      function paintMorphHorizontalTicks(ctx, dateKey, color) {
-        if (!dateKey) return
+      function morphHorizontalTickCandidates(dateKey, color, current) {
+        if (!dateKey) return []
         var progress = root.morphGeometryProgress()
         var sourceRect = root.coordinateRectForDate(root.morphFromProjection,
           root.morphFromCells, dateKey)
@@ -2101,13 +2152,96 @@ Flickable {
           root.cells, dateKey).position
         var sourceOpacity = 1 - smoothUnit(progress / 0.44)
         var targetOpacity = smoothUnit((progress - 0.56) / 0.44)
-        paintFixedMorphHorizontalTick(ctx, sourceRect, sourceLabel, color,
-          sourceOpacity)
-        paintFixedMorphHorizontalTick(ctx, targetRect, targetLabel, color,
-          targetOpacity)
+        return [
+          { rect: sourceRect, label: sourceLabel, color: color,
+            opacity: sourceOpacity, current: current },
+          { rect: targetRect, label: targetLabel, color: color,
+            opacity: targetOpacity, current: current }
+        ]
       }
 
-      function paintMorphGuide(ctx, rect, dateKey, color, opacity) {
+      function resolveAndPaintMorphHorizontalTicks(ctx, presentKey, inspectionKey) {
+        var candidates = morphHorizontalTickCandidates(presentKey,
+          Color.accent, true)
+        if (inspectionKey) {
+          var inspectionCandidates = morphHorizontalTickCandidates(inspectionKey,
+            root.foreground, false)
+          candidates = candidates.concat(inspectionCandidates)
+        }
+        var occupied = [[], []]
+        for (var index = 0; index < candidates.length; index++) {
+          var candidate = candidates[index]
+          if (!candidate.rect.visible || !candidate.label
+              || candidate.opacity <= 0.01) continue
+          var centerX = candidate.rect.x + candidate.rect.width / 2
+          var width = ctx.measureText(candidate.label).width + Style.space(6)
+          var lane = horizontalLabelConflictsScale(ctx, centerX, width) ? 1 : 0
+          var collides = false
+          for (var first = 0; first < occupied[lane].length; first++) {
+            var interval = occupied[lane][first]
+            if (horizontalIntervalsOverlap(centerX, width,
+                interval.x, interval.width)) {
+              collides = true
+              break
+            }
+          }
+          if (collides && lane === 0) {
+            lane = 1
+            collides = false
+            for (var second = 0; second < occupied[lane].length; second++) {
+              var outerInterval = occupied[lane][second]
+              if (horizontalIntervalsOverlap(centerX, width,
+                  outerInterval.x, outerInterval.width)) {
+                collides = true
+                break
+              }
+            }
+          }
+          candidate.lane = lane
+          candidate.labelVisible = !collides || candidate.current
+          if (candidate.labelVisible)
+            occupied[lane].push({ x: centerX, width: width })
+          paintFixedMorphHorizontalTick(ctx, candidate)
+        }
+      }
+
+      function verticalLabelConflictsPermanent(rect, dateKey) {
+        if (!rect.visible) return false
+        var label = morphLabelForDate(dateKey)
+        var centerY = rect.y + rect.height / 2
+        var originY = root.gridOriginY()
+        var marks = root.verticalMarks()
+        for (var index = 0; index < marks.length; index++) {
+          var mark = marks[index]
+          if (mark.current || mark.inspected
+              || String(mark.age) === label.age) continue
+          var markY = originY + root.rowOffset(mark.row)
+            + root.cellHeight() / 2
+          if (Math.abs(markY - centerY)
+              < Style.font.caption + Style.space(2)) return true
+        }
+        return false
+      }
+
+      function morphVerticalLabelPlacement(rect, dateKey, avoidRect, avoidKey) {
+        var lane = verticalLabelConflictsPermanent(rect, dateKey) ? 1 : 0
+        if (!avoidRect || !avoidRect.visible) return { lane: lane, visible: true }
+        var avoidLane = verticalLabelConflictsPermanent(avoidRect, avoidKey) ? 1 : 0
+        var centerY = rect.y + rect.height / 2
+        var avoidY = avoidRect.y + avoidRect.height / 2
+        if (lane !== avoidLane
+            || Math.abs(centerY - avoidY)
+              >= Style.font.caption + Style.space(2))
+          return { lane: lane, visible: true }
+        var alternateLane = lane === 0 ? 1 : 0
+        var alternateBlocked = alternateLane === 1
+          ? verticalLabelConflictsPermanent(rect, dateKey)
+          : false
+        return { lane: alternateLane, visible: !alternateBlocked }
+      }
+
+      function paintMorphGuide(ctx, rect, dateKey, color, opacity,
+                               avoidRect, avoidKey) {
         if (!rect.visible || opacity <= 0) return
         var originX = root.gridOriginX()
         var originY = root.gridOriginY()
@@ -2127,12 +2261,21 @@ Flickable {
         ctx.font = Style.font.caption + "px " + root.fontFamily
         ctx.textBaseline = "middle"
         if (label.age) {
-          ctx.fillStyle = Color.popups.background
-          ctx.fillRect(originX - Style.space(18), centerY - Style.space(6),
-            Style.space(16), Style.space(12))
+          var placement = morphVerticalLabelPlacement(rect, dateKey,
+            avoidRect, avoidKey)
+          var labelX = originX - Style.space(placement.lane === 1 ? 18 : 4)
+          if (placement.visible) {
+            ctx.fillStyle = Color.popups.background
+            ctx.fillRect(labelX - Style.space(14), centerY - Style.space(6),
+              Style.space(16), Style.space(12))
+            ctx.fillStyle = color
+            ctx.textAlign = "right"
+            ctx.fillText(label.age, labelX, centerY)
+            if (placement.lane === 1)
+              ctx.fillRect(labelX + Style.space(2), centerY,
+                Style.space(15), Style.spacing.hairline)
+          }
           ctx.fillStyle = color
-          ctx.textAlign = "right"
-          ctx.fillText(label.age, originX - Style.space(4), centerY)
           ctx.fillRect(originX - Style.space(3), centerY,
             Style.space(3), Style.spacing.hairline)
         }
@@ -2188,13 +2331,13 @@ Flickable {
           ? root.interpolatedMorphRect(root.pinnedDateKey)
           : ({ visible: false })
 
-        paintMorphGuide(ctx, presentRect, presentKey, Color.accent, 0.32)
+        paintMorphGuide(ctx, presentRect, presentKey, Color.accent, 0.32,
+          null, "")
         if (inspectionRect.visible)
           paintMorphGuide(ctx, inspectionRect, inspectionKey,
-            root.foreground, 0.18)
-        paintMorphHorizontalTicks(ctx, presentKey, Color.accent)
-        if (inspectionRect.visible)
-          paintMorphHorizontalTicks(ctx, inspectionKey, root.foreground)
+            root.foreground, 0.18, presentRect, presentKey)
+        resolveAndPaintMorphHorizontalTicks(ctx, presentKey,
+          inspectionRect.visible ? inspectionKey : "")
         paintMorphRuler(ctx, root.morphPinRulerGeometry())
         paintMorphCell(ctx, presentRect, "present")
         if (inspectionRect.visible) paintMorphCell(ctx, inspectionRect, "inspection")
@@ -2238,6 +2381,72 @@ Flickable {
         var inspectedColor = inspectionIndex !== root.presentCellIndex
           ? root.foreground
           : Color.accent
+        // Allocate dynamic age readings after the permanent five-year scale.
+        // Present has priority; inspection may use the other lane, and only
+        // its text disappears when neither lane is clean. Exact ticks remain.
+        var verticalPlacements = {}
+        var dynamicVerticalMarks = []
+        for (var dynamicIndex = 0; dynamicIndex < vertical.length; dynamicIndex++) {
+          if (vertical[dynamicIndex].current)
+            dynamicVerticalMarks.unshift(vertical[dynamicIndex])
+          else if (vertical[dynamicIndex].inspected)
+            dynamicVerticalMarks.push(vertical[dynamicIndex])
+        }
+        var occupiedVertical = [[], []]
+        for (var dynamicMarkIndex = 0;
+             dynamicMarkIndex < dynamicVerticalMarks.length;
+             dynamicMarkIndex++) {
+          var dynamicMark = dynamicVerticalMarks[dynamicMarkIndex]
+          var dynamicY = originY + root.rowOffset(dynamicMark.row)
+            + cellHeight / 2
+          var permanentCollision = false
+          for (var stationaryIndex = 0;
+               stationaryIndex < vertical.length;
+               stationaryIndex++) {
+            var stationaryMark = vertical[stationaryIndex]
+            if (stationaryMark.current || stationaryMark.inspected) continue
+            var stationaryY = originY + root.rowOffset(stationaryMark.row)
+              + cellHeight / 2
+            if (Math.abs(stationaryY - dynamicY)
+                < Style.font.caption + Style.space(2)) {
+              permanentCollision = true
+              break
+            }
+          }
+          var dynamicLane = permanentCollision ? 1 : 0
+          var dynamicCollision = false
+          for (var occupiedIndex = 0;
+               occupiedIndex < occupiedVertical[dynamicLane].length;
+               occupiedIndex++) {
+            if (Math.abs(occupiedVertical[dynamicLane][occupiedIndex] - dynamicY)
+                < Style.font.caption + Style.space(2)) {
+              dynamicCollision = true
+              break
+            }
+          }
+          if (dynamicCollision && dynamicLane === 0) {
+            dynamicLane = 1
+            dynamicCollision = permanentCollision
+            if (!dynamicCollision) {
+              for (var outerOccupiedIndex = 0;
+                   outerOccupiedIndex < occupiedVertical[1].length;
+                   outerOccupiedIndex++) {
+                if (Math.abs(occupiedVertical[1][outerOccupiedIndex] - dynamicY)
+                    < Style.font.caption + Style.space(2)) {
+                  dynamicCollision = true
+                  break
+                }
+              }
+            }
+          }
+          var verticalLabelVisible = !dynamicCollision || dynamicMark.current
+          verticalPlacements[dynamicMark.row] = {
+            lane: dynamicLane,
+            visible: verticalLabelVisible
+          }
+          if (verticalLabelVisible)
+            occupiedVertical[dynamicLane].push(dynamicY)
+        }
         ctx.textAlign = "right"
         for (var v = 0; v < vertical.length; v++) {
           if (morphing && (vertical[v].current || vertical[v].inspected)) continue
@@ -2250,26 +2459,18 @@ Flickable {
                 : Qt.darker(root.foreground, 1.8)))
           var verticalY = originY + root.rowOffset(vertical[v].row)
             + cellHeight / 2
-          var verticalOuterLane = false
-          if (vertical[v].inspected && !vertical[v].current) {
-            for (var compare = 0; compare < vertical.length; compare++) {
-              if (compare === v) continue
-              var compareY = originY + root.rowOffset(vertical[compare].row)
-                + cellHeight / 2
-              if (Math.abs(compareY - verticalY)
-                  < Style.font.caption + Style.space(2)) {
-                verticalOuterLane = true
-                break
-              }
-            }
-          }
+          var verticalPlacement = verticalPlacements[vertical[v].row]
+            || ({ lane: 0, visible: true })
+          var verticalOuterLane = verticalPlacement.lane === 1
           var verticalLabelX = originX
             - Style.space(verticalOuterLane ? 18 : 4)
-          if (verticalOuterLane) {
-            ctx.fillRect(verticalLabelX + Style.space(2), verticalY,
-              Style.space(15), Style.spacing.hairline)
+          if (verticalPlacement.visible) {
+            if (verticalOuterLane) {
+              ctx.fillRect(verticalLabelX + Style.space(2), verticalY,
+                Style.space(15), Style.spacing.hairline)
+            }
+            ctx.fillText(String(vertical[v].age), verticalLabelX, verticalY)
           }
-          ctx.fillText(String(vertical[v].age), verticalLabelX, verticalY)
           ctx.fillRect(originX - (vertical[v].fiveYear ? Style.space(3) : Style.space(1)),
             verticalY,
             vertical[v].fiveYear ? Style.space(3) : Style.space(1),
@@ -2310,34 +2511,74 @@ Flickable {
           horizontalTicks[h].width = tickWidth
         }
 
-        if (horizontalTicks.length === 2
-            && Math.abs(horizontalTicks[0].x - horizontalTicks[1].x)
-              < (horizontalTicks[0].width + horizontalTicks[1].width) / 2
-                + Style.space(2))
-          horizontalTicks[1].outerLane = true
+        // The permanent 1-12 scale owns lane zero. Dynamic labels begin in
+        // the first clean lane; inspection text yields only when both lanes
+        // are occupied, while its exact tick remains attached to the grid.
+        var occupiedHorizontal = [[], []]
+        for (var resolvedTick = 0;
+             resolvedTick < horizontalTicks.length;
+             resolvedTick++) {
+          var tickToResolve = horizontalTicks[resolvedTick]
+          var resolvedLane = horizontalLabelConflictsScale(ctx,
+            tickToResolve.x, tickToResolve.width) ? 1 : 0
+          var tickCollision = false
+          for (var laneIndex = 0;
+               laneIndex < occupiedHorizontal[resolvedLane].length;
+               laneIndex++) {
+            var occupiedTick = occupiedHorizontal[resolvedLane][laneIndex]
+            if (horizontalIntervalsOverlap(tickToResolve.x,
+                tickToResolve.width, occupiedTick.x, occupiedTick.width)) {
+              tickCollision = true
+              break
+            }
+          }
+          if (tickCollision && resolvedLane === 0) {
+            resolvedLane = 1
+            tickCollision = false
+            for (var outerLaneIndex = 0;
+                 outerLaneIndex < occupiedHorizontal[1].length;
+                 outerLaneIndex++) {
+              var outerTick = occupiedHorizontal[1][outerLaneIndex]
+              if (horizontalIntervalsOverlap(tickToResolve.x,
+                  tickToResolve.width, outerTick.x, outerTick.width)) {
+                tickCollision = true
+                break
+              }
+            }
+          }
+          tickToResolve.outerLane = resolvedLane === 1
+          tickToResolve.labelVisible = !tickCollision || tickToResolve.current
+          if (tickToResolve.labelVisible)
+            occupiedHorizontal[resolvedLane].push({
+              x: tickToResolve.x,
+              width: tickToResolve.width
+            })
+        }
 
         for (var paintedTick = 0; paintedTick < horizontalTicks.length; paintedTick++) {
           var horizontalTick = horizontalTicks[paintedTick]
           var tickY = originY - Style.space(horizontalTick.outerLane ? 20 : 10)
-          ctx.fillStyle = Color.popups.background
-          ctx.fillRect(horizontalTick.x - horizontalTick.width / 2,
-            tickY - Style.space(6), horizontalTick.width, Style.space(12))
+          if (horizontalTick.labelVisible) {
+            ctx.fillStyle = Color.popups.background
+            ctx.fillRect(horizontalTick.x - horizontalTick.width / 2,
+              tickY - Style.space(6), horizontalTick.width, Style.space(12))
+            ctx.fillStyle = horizontalTick.current ? Color.accent : root.foreground
+            ctx.textAlign = "center"
+            ctx.fillText(horizontalTick.label, horizontalTick.x, tickY)
+            if (horizontalTick.outerLane)
+              ctx.fillRect(horizontalTick.x, tickY + Style.space(6),
+                Style.spacing.hairline,
+                Math.max(0, originY - Style.space(6)
+                  - (tickY + Style.space(6))))
+          }
           ctx.fillStyle = horizontalTick.current ? Color.accent : root.foreground
-          ctx.textAlign = "center"
-          ctx.fillText(horizontalTick.label, horizontalTick.x, tickY)
-          if (horizontalTick.outerLane)
-            ctx.fillRect(horizontalTick.x, tickY + Style.space(6),
-              Style.spacing.hairline,
-              Math.max(0, originY - Style.space(6)
-                - (tickY + Style.space(6))))
           ctx.fillRect(horizontalTick.x, originY - Style.space(6),
             Style.spacing.hairline, Style.space(6))
         }
 
-        // Present and ephemeral inspection reach the axes. The pin keeps its
-        // secondary axis labels and ticks, but the orthogonal ruler is its only
-        // full connecting geometry; a second pin-to-axis L would obscure the
-        // present-to-pin measurement.
+        // Present and ephemeral inspection reach the axes. The hold stays out
+        // of those lanes; its orthogonal ruler is the single relationship to
+        // present, avoiding a competing second pin-to-axis L.
         var guideCandidates = morphing ? [] : [
           { index: root.presentCellIndex, current: true, pinned: false },
           { index: inspectionIndex, current: false, pinned: false }
