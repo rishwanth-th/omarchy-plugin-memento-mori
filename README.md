@@ -14,7 +14,7 @@ without leaving the native panel.
 - 4,000 weeks is the default horizon, not a productivity target.
 - Weeks and Months are two views of the same exact birth-anchored timeline.
 - A compact, scrollable attention window keeps the present legible while the
-  LIFE rail retains whole-horizon context.
+  aligned LIFE rail retains whole-horizon context.
 - Lived, present, and remaining time inherit the active Omarchy theme.
 - Hover resolves a cell to its exact date interval and coordinates on both
   axes, and continuously measures its active projection distance from now,
@@ -71,6 +71,9 @@ omarchy plugin enable rishwanth.memento-mori --section center
 Inside Memento Mori, scroll or use the arrow keys to move the attention
 window. Click `M →`, or press `P`, to toggle between Weeks and Months. Press
 `M` to return to Calendar.
+Press `G` to open or close the session-only semantic gap rhythm. Its visible
+channels still belong to the nearest cell, so pointer inspection remains
+continuous across the negative space.
 Press `A`, or triple-click an otherwise inert part of the grid, to alternate
 between the calm projection seam and the exact date-overlap interference
 animation. The calm seam remains the startup default. Press `T` or Space to
@@ -123,8 +126,9 @@ omarchy-shell rishwanth.memento-mori interactionState
 ```
 
 `interactionState` is a read-only runtime probe for keyboard cursor, hover,
-pin, projection, gap-lens, and viewport state. It is useful when a QML hot
-reload appears to have retained an older component instance.
+pin, projection and animation state, gap lens, render-layer activity, shared
+frame geometry, and viewport state. It is useful when a QML hot reload appears
+to have retained an older component instance.
 
 The implementation is deliberately small:
 

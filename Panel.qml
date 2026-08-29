@@ -270,6 +270,7 @@ Panel {
       morphProgress: lifeView.morphProgress,
       morphGeometryProgress: lifeView.morphGeometryProgress(),
       projectionMorphing: lifeView.projectionMorphing,
+      dateOverlapEnabled: lifeView.dateOverlapEnabled,
       morphInspectionDateKey: lifeView.morphInspectionDateKey,
       morphPresentX: morphPresentRect.visible ? morphPresentRect.x : -1,
       morphPresentY: morphPresentRect.visible ? morphPresentRect.y : -1,

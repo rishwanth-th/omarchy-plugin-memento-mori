@@ -63,10 +63,12 @@ tiny `M →` cue is an action. The first, present, and last visible ages appear
 alongside every five-year landmark. Wheel and keyboard navigation slide the
 window one life-year at a time, and returning to now restores the default.
 
-Calendar defines the panel dimensions. Weeks and Months share its exact frame,
-Canvas budget, grid envelope, and vertical row stride, so entering LIFE or
-changing resolution moves neither the widget nor the grid. The rail supplies
-global horizon context while the grid remains a movable local view.
+Calendar defines the stable panel dimensions. LIFE uses the same panel frame
+with a deliberately wider temporal field: Weeks and Months share one grid
+envelope and vertical row stride, and the LIFE rail track aligns exactly with
+that envelope. Entering LIFE or changing resolution therefore moves neither
+the widget nor the temporal frame. The rail supplies global horizon context
+while the grid remains a movable 31-life-year local view.
 
 ## Progress grammar
 
@@ -86,8 +88,10 @@ birth-anchored interval remains there (`20–26 AUG 2026`). The inspected
 axes. Past, present, and future are not repeated in text because the cells and
 legend already encode that state.
 
-Crossing the tiny gaps between cells preserves the last hovered interval,
-avoiding a flash back to the present. Hover receives a crisp outline distinct
+Visible gaps remain truthful negative space, but are not dead interaction
+zones. Midpoint ownership assigns every point in a channel to its nearest
+cell, so crossing a semantic gap advances inspection continuously instead of
+pausing or flashing back to present. Hover receives a crisp outline distinct
 from the filled present cell; V1 does not imply click or persistent selection.
 
 Opening LIFE begins from present even when the popup appears beneath a parked
@@ -182,10 +186,10 @@ uses an open-hand cursor at rest and a closed hand while moving; no separate
 drag handle or persistent instruction is added.
 
 Horizontal keyboard traversal preserves one interval per deliberate press.
-During key repeat, its cadence is scaled by rendered cell stride, so traversing
-Months covers approximately the same visual distance per second as Weeks
-instead of racing across the twelve-column projection. Vertical movement
-remains one exact life-year row in either projection.
+During key repeat, its cadence is scaled by the full rendered cell stride, so
+Weeks and Months traverse at the same target visual speed despite their
+different column widths. Vertical movement remains one exact life-year row in
+either projection.
 
 One exact date may be held at a time. Retargeting replaces it, leaving LIFE
 clears it, and projection changes map it into the containing week or month
@@ -211,14 +215,24 @@ action. The lens splits intervals only at their real shared dates, holds their
 interference at a stable midpoint, and resolves in `520ms`. It is never
 persisted; the calm seam remains the startup default.
 
+In both styles, the active coordinate is one synchronized atom. Present,
+inspection, and the held endpoint each derive their displayed cell, axis
+ticks, guides, and local ruler from the same interpolation progress. This
+prevents guides from arriving before the point they locate. It is a foundation
+for the projection transition, not the final aesthetic treatment of the whole
+grid seam.
+
 ## Implementation boundary
 
 - [Keyboard and interaction manual](keyboard.md) is the source of truth for
   active bindings, inherited Omarchy routing, and future shortcut allocation.
 - `horizonWeeks = 4000` is the default and core model.
 - Exact birth date and horizon override are local widget settings.
-- One `Canvas` renders the dense grid; date, projection, and hit-test math
-  remains outside QML object trees where practical.
+- One structural `Canvas` renders the dense grid and a separate lightweight
+  interaction `Canvas` renders hover, focus, pins, axes, guides, rulers, and
+  labels. Pointer and keyboard inspection must not repaint the dense field.
+  Date, projection, and hit-test math remains outside QML object trees where
+  practical.
 - The fixed Canvas paints only the absolute rows in the current attention
   window; scrolling changes that window without resizing the panel.
 - Motion must preserve stable geometry and respect reduced-motion settings.

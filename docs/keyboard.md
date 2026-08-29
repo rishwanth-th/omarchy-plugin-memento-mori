@@ -103,6 +103,8 @@ fields.
 
 - Scroll over the grid to move the attention viewport by one life-year.
 - Hover a cell to inspect its exact interval and coordinate guides.
+- Visible semantic gaps belong to the nearest cell at their midpoint, so
+  pointer inspection remains continuous while the spacing stays visible.
 - Click a non-present cell to pin it, click another to retarget the one pin,
   or click the pinned cell or present to clear it.
 - Hover the pin, either orthogonal ruler leg, or the LIFE span to recall the
@@ -134,15 +136,17 @@ fields.
 - `T` and Space restore keyboard inspection to present and disarm inherited
   hover. Deliberate pointer movement hands inspection back to hover.
 - One horizontal press always moves one projected interval. Held-key repeat is
-  paced by rendered cell distance, so Months and Weeks traverse the grid at a
-  coherent visual speed despite their different column widths.
+  paced by full rendered cell stride, so Months and Weeks share the same
+  target visual speed despite their different column widths.
+- Pointer and keyboard inspection repaint only the interaction layer; the
+  dense structural grid repaints only when its geometry or state changes.
 - Vertical movement remains one life-year row per press in both projections.
 
 ## Current key budget
 
 The following constraints apply before adding another interaction:
 
-- `M`, `T`, `P`, and `A` are active LIFE mnemonics.
+- `M`, `T`, `P`, `A`, and `G` are active LIFE mnemonics.
 - `Escape`, `Tab`, arrows, `H/J/K/L`, `Enter`, `Space`, and `X` are intercepted
   by the shared catcher before ordinary text-key routing.
 - `H/J/K/L` and arrows now belong to one LIFE inspection cursor. The viewport
@@ -201,7 +205,8 @@ DAZ-277 currently implements this deliberately bounded grammar:
    or LIFE span recalls its full delta through the same inspection readout.
 10. Opening and T/Space begin from present with hover disarmed; pointer motion
     must deliberately reclaim inspection. Horizontal repeat cadence is
-    projection-aware so Months does not visually outrun Weeks.
+    derived from full rendered stride so Months does not visually outrun
+    Weeks.
 
 `X` remains consumed and inert. No multi-pin accumulation, persisted state, or
 personal-history annotation is part of this proof of concept.

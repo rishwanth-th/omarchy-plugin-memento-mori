@@ -253,8 +253,9 @@ persistence. That is a separately justified personal-history plugin.
 
 ## Workstream 4 — Grid rhythm and contextual spacing
 
-**Status:** optimized negative-space lens under live review, tracked in
-DAZ-279. The active branch remains separate from `main`.
+**Status:** negative-space lens, shared temporal frame, direct inspection, and
+synchronized coordinate progression under live review, tracked in DAZ-279.
+The active branch remains separate from `main`.
 
 Tim Urban's five-year row separation may make age groups more immediately
 legible. Because it changes geometry rather than decoration, it must be tested
@@ -289,12 +290,26 @@ that precision.
    paint. Calendar and LIFE interaction became unacceptably slow, especially
    during projection motion. The live plugin was restored to `main` before the
    geometry was rebuilt.
-6. **Optimized gap lens — active.** Closed-form boundary counts make cell
+6. **Optimized gap lens — `10ca4e5`.** Closed-form boundary counts make cell
    geometry constant-time. Projection channels are now slightly thinner than
    five-year channels, reversing the previous hierarchy while preserving one
    continuous field. `G` or the `toggleGaps` IPC entry point opens and closes
    the rhythm over a short session-only transition. Present remains the sole
    accent and the held ruler remains foreground.
+7. **Shared temporal frame — `b0fb136`.** The panel gains a restrained amount
+   of breathing room while Calendar remains its stable size contract. The grid
+   and LIFE rail now occupy the same exact horizontal span; the reviewed theme
+   renders both at `437px` while preserving 31 complete life-year rows.
+8. **Direct inspection — `3027b59`.** Every semantic channel uses nearest-cell
+   midpoint ownership, removing sticky dead space without visually closing the
+   gaps. Dense structure and lightweight interaction render separately, and
+   horizontal repeat derives from full rendered stride so Weeks and Months
+   share one target visual speed.
+9. **Synchronized coordinate atom — `de9f7f5`.** During either projection
+   style, each active date drives its displayed point, axis ticks, guides, and
+   held ruler from one progress value. This removes the observed lead where
+   rulers reached the destination before their point. Broader aesthetic
+   composition of the Weeks-Months seam remains the next focused experiment.
 
 No specimen adds alternating fills, a second accent, fixed four-week months,
 or decorative animation.
@@ -311,14 +326,17 @@ The workstream follows the method established by the held ruler:
 The optimized specimen lets the existing projection seam resolve twelve Weeks
 phrases into four Month quarters while the five-year bands remain anchored.
 The gap toggle itself makes the temporal phrases breathe out of, or settle
-back into, the uniform field without changing the panel, grid width, visible
-31-row context, exact date, or pin identity. At the reviewed theme scale the
+back into, the uniform field without changing the panel during interaction,
+the visible 31-row context, exact date, or pin identity. The shared temporal
+frame intentionally widens the earlier grid once, then remains invariant. At
+the reviewed theme scale its grid and LIFE track are both `437px`; the
 open-state projection channel is `3.75`, the five-year channel is `4`, and the
 open and closed grid heights differ by only `0.03`.
 
-Crossing a semantic channel retains the existing no-flicker inspection
-contract; direct physical pointer review must decide whether that pause feels
-tactile or sticky before the behavior is promoted.
+Crossing a semantic channel now transfers ownership at the nearest-cell
+midpoint. The negative space stays visible, but no longer pauses inspection.
+Direct physical pointer review must decide whether Weeks now feels as slick
+and tactile as Months before the behavior is promoted.
 
 ### Questions
 
@@ -337,7 +355,8 @@ tactile or sticky before the behavior is promoted.
 
 ### Reject if
 
-- The panel changes dimensions or useful context decreases.
+- The panel changes dimensions during page, projection, or gap transitions,
+  exceeds the fitted screen budget, or useful context decreases.
 - Weeks imply fixed four-week or exact calendar months.
 - Existing motion must distort exact temporal coordinates to accommodate the
   gaps.
