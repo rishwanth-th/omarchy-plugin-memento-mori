@@ -14,7 +14,8 @@ without leaving the native panel.
 - 4,000 weeks is the default horizon, not a productivity target.
 - Weeks and Months are two views of the same exact birth-anchored timeline.
 - A compact, scrollable attention window keeps the present legible while the
-  left-aligned, label-safe LIFE rail retains whole-horizon context.
+  full-span LIFE rail retains whole-horizon context and engraves its terminal
+  percentage into the shared temporal frame.
 - Lived, present, and remaining time inherit the active Omarchy theme.
 - Hover resolves a cell to its exact date interval and coordinates on both
   axes, and continuously measures its active projection distance from now,

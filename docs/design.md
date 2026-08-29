@@ -65,11 +65,12 @@ window one life-year at a time, and returning to now restores the default.
 
 Calendar defines the stable panel dimensions. LIFE uses the same panel frame
 with a deliberately wider temporal field: Weeks and Months share one grid
-envelope and vertical row stride. The LIFE rail shares the field's left edge,
-then yields its right end to the terminal percentage instead of drawing under
-copy. Entering LIFE or changing resolution therefore moves neither the widget
-nor the temporal frame. The rail supplies global horizon context while the
-grid remains a movable 32-life-year local view at the reviewed theme scale.
+envelope and vertical row stride. The LIFE rail occupies that field's full
+horizontal span. Its terminal percentage sits inside a small background
+knockout, reading as an engraved value rather than shortening the underlying
+measure. Entering LIFE or changing resolution therefore moves neither the
+widget nor the temporal frame. The rail supplies global horizon context while
+the grid remains a movable 32-life-year local view at the reviewed theme scale.
 
 ## Progress grammar
 
@@ -107,6 +108,11 @@ accent tick remains rather than drawing competing labels in one place.
 The twelve-part horizontal scale is a stationary reference shared by Weeks
 and Months. During a projection change, active source and destination ticks
 dissolve at their own fixed coordinates instead of sliding across that scale.
+Permanent scale labels own the inner axis lane. Present and inspection use the
+first clean dynamic lane with a short leader when displaced. Present has
+priority; if the permanent scale and present already consume both lanes, only
+the lower-priority inspection text yields while its exact tick, guide, cell,
+and full header reading remain.
 Hairline guides connect each point only upward to the horizontal axis and
 leftward to the vertical axis; they never continue into later columns or
 lower ages. Quiet edge arrows disclose whether earlier or later rows remain.
@@ -155,12 +161,13 @@ travel right `9M`, rise `2Y`, and terminate at `15M`. Its route from accented
 present to neutral pin communicates direction; signs and BEFORE/AFTER prose
 would repeat what the geometry already says.
 
-Exact present/inspection coordinates merge. When their text would collide,
-the present label stays nearest its axis while only the inspection label moves
-to a second lane with a short leader back to its exact tick. The held ruler is
-therefore free of axis-label collisions. Its neutral outline, engraved values,
-and line strengthen together only while the held point, either ruler leg, or
-the LIFE span is inspected.
+Exact present/inspection coordinates merge. Near collisions use the same
+two-lane policy as the permanent scales: present takes the first clean lane,
+inspection takes the other, and inspection text alone disappears if neither
+is clean. The exact inspection tick and header reading remain, so suppression
+never hides the inspected date. The held ruler is therefore free of axis-label
+collisions. Its neutral outline, engraved values, and line strengthen together
+only while the held point, either ruler leg, or the LIFE span is inspected.
 
 Labels earn their space from rendered geometry. Both component values interrupt
 the center of their own hairline with a small background knockout; the vertical
@@ -225,10 +232,14 @@ inspection, and the held endpoint each derive their displayed cell, guides,
 and local ruler from the same interpolation progress. Horizontal source and
 destination ticks stay fixed and cross-dissolve around that traveling atom.
 Five-year and quarter channels are masked back over moving content as a stable
-scaffold; Weeks-only life-month channels emerge or recede globally at their
-fixed positions. This prevents reference geometry from appearing to chase the
-point it locates. It remains a foundation for focused aesthetic iteration on
-both projection styles.
+scaffold. Ordinary Month boundaries and Weeks-only life-month channels
+cross-dissolve at their own fixed positions instead of traveling with cells.
+In the exact-overlap lens, moving future outlines are omitted and lived
+fragments are confined to a narrow fold around the present threshold; the
+effect retains exact-date depth without turning the whole past into moire.
+This prevents reference geometry from appearing to chase the point it locates
+and remains a foundation for focused aesthetic iteration on both projection
+styles.
 
 ## Implementation boundary
 

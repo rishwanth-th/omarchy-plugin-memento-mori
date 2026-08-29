@@ -44,8 +44,9 @@ month contains four weeks.
 
 1. The source topology recedes in place before the destination resolves in
    place; structural channels do not travel across the field.
-2. Five-year and quarter channels remain a fixed scaffold. Weeks-only
-   life-month channels emerge or recede globally at their fixed positions.
+2. Five-year and quarter channels remain a fixed scaffold. Ordinary Month
+   boundaries and Weeks-only life-month channels cross-dissolve globally at
+   their own fixed positions.
 3. The active point, guide, and held ruler may travel because they represent
    one exact date; structural axes and their annotations remain stationary.
 4. No fixed four-week grouping is shown: both endpoints retain their exact
@@ -68,8 +69,11 @@ therefore the startup behavior and primary product expression.
 
 The DAZ-274 refinement precomputes every real date-overlap fragment, eases the
 fragments into a stationary midpoint, holds that structure for roughly
-`104ms`, and then resolves it. It is educational and visually distinctive,
-but deliberately subordinate to the calm exchange.
+`104ms`, and then resolves it. Moving future outlines are omitted and the
+visible lived fragments are restricted to the present threshold, making the
+relationship read as a local temporal fold instead of a full-field moire. It
+is educational and visually distinctive, but deliberately subordinate to the
+calm exchange.
 
 - `A` alternates the motion style for subsequent `P` projection changes.
 - A triple-click on an otherwise inert grid region provides the pointer
@@ -312,15 +316,25 @@ that precision.
    rulers reached the destination before their point. Broader aesthetic
    composition of the Weeks-Months seam remains the next focused experiment.
 10. **Anchored reference frame — `3a3c506`.** Exact rail/grid width equality is
-    rejected because the terminal percentage has a different spatial
-    obligation from the grid. The rail now shares the field's left edge and
-    reserves its right label. The 1–12 scale and source/destination coordinate
-    ticks stay fixed; five-year and quarter channels remain a stationary
-    scaffold while Weeks-only phrases breathe globally. The default traveling
-    wipe becomes an in-place resolution exchange, while the active cell,
-    guides, and held ruler preserve their coherent transfer. A 32-row frame
-    gives the `437 × 267.92` grid a `1.631` aspect ratio without increasing
+    was initially rejected because the terminal percentage appeared to need a
+    separate spatial obligation. The rail shared the field's left edge and
+    reserved its right label. The 1–12 scale and source/destination coordinate
+    ticks became fixed; five-year and quarter channels became a stationary
+    scaffold while Weeks-only phrases breathed globally. The default traveling
+    wipe became an in-place resolution exchange, while the active cell,
+    guides, and held ruler preserved their coherent transfer. A 32-row frame
+    gave the `437 × 267.92` grid a `1.631` aspect ratio without increasing
     width or abandoning Omarchy's exact vertical centering.
+11. **Engraved frame and collision lanes — `0358002`.** Review showed that the
+    shortened rail paid more compositional cost than the percentage required.
+    The `437px` rail now restores exact frame equality while its percentage
+    interrupts the terminal span with a background knockout. Permanent axis
+    scales retain their lane; present and inspection allocate two dynamic
+    lanes by text-envelope collision, with lower-priority inspection text
+    yielding only when both are occupied. Ordinary Month boundaries now stay
+    fixed through projection motion, and the optional exact-overlap lens
+    confines moving lived fragments to a narrow present-time fold rather than
+    animating a full-field interference texture.
 
 No specimen adds alternating fills, a second accent, fixed four-week months,
 or decorative animation.
@@ -340,8 +354,8 @@ The gap toggle itself makes the temporal phrases breathe out of, or settle
 back into, the uniform field without changing the panel during interaction,
 the visible context, exact date, or pin identity. The shared temporal frame
 intentionally widens the earlier grid once, then remains invariant. At the
-reviewed theme scale the grid is `437px`, the label-safe LIFE track is
-`411.05px`, and 32 visible rows produce a `267.92px` grid height. The
+reviewed theme scale the grid and engraved LIFE track are both `437px`, and 32
+visible rows produce a `267.92px` grid height. The
 open-state projection channel is `3.75`, the five-year channel is `4`, and the
 open and closed grid heights remain effectively identical.
 
