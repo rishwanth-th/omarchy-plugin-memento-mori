@@ -1754,11 +1754,12 @@ Flickable {
 
       function paintProjectionSeam(ctx, t) {
         // Structural channels are a reference frame, not a traveling object.
-        // Let the source topology recede in place before the destination
-        // resolves in place. The small, very-low-opacity overlap avoids a hard
-        // blackout without recreating the 52-by-12 moire fan.
-        var sourceOpacity = 1 - smoothUnit(t / 0.55)
-        var targetOpacity = smoothUnit((t - 0.45) / 0.55)
+        // Source and destination cross-dissolve in place with complementary
+        // opacity, so something is always substantially visible instead of
+        // both topologies passing through a near-blank trough together.
+        var eased = smoothUnit(t)
+        var sourceOpacity = 1 - eased
+        var targetOpacity = eased
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
           sourceOpacity, -1, false, true)
         paintProjection(ctx, root.projection, root.cells,
@@ -1810,10 +1811,13 @@ Flickable {
         if (t < arrivalEnd) interference = smoothUnit(t / arrivalEnd)
         else if (t <= resolveStart) interference = 1
         else interference = 1 - smoothUnit((t - resolveStart) / (1 - resolveStart))
-        // Keep the exact-date depth cue local to the present threshold. A
-        // moving field of every past/future edge reads as moire; a narrow
-        // lived-time fold says where the projection is resolving.
-        var wireOpacity = 0.012 * interference
+        // Keep the exact-date depth cue weighted toward the present
+        // threshold without erasing it: a wide moving field of every
+        // past/future edge reads as moire, but cutting it to near-zero lost
+        // the "3D time folding" cue entirely. A moderate wire opacity and a
+        // wider fold band restore a visible fold while staying subordinate
+        // to the calm exchange.
+        var wireOpacity = 0.05 * interference
         var fragmentOpacity = 0.56 * interference
 
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
@@ -1830,7 +1834,7 @@ Flickable {
         var presentCenterY = presentRect.visible
           ? presentRect.y + presentRect.height / 2
           : -1
-        var presentFoldRadius = root.cellHeight() * 1.6
+        var presentFoldRadius = root.cellHeight() * 3.2
         for (var i = 0; i < root.morphGeometry.length; i++) {
           var geometry = root.morphGeometry[i]
           var sourceRect = geometry.sourceRect
