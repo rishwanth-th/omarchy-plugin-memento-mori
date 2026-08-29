@@ -258,12 +258,25 @@ Panel {
   }
 
   function interactionState() {
+    var morphPresentRect = lifeView.interpolatedMorphRect(
+      Model.keyForDate(root.today))
+    var morphInspectionRect = lifeView.interpolatedMorphRect(
+      lifeView.morphInspectionDateKey)
+    var morphPinRect = lifeView.interpolatedMorphRect(lifeView.pinnedDateKey)
     return JSON.stringify({
       page: root.panelPage,
       projection: lifeView.projection,
       morphFromProjection: lifeView.morphFromProjection,
       morphProgress: lifeView.morphProgress,
+      morphGeometryProgress: lifeView.morphGeometryProgress(),
       projectionMorphing: lifeView.projectionMorphing,
+      morphInspectionDateKey: lifeView.morphInspectionDateKey,
+      morphPresentX: morphPresentRect.visible ? morphPresentRect.x : -1,
+      morphPresentY: morphPresentRect.visible ? morphPresentRect.y : -1,
+      morphInspectionX: morphInspectionRect.visible ? morphInspectionRect.x : -1,
+      morphInspectionY: morphInspectionRect.visible ? morphInspectionRect.y : -1,
+      morphPinX: morphPinRect.visible ? morphPinRect.x : -1,
+      morphPinY: morphPinRect.visible ? morphPinRect.y : -1,
       gapRhythmEnabled: lifeView.gapRhythmEnabled,
       gapRhythmProgress: lifeView.gapRhythmProgress,
       gapRhythmAnimating: lifeView.gapRhythmAnimating,

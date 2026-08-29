@@ -27,6 +27,7 @@ Flickable {
   property var morphGeometry: []
   property var morphSourceRects: []
   property var morphTargetRects: []
+  property string morphInspectionDateKey: ""
   property string morphFromLivedLabel: ""
   property string morphFromRemainingLabel: ""
   property real morphProgress: 1
@@ -642,11 +643,13 @@ Flickable {
     morphTargetRects = []
     morphFromLivedLabel = ""
     morphFromRemainingLabel = ""
+    morphInspectionDateKey = ""
     morphUsesDateOverlap = false
     requestStructurePaint()
   }
 
   function finishProjectionMorph() {
+    if (!projectionMorphing && morphFromProjection === "") return
     if (projectionMorphAnimation.running) projectionMorphAnimation.stop()
     morphProgress = 1
     clearProjectionMorph()
@@ -745,6 +748,7 @@ Flickable {
     finishProjectionMorph()
     var sourceProjection = projection
     var sourceCells = cells
+    var sourceInspectionDateKey = activeInspectionDateKey
     morphFromLivedLabel = projectionCountLabel(sourceCells, sourceProjection, false)
     morphFromRemainingLabel = projectionCountLabel(sourceCells, sourceProjection, true)
     preparingMorph = true
@@ -755,6 +759,7 @@ Flickable {
 
     morphFromProjection = sourceProjection
     morphFromCells = sourceCells
+    morphInspectionDateKey = sourceInspectionDateKey
 
     if (dateOverlapEnabled) {
       var sourceColumns = columnsFor(sourceProjection)
@@ -821,6 +826,88 @@ Flickable {
     }
   }
 
+  function coordinateRectForDate(mode, intervalCells, dateKey) {
+    var index = Model.projectionIndexForDate(intervalCells, dateKey)
+    if (index < firstVisibleIndexFor(mode)
+        || index >= lastVisibleIndexFor(mode, intervalCells))
+      return { visible: false, index: -1 }
+    var rect = segmentRect(mode, index, 0, 1)
+    rect.visible = true
+    rect.index = index
+    return rect
+  }
+
+  function morphGeometryProgress() {
+    var t = Math.max(0, Math.min(1, morphProgress))
+    if (!morphUsesDateOverlap) return t
+    var arrivalEnd = 0.40
+    var resolveStart = 0.60
+    if (t < arrivalEnd)
+      return 0.5 * smoothProgress(t / arrivalEnd)
+    if (t <= resolveStart) return 0.5
+    return 0.5 + 0.5 * smoothProgress((t - resolveStart)
+      / (1 - resolveStart))
+  }
+
+  function smoothProgress(value) {
+    var x = Math.max(0, Math.min(1, value))
+    return x * x * (3 - 2 * x)
+  }
+
+  function interpolatedMorphRect(dateKey) {
+    if (!projectionMorphing || !dateKey) return { visible: false, index: -1 }
+    var source = coordinateRectForDate(morphFromProjection,
+      morphFromCells, dateKey)
+    var target = coordinateRectForDate(projection, cells, dateKey)
+    if (!source.visible || !target.visible) return target.visible ? target : source
+    var t = morphGeometryProgress()
+    return {
+      visible: true,
+      index: t < 0.5 ? source.index : target.index,
+      x: source.x + (target.x - source.x) * t,
+      y: source.y + (target.y - source.y) * t,
+      width: source.width + (target.width - source.width) * t,
+      height: source.height + (target.height - source.height) * t
+    }
+  }
+
+  function rulerGeometryForRects(presentRect, targetRect) {
+    if (!presentRect || !targetRect || presentRect.visible === false
+        || targetRect.visible === false || presentRect.x === undefined
+        || targetRect.x === undefined) return { visible: false }
+    var presentCenterX = presentRect.x + presentRect.width / 2
+    var presentCenterY = presentRect.y + presentRect.height / 2
+    var targetCenterX = targetRect.x + targetRect.width / 2
+    var targetCenterY = targetRect.y + targetRect.height / 2
+    if (Math.abs(targetCenterX - presentCenterX) < 0.01
+        && Math.abs(targetCenterY - presentCenterY) < 0.01)
+      return { visible: false }
+    var horizontalLength = Math.abs(targetCenterX - presentCenterX)
+    var verticalLength = Math.abs(targetCenterY - presentCenterY)
+    return {
+      visible: true,
+      startX: presentCenterX,
+      startY: presentCenterY,
+      elbowX: targetCenterX,
+      elbowY: presentCenterY,
+      endX: targetCenterX,
+      endY: targetCenterY,
+      horizontalLength: horizontalLength,
+      verticalLength: verticalLength,
+      totalLength: horizontalLength + verticalLength,
+      horizontalDirection: horizontalLength < 0.01
+        ? 0 : (targetCenterX > presentCenterX ? 1 : -1),
+      verticalDirection: verticalLength < 0.01
+        ? 0 : (targetCenterY > presentCenterY ? 1 : -1)
+    }
+  }
+
+  function morphPinRulerGeometry() {
+    return rulerGeometryForRects(
+      interpolatedMorphRect(Model.keyForDate(today)),
+      interpolatedMorphRect(pinnedDateKey))
+  }
+
   function pinRulerGeometryForIndex(targetIndex) {
     var first = firstVisibleIndex()
     var last = lastVisibleIndex()
@@ -830,40 +917,10 @@ Flickable {
 
     var presentRect = segmentRect(projection, presentCellIndex, 0, 1)
     var pinRect = segmentRect(projection, targetIndex, 0, 1)
-    var presentCenterX = presentRect.x + presentRect.width / 2
-    var presentCenterY = presentRect.y + presentRect.height / 2
-    var pinCenterX = pinRect.x + pinRect.width / 2
-    var pinCenterY = pinRect.y + pinRect.height / 2
-    var horizontalDirection = pinCenterX === presentCenterX
-      ? 0 : (pinCenterX > presentCenterX ? 1 : -1)
-    var verticalDirection = pinCenterY === presentCenterY
-      ? 0 : (pinCenterY > presentCenterY ? 1 : -1)
-    var startX = presentCenterX
-    var startY = presentCenterY
-    var elbowX = pinCenterX
-    var elbowY = presentCenterY
-    var endX = pinCenterX
-    var endY = pinCenterY
-
     // Center-to-center geometry keeps even adjacent intervals measurable.
     // The hairline passes through the two endpoint cells without recoloring
     // them, then crosses only the present row and the pin column.
-    var horizontalLength = Math.abs(elbowX - startX)
-    var verticalLength = Math.abs(endY - elbowY)
-    return {
-      visible: true,
-      startX: startX,
-      startY: startY,
-      elbowX: elbowX,
-      elbowY: elbowY,
-      endX: endX,
-      endY: endY,
-      horizontalLength: horizontalLength,
-      verticalLength: verticalLength,
-      totalLength: horizontalLength + verticalLength,
-      horizontalDirection: horizontalDirection,
-      verticalDirection: verticalDirection
-    }
+    return rulerGeometryForRects(presentRect, pinRect)
   }
 
   function pinRulerGeometry() {
@@ -1559,7 +1616,8 @@ Flickable {
       width: parent.width
       height: root.compactCanvasHeight
 
-      function paintCell(ctx, cell, rect, opacity, hovered, pinned, keyboardFocused) {
+      function paintCell(ctx, cell, rect, opacity, hovered, pinned,
+                         keyboardFocused, suppressPresent) {
         if (!cell || !rect || opacity <= 0) return
         var alpha = Math.max(0, Math.min(1, opacity))
         var accent = Color.accent
@@ -1568,7 +1626,7 @@ Flickable {
           ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
             root.foreground.b, 0.34 * alpha)
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
-        } else if (cell.status === "current") {
+        } else if (cell.status === "current" && suppressPresent !== true) {
           // Calendar already establishes the global present. LIFE adds its
           // local coordinate, so the cell resolves from quiet to exact rather
           // than replaying time from birth.
@@ -1620,7 +1678,7 @@ Flickable {
       }
 
       function paintProjection(ctx, mode, intervalCells, opacity, hoveredIndex,
-                               includeInteraction) {
+                               includeInteraction, suppressPresent) {
         if (!intervalCells || opacity <= 0) return
         var first = root.firstVisibleIndexFor(mode)
         var last = root.lastVisibleIndexFor(mode, intervalCells)
@@ -1632,7 +1690,8 @@ Flickable {
             paintsInteraction && currentProjection && root.hasPin
               && index === root.pinnedIndex,
             paintsInteraction && currentProjection && root.keyboardInspecting
-              && index === root.keyboardIndex)
+              && index === root.keyboardIndex,
+            suppressPresent === true)
       }
 
       function paintInteractionCell(ctx, index, hovered, pinned, keyboardFocused) {
@@ -1713,14 +1772,15 @@ Flickable {
         ctx.beginPath()
         ctx.rect(0, 0, Math.max(0, seamX), height)
         ctx.clip()
-        paintProjection(ctx, root.projection, root.cells, 1, -1)
+        paintProjection(ctx, root.projection, root.cells, 1, -1, false, true)
         ctx.restore()
 
         ctx.save()
         ctx.beginPath()
         ctx.rect(seamX, 0, Math.max(0, width - seamX), height)
         ctx.clip()
-        paintProjection(ctx, root.morphFromProjection, root.morphFromCells, 1, -1)
+        paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
+          1, -1, false, true)
         ctx.restore()
 
         // Mark the local change in resolution without implying that a week
@@ -1744,9 +1804,18 @@ Flickable {
         }
       }
 
-      function paintOverlapFragment(ctx, sourceCell, targetCell, rect, opacity) {
+      function paintOverlapFragment(ctx, sourceCell, targetCell, rect, opacity,
+                                    suppressPresent) {
         if (!sourceCell || !targetCell || opacity <= 0) return
         var isPresent = sourceCell.status === "current" && targetCell.status === "current"
+        if (isPresent && suppressPresent === true) {
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, opacity * 0.28)
+          ctx.lineWidth = Style.spacing.hairline
+          ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
+            Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
+          return
+        }
         var color = isPresent ? Color.accent : root.foreground
         var alpha = isPresent ? Math.min(1, opacity * 1.18) : opacity
 
@@ -1765,14 +1834,7 @@ Flickable {
       function paintDateOverlapMorph(ctx, t) {
         var arrivalEnd = 0.40
         var resolveStart = 0.60
-        var geometryProgress
-        if (t < arrivalEnd)
-          geometryProgress = 0.5 * smoothUnit(t / arrivalEnd)
-        else if (t <= resolveStart)
-          geometryProgress = 0.5
-        else
-          geometryProgress = 0.5 + 0.5 * smoothUnit((t - resolveStart)
-            / (1 - resolveStart))
+        var geometryProgress = root.morphGeometryProgress()
 
         var sourceSettled = 1 - smoothUnit(t / 0.30)
         var targetSettled = smoothUnit((t - 0.70) / 0.30)
@@ -1784,7 +1846,7 @@ Flickable {
         var fragmentOpacity = 0.66 * interference
 
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
-          sourceSettled, -1)
+          sourceSettled, -1, false, true)
 
         // At the midpoint the two exact sampling grids coexist only as quiet
         // outlines. Their beat pattern is real 52-week versus calendar-month
@@ -1805,10 +1867,11 @@ Flickable {
               * geometryProgress
           }
           paintOverlapFragment(ctx, geometry.sourceCell, geometry.targetCell,
-            rect, fragmentOpacity)
+            rect, fragmentOpacity, true)
         }
 
-        paintProjection(ctx, root.projection, root.cells, targetSettled, -1)
+        paintProjection(ctx, root.projection, root.cells,
+          targetSettled, -1, false, true)
       }
 
       function paintProjectionMorph(ctx) {
@@ -1973,9 +2036,128 @@ Flickable {
             * root.pinTerminalLabelPresence)
       }
 
+      function morphLabelForDate(dateKey) {
+        var sourceSide = root.morphGeometryProgress() < 0.5
+        var mode = sourceSide ? root.morphFromProjection : root.projection
+        var intervalCells = sourceSide ? root.morphFromCells : root.cells
+        var index = Model.projectionIndexForDate(intervalCells, dateKey)
+        if (index < 0 || index >= intervalCells.length)
+          return { position: "", age: "" }
+        var parts = Model.projectionReadoutParts(intervalCells[index], mode, root.today)
+        return {
+          position: mode === "months"
+            ? parts.position.replace("MONTH ", "M ")
+            : parts.position.replace("WEEK ", "W "),
+          age: String(Math.floor(index / root.columnsFor(mode)))
+        }
+      }
+
+      function paintMorphGuide(ctx, rect, dateKey, color, opacity) {
+        if (!rect.visible || opacity <= 0) return
+        var originX = root.gridOriginX()
+        var originY = root.gridOriginY()
+        var centerX = rect.x + rect.width / 2
+        var centerY = rect.y + rect.height / 2
+        var label = morphLabelForDate(dateKey)
+
+        ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+        ctx.fillRect(originX - Style.space(3), centerY,
+          Math.max(0, centerX - originX + Style.space(3)),
+          Style.spacing.hairline)
+        ctx.fillRect(centerX, originY - Style.space(6),
+          Style.spacing.hairline,
+          Math.max(0, centerY - originY + Style.space(6)))
+
+        ctx.font = Style.font.caption + "px " + root.fontFamily
+        ctx.textBaseline = "middle"
+        if (label.position) {
+          var tickY = originY - Style.space(10)
+          var tickWidth = ctx.measureText(label.position).width + Style.space(6)
+          ctx.fillStyle = Color.popups.background
+          ctx.fillRect(centerX - tickWidth / 2, tickY - Style.space(6),
+            tickWidth, Style.space(12))
+          ctx.fillStyle = color
+          ctx.textAlign = "center"
+          ctx.fillText(label.position, centerX, tickY)
+          ctx.fillRect(centerX, originY - Style.space(6),
+            Style.spacing.hairline, Style.space(6))
+        }
+        if (label.age) {
+          ctx.fillStyle = Color.popups.background
+          ctx.fillRect(originX - Style.space(18), centerY - Style.space(6),
+            Style.space(16), Style.space(12))
+          ctx.fillStyle = color
+          ctx.textAlign = "right"
+          ctx.fillText(label.age, originX - Style.space(4), centerY)
+          ctx.fillRect(originX - Style.space(3), centerY,
+            Style.space(3), Style.spacing.hairline)
+        }
+      }
+
+      function paintMorphCell(ctx, rect, role) {
+        if (!rect.visible) return
+        if (role === "present") {
+          ctx.fillStyle = Color.accent
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+          return
+        }
+        if (role === "pin") {
+          ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.12)
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+        }
+        ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, role === "pin" ? 0.72 : 0.9)
+        ctx.lineWidth = Math.max(1, Style.spacing.hairline
+          * (role === "pin" ? 2 : 1))
+        var inset = ctx.lineWidth / 2
+        ctx.strokeRect(rect.x + inset, rect.y + inset,
+          Math.max(0, rect.width - ctx.lineWidth),
+          Math.max(0, rect.height - ctx.lineWidth))
+      }
+
+      function paintMorphRuler(ctx, geometry) {
+        if (!geometry.visible || geometry.totalLength <= 0) return
+        ctx.beginPath()
+        ctx.moveTo(geometry.startX, geometry.startY)
+        if (geometry.horizontalLength > 0)
+          ctx.lineTo(geometry.elbowX, geometry.elbowY)
+        if (geometry.verticalLength > 0)
+          ctx.lineTo(geometry.endX, geometry.endY)
+        ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, 0.46)
+        ctx.lineWidth = Style.spacing.hairline
+        ctx.lineJoin = "miter"
+        ctx.lineCap = "square"
+        ctx.stroke()
+      }
+
+      function paintMorphCoordinateOverlay(ctx) {
+        var presentKey = Model.keyForDate(root.today)
+        var presentRect = root.interpolatedMorphRect(presentKey)
+        var inspectionKey = root.morphInspectionDateKey
+        var inspectionRect = inspectionKey && inspectionKey !== presentKey
+          && inspectionKey !== root.pinnedDateKey
+          ? root.interpolatedMorphRect(inspectionKey)
+          : ({ visible: false })
+        var pinRect = root.hasPin
+          ? root.interpolatedMorphRect(root.pinnedDateKey)
+          : ({ visible: false })
+
+        paintMorphGuide(ctx, presentRect, presentKey, Color.accent, 0.32)
+        if (inspectionRect.visible)
+          paintMorphGuide(ctx, inspectionRect, inspectionKey,
+            root.foreground, 0.18)
+        paintMorphRuler(ctx, root.morphPinRulerGeometry())
+        paintMorphCell(ctx, presentRect, "present")
+        if (inspectionRect.visible) paintMorphCell(ctx, inspectionRect, "inspection")
+        if (pinRect.visible) paintMorphCell(ctx, pinRect, "pin")
+      }
+
       function paintInteractionOverlay(ctx) {
         if (!root.cells || root.cells.length === 0) return
 
+        var morphing = root.projectionMorphing
         var cellWidth = root.cellWidth()
         var cellHeight = root.cellHeight()
         var columns = root.columns()
@@ -2011,6 +2193,7 @@ Flickable {
           : Color.accent
         ctx.textAlign = "right"
         for (var v = 0; v < vertical.length; v++) {
+          if (morphing && (vertical[v].current || vertical[v].inspected)) continue
           ctx.fillStyle = vertical[v].current
             ? Color.accent
             : (vertical[v].inspected
@@ -2050,7 +2233,7 @@ Flickable {
         // exact tick, moving only its text outward when nearby labels collide.
         // The hold is represented separately by dimension brackets.
         var horizontalTicks = []
-        var horizontalCandidates = [
+        var horizontalCandidates = morphing ? [] : [
           { index: root.presentCellIndex, current: true },
           { index: axisInspectionIndex, current: false }
         ]
@@ -2108,7 +2291,7 @@ Flickable {
         // secondary axis labels and ticks, but the orthogonal ruler is its only
         // full connecting geometry; a second pin-to-axis L would obscure the
         // present-to-pin measurement.
-        var guideCandidates = [
+        var guideCandidates = morphing ? [] : [
           { index: root.presentCellIndex, current: true, pinned: false },
           { index: inspectionIndex, current: false, pinned: false }
         ]
@@ -2150,7 +2333,8 @@ Flickable {
             verticalLength * guideProgress)
         }
 
-        if (!root.projectionMorphing) {
+        if (morphing) paintMorphCoordinateOverlay(ctx)
+        else {
           paintInteractionCells(ctx)
           paintPinRuler(ctx)
           paintPinRulerLabels(ctx)
@@ -2173,7 +2357,8 @@ Flickable {
         ctx.clearRect(0, 0, width, height)
         if (!root.cells || root.cells.length === 0) return
         if (root.projectionMorphing) paintProjectionMorph(ctx)
-        else paintProjection(ctx, root.projection, root.cells, 1, -1, false)
+        else paintProjection(ctx, root.projection, root.cells,
+          1, -1, false, false)
       }
 
       Canvas {
