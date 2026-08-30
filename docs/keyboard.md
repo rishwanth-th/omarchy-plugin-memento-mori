@@ -191,15 +191,32 @@ produced false "verified live" conclusions more than once: an edit appears to
 have no effect, or a fix appears to work when the old code is still running.
 Nothing in the probe output reveals it.
 
-The cause is in the reload path rather than in this plugin.
-`rescanPlugins` calls `reloadPlugins`, which unloads panels and services,
-calls `Qt.clearComponentCache()`, and rescans. But `unloadPluginWidgets` only
-*unregisters* widget components from the registry — it does not destroy
-instances already mounted in the bar. This plugin is a bar widget, so its
-mounted instance survives and keeps its whole object tree alive: `panelLoader`
-→ `Panel` → `LifeView`/`LifeRail`, all still the previous components. Clearing
-the component cache only affects objects created afterwards, so nothing about
-the live instance changes.
+Measured, not inferred. Changing `targetSemanticColumnGap` and watching the
+`semanticColumnGap` the probe reports:
+
+| action | result |
+| --- | --- |
+| install the file, wait 12s | unchanged |
+| `omarchy-shell shell rescanPlugins`, wait 16s | unchanged |
+| `omarchy restart shell` | picks up the new value |
+
+The shell does notice — it logs `Local plugin changed, reloading:
+rishwanth.memento-mori` — so both the watcher and the reload trigger fire.
+The reload simply does not end in fresh QML.
+
+The exact upstream cause is **not** pinned. The strongest candidate is
+`shell.qml:712`, where `syncPluginWidgets` finds the entry-point URL unchanged
+and re-registers the *cached* `existing.component` instead of building a new
+one; there is also a `scanning` / `pluginReloadPending` guard that can defer a
+reload. That short-circuit lives only in `syncPluginWidgets`, which is
+bar-widget specific, so it would affect any bar-widget plugin rather than this
+one — but that generality is unconfirmed while the cause is unconfirmed.
+
+An earlier version of this note blamed `unloadPluginWidgets` for leaving
+mounted instances alive. That was wrong: the bar slot's `registryComponent` is
+a binding on `barWidgetRegistry.widgets`, so unregistering does unload the
+mounted item. Recorded here because the wrong explanation is plausible enough
+to be re-derived.
 
 A full shell restart replaces the process, so it always loads from disk. Use
 the sync script for every live check — it installs, asserts byte parity,
