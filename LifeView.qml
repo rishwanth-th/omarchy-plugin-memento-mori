@@ -169,7 +169,14 @@ Flickable {
   function targetSemanticColumnGap() {
     // Column groups need enough air to remain visible between narrow Weeks
     // cells, but remain slightly quieter than the five-year rhythm.
-    return Style.spaceReal(4.5)
+    return Style.spaceReal(4.0)
+  }
+
+  function targetQuarterColumnGap() {
+    // Quarters are the one horizontal boundary both projections agree on
+    // exactly, so they keep a stronger channel than the eight ordinary
+    // life-month phrases while staying under the five-year row rhythm.
+    return Style.spaceReal(4.7)
   }
 
   function targetSemanticRowGap() {
@@ -199,6 +206,16 @@ Flickable {
     return semanticColumnGapForProgress(gapRhythmProgress)
   }
 
+  function quarterColumnGapForProgress(progress) {
+    var t = Math.max(0, Math.min(1, progress))
+    return columnGapFor("weeks")
+      + (targetQuarterColumnGap() - columnGapFor("weeks")) * t
+  }
+
+  function quarterColumnGap() {
+    return quarterColumnGapForProgress(gapRhythmProgress)
+  }
+
   function semanticRowGapForProgress(progress) {
     var t = Math.max(0, Math.min(1, progress))
     return rowGap() + (targetSemanticRowGap() - rowGap()) * t
@@ -215,15 +232,31 @@ Flickable {
     return Math.max(0, Math.min(11, Math.floor((3 * bounded + 1) / 13)))
   }
 
+  // Both projections articulate the same eleven life-month boundaries. In
+  // Months every column edge is one of them; in Weeks they fall on the
+  // rounded 4/5-week partition. Sharing the boundary set — and therefore the
+  // gap budget — is what keeps the two resolutions from shifting against each
+  // other when the projection changes.
   function semanticColumnBoundaryCountBefore(mode, column) {
     var bounded = Math.max(0, Math.min(columnsFor(mode), column))
     return mode === "months"
-      ? Math.max(0, Math.min(3, Math.floor(bounded / 3)))
+      ? Math.max(0, Math.min(11, bounded))
       : weekLifeMonthBoundaryCountBefore(bounded)
   }
 
+  function quarterColumnBoundaryCountBefore(mode, column) {
+    // Quarters are the third, sixth, and ninth of those boundaries in both
+    // projections, which is precisely why they already coincide exactly.
+    return Math.max(0, Math.min(3,
+      Math.floor(semanticColumnBoundaryCountBefore(mode, column) / 3)))
+  }
+
   function totalSemanticColumnBoundaryCount(mode) {
-    return mode === "months" ? 3 : 11
+    return 11
+  }
+
+  function totalQuarterColumnBoundaryCount(mode) {
+    return 3
   }
 
   function totalColumnGapFor(mode) {
@@ -231,10 +264,13 @@ Flickable {
   }
 
   function totalColumnGapForProgress(mode, progress) {
-    var boundaryCount = totalSemanticColumnBoundaryCount(mode)
-    var ordinaryCount = columnsFor(mode) - 1 - boundaryCount
+    var quarterCount = totalQuarterColumnBoundaryCount(mode)
+    var phraseCount = totalSemanticColumnBoundaryCount(mode) - quarterCount
+    var ordinaryCount = columnsFor(mode) - 1
+      - totalSemanticColumnBoundaryCount(mode)
     return ordinaryCount * columnGapFor(mode)
-      + boundaryCount * semanticColumnGapForProgress(progress)
+      + phraseCount * semanticColumnGapForProgress(progress)
+      + quarterCount * quarterColumnGapForProgress(progress)
   }
 
   function averageColumnGapFor(mode) {
@@ -291,9 +327,11 @@ Flickable {
 
   function columnOffsetFor(mode, column) {
     var semanticCount = semanticColumnBoundaryCountBefore(mode, column)
+    var quarterCount = quarterColumnBoundaryCountBefore(mode, column)
     var ordinaryCount = column - semanticCount
     return column * cellWidthFor(mode)
-      + semanticCount * semanticColumnGap()
+      + quarterCount * quarterColumnGap()
+      + (semanticCount - quarterCount) * semanticColumnGap()
       + ordinaryCount * columnGapFor(mode)
   }
 
@@ -1890,6 +1928,7 @@ Flickable {
         var originX = root.gridOriginX()
         var originY = root.gridOriginY()
         var columnGap = root.semanticColumnGap()
+        var quarterGap = root.quarterColumnGap()
         var rowGap = root.semanticRowGap()
 
         // Five-year age bands and quarters belong to both projections. Mask
@@ -1903,18 +1942,18 @@ Flickable {
         }
         for (var quarter = 3; quarter < 12; quarter += 3) {
           ctx.fillRect(originX + root.columnOffsetFor("months", quarter)
-              - columnGap,
-            originY, columnGap, root.gridHeight())
+              - quarterGap,
+            originY, quarterGap, root.gridHeight())
         }
 
-        // Ordinary Month boundaries and the eight additional Weeks phrases
-        // cross-dissolve at their own fixed positions. Neither topology is
-        // carried across the field by moving fragment geometry.
+        // The eight ordinary life-month phrases now carry the same channel in
+        // both projections, so they cross-dissolve between two positions at
+        // most 2.6px apart instead of changing weight as well as place.
         var weeksPresence = root.projection === "weeks"
           ? smoothUnit(t)
           : 1 - smoothUnit(t)
         var monthsPresence = 1 - weeksPresence
-        var ordinaryMonthGap = root.columnGapFor("months")
+        var ordinaryMonthGap = columnGap
         for (var month = 1; month < 12; month++) {
           if (month % 3 === 0) continue
           if (monthsPresence > 0.001) {
