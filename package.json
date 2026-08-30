@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "node --test tests/model.test.js"
+    "test": "node --test tests/model.test.js",
+    "sync": "bash scripts/sync-live.sh"
   }
 }

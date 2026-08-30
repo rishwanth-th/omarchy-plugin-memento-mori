@@ -22,6 +22,18 @@ omarchy-shell rishwanth.memento-mori showLife
 omarchy-shell rishwanth.memento-mori toggleGaps
 ```
 
+Three further entry points exist for live review rather than for binding.
+Projection, animation style, and inspection movement are otherwise
+keyboard-only, which makes them unreachable while capturing the very motion
+they produce; driving them over IPC is what makes a finding reproducible
+instead of a matter of eye:
+
+```bash
+omarchy-shell rishwanth.memento-mori toggleProjection
+omarchy-shell rishwanth.memento-mori toggleAnimation
+omarchy-shell rishwanth.memento-mori moveInspection <dx> <dy>
+```
+
 Omarchy's stock `Super+Ctrl+Alt+D` binding targets `omarchy.clock`. Replacing
 that widget does not retarget the Hyprland binding automatically. The Omarchy
 profile should bind one of the commands above if a global Memento Mori summon
@@ -170,14 +182,26 @@ The active plugin exposes a read-only probe for verifying that routing:
 omarchy-shell rishwanth.memento-mori interactionState
 ```
 
-If installed files contain `moveInspection` but the command reports `Function
-not found`, Omarchy is still holding a stale plugin component. Rescan first,
-then restart the shell only if the stale instance survives:
+### Never trust a rescan
+
+`omarchy-shell shell rescanPlugins` does **not** reliably reload changed QML.
+The previously loaded component keeps running, so a probe or a screenshot
+reports the OLD behaviour while the files on disk are already new. This has
+produced false "verified live" conclusions more than once: an edit appears to
+have no effect, or a fix appears to work when the old code is still running.
+Nothing in the probe output reveals it.
+
+A full shell restart replaces the process, so it always loads from disk. Use
+the sync script for every live check — it installs, asserts byte parity,
+always restarts, waits for the plugin to answer, and fails loudly on QML
+errors:
 
 ```bash
-omarchy-shell shell rescanPlugins
-omarchy restart shell
+npm run sync
 ```
+
+Only fall back to running the steps by hand if that script cannot run, and
+never conclude anything from a rescan alone.
 
 ## Temporal-distance pin proof of concept
 
