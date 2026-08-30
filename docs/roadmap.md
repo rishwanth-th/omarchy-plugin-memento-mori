@@ -32,9 +32,9 @@ here with a short reason so the same ambiguity is not rediscovered.
 
 ## Workstream 1 — Weeks ↔ Months semantic morph
 
-**Status:** complete. Stable seam retained as the default; exact-overlap
-interference retained as an optional session lens. Tracked in DAZ-272 and
-DAZ-274.
+**Status:** reopened for focused aesthetic iteration after the reference-frame
+correction. The calm exchange remains the default; exact-overlap interference
+remains an optional session lens. Tracked in DAZ-272 and DAZ-274.
 
 Weeks and Months are two resolutions of one exact birth-anchored timeline.
 Their transition should disclose that containment without pretending every
@@ -42,11 +42,13 @@ month contains four weeks.
 
 ### Stable grammar
 
-1. A narrow resolution seam travels left-to-right across the stable grid.
-2. Ahead of the seam the source projection remains settled; behind it the
-   destination projection is already settled.
-3. Cells switch only at the seam. The two resolutions never overlap and cells
-   do not travel to a false one-to-one spatial destination.
+1. The source topology recedes in place before the destination resolves in
+   place; structural channels do not travel across the field.
+2. Five-year and quarter channels remain a fixed scaffold. Ordinary Month
+   boundaries and Weeks-only life-month channels cross-dissolve globally at
+   their own fixed positions.
+3. The active point, guide, and held ruler may travel because they represent
+   one exact date; structural axes and their annotations remain stationary.
 4. No fixed four-week grouping is shown: both endpoints retain their exact
    birth-anchored week and calendar-month semantics.
 5. Axis precision switches with the destination while panel and viewport
@@ -55,20 +57,23 @@ month contains four weeks.
    shimmers resolve their units simultaneously inside the text envelopes;
    no filament crosses the empty space between them.
 
-### Why the seam remains the default
+### Why the calm exchange remains the default
 
 Because 52-week life-year rows drift against birth-anchored calendar months,
 moving exact overlap fragments forms dense interference fields across ages.
 Even when mathematically faithful, that motion asks for more attention than a
-frequently used widget transition should require. The clean cutover therefore
-remains the startup behavior and primary product expression.
+frequently used widget transition should require. A calm in-place exchange is
+therefore the startup behavior and primary product expression.
 
 ### Retained alternative — exact date-overlap lens
 
 The DAZ-274 refinement precomputes every real date-overlap fragment, eases the
 fragments into a stationary midpoint, holds that structure for roughly
-`104ms`, and then resolves it. It is educational and visually distinctive,
-but deliberately subordinate to the stable seam.
+`104ms`, and then resolves it. Moving future outlines are omitted and the
+visible lived fragments are restricted to the present threshold, making the
+relationship read as a local temporal fold instead of a full-field moire. It
+is educational and visually distinctive, but deliberately subordinate to the
+calm exchange.
 
 - `A` alternates the motion style for subsequent `P` projection changes.
 - A triple-click on an otherwise inert grid region provides the pointer
@@ -153,8 +158,8 @@ compact viewport contains all 4,000 weeks.
 
 ## Workstream 3 — Temporal-distance pin
 
-**Status:** orthogonal held-ruler refinement under live review, following the
-completed DAZ-277 temporal-distance foundation.
+**Status:** complete. Live temporal measure and the orthogonal held ruler were
+graduated through DAZ-277 and DAZ-278.
 
 Clicking a cell pins one deliberate comparison with the present. The LIFE rail
 gains a quiet second marker and highlights only the segment between now and
@@ -187,7 +192,7 @@ useful while the pointer or keyboard cursor is moving because inspection is
 already transient and explicitly asks how the chosen interval relates to now.
 It must leave with inspection rather than become permanent dashboard copy.
 
-### Active experiment — live measure and held ruler
+### Stable grammar — live measure and held ruler
 
 The corrected proof assigns distinct jobs to inspection and pinning:
 
@@ -253,24 +258,149 @@ persistence. That is a separately justified personal-history plugin.
 
 ## Workstream 4 — Grid rhythm and contextual spacing
 
-**Status:** queued after the held-span workstream.
+**Status:** negative-space lens, shared temporal frame, direct inspection, and
+synchronized coordinate progression under live review, tracked in DAZ-279.
+The active branch remains separate from `main`.
 
 Tim Urban's five-year row separation may make age groups more immediately
 legible. Because it changes geometry rather than decoration, it must be tested
 before later guide and viewport motion is refined.
 
-Two hypotheses remain deliberately separate:
+The design intent is two-dimensional. Gaps are not an ornamental treatment or
+a copied quarter token; they are the material through which the grid reveals
+the next truthful temporal group before labels are read.
 
-- A slightly larger horizontal gap after every five life-year rows is
-  semantically truthful in both projections.
-- Additional vertical grouping in Weeks must not suggest fixed calendar
-  months. The existing proportional month ticks may remain the most honest
-  expression; any column spacing needs an independently legible meaning.
+- Along age, both projections form exact five-life-year bands.
+- Across Weeks, twelve proportional life-month phrases distribute the
+  indivisible 52-week row with an irregular 4/5-week beat.
+- Across Months, larger channels after months 3, 6, and 9 form exact quarters.
+
+These life-month phrases are not calendar months. Exact calendar boundaries
+often fall inside seven-day cells and drift across rows; inspection retains
+that precision.
+
+### Bounded specimens
+
+1. **Control — unchanged density.** The uniform field remains the baseline.
+2. **Rejected cadence-only cue — `982c080`.** Stronger gutter marks were too
+   subtle and tested label hierarchy rather than structural spacing.
+3. **Rejected budget-preserving lattice — `a4b405e`.** Redistributing the old
+   gap total made the intended structure nearly imperceptible. Geometry
+   preservation incorrectly displaced meaning as the primary criterion.
+4. **Topology specimen.** Deliberately strong uninterrupted channels proved
+   the 12-by-five-year and 4-by-five-year compositions, but equal channel
+   widths fragmented Weeks and made Months resemble detached tables.
+5. **Refined rhythm — `f30a222`.** The visual composition succeeded, but its
+   implementation rescanned preceding boundaries inside every Canvas cell
+   paint. Calendar and LIFE interaction became unacceptably slow, especially
+   during projection motion. The live plugin was restored to `main` before the
+   geometry was rebuilt.
+6. **Optimized gap lens — `10ca4e5`.** Closed-form boundary counts make cell
+   geometry constant-time. Projection channels are now slightly thinner than
+   five-year channels, reversing the previous hierarchy while preserving one
+   continuous field. `G` or the `toggleGaps` IPC entry point opens and closes
+   the rhythm over a short session-only transition. Present remains the sole
+   accent and the held ruler remains foreground.
+7. **Shared temporal frame — `b0fb136`.** The panel gains a restrained amount
+   of breathing room while Calendar remains its stable size contract. The grid
+   and LIFE rail now occupy the same exact horizontal span; the reviewed theme
+   renders both at `437px` while preserving 31 complete life-year rows.
+8. **Direct inspection — `3027b59`.** Every semantic channel uses nearest-cell
+   midpoint ownership, removing sticky dead space without visually closing the
+   gaps. Dense structure and lightweight interaction render separately, and
+   horizontal repeat derives from full rendered stride so Weeks and Months
+   share one target visual speed.
+9. **Synchronized coordinate atom — `de9f7f5`.** During either projection
+   style, each active date drives its displayed point, axis ticks, guides, and
+   held ruler from one progress value. This removes the observed lead where
+   rulers reached the destination before their point. Broader aesthetic
+   composition of the Weeks-Months seam remains the next focused experiment.
+10. **Anchored reference frame — `3a3c506`.** Exact rail/grid width equality is
+    was initially rejected because the terminal percentage appeared to need a
+    separate spatial obligation. The rail shared the field's left edge and
+    reserved its right label. The 1–12 scale and source/destination coordinate
+    ticks became fixed; five-year and quarter channels became a stationary
+    scaffold while Weeks-only phrases breathed globally. The default traveling
+    wipe became an in-place resolution exchange, while the active cell,
+    guides, and held ruler preserved their coherent transfer. A 32-row frame
+    gave the `437 × 267.92` grid a `1.631` aspect ratio without increasing
+    width or abandoning Omarchy's exact vertical centering.
+11. **Engraved frame and collision lanes — `0358002`.** Review showed that the
+    shortened rail paid more compositional cost than the percentage required.
+    The `437px` rail now restores exact frame equality while its percentage
+    interrupts the terminal span with a background knockout. Permanent axis
+    scales retain their lane; present and inspection allocate two dynamic
+    lanes by text-envelope collision, with lower-priority inspection text
+    yielding only when both are occupied. Ordinary Month boundaries now stay
+    fixed through projection motion, and the optional exact-overlap lens
+    confines moving lived fragments to a narrow present-time fold rather than
+    animating a full-field interference texture.
+
+12. **Restored motion — `6c67a06`.** Specimen 11's in-place exchange and its
+    narrowed lens were both regressions and were reverted to the originals.
+    The default is again a travelling seam at full strength on either side;
+    the exact-overlap lens again draws every fragment. Live frame-stepping
+    confirmed the seam sweeping, which specimen 11's opacity crossfade had
+    replaced with a near-blank trough.
+13. **One predetermined lattice — `b653bc9`.** Every horizontal coordinate is
+    derived from the week. A Months column is literally the weeks it contains,
+    so 4-week and 5-week months render at `31.10px` and `39.12px` while all 52
+    week cells stay identical at `7.02px`. Boundaries coincide by
+    construction; measured on rendered pixels, worst mismatch `0.5px`, against
+    `4.45px` before. Only quarters are spent as real space; the eight
+    life-month boundaries remain an undrawn invariant (`7f122d9`).
+14. **One label rule — `47990ea`, `9329bef`, `1307388`.** Both axes displace a
+    label only on real text-envelope overlap, settle it back into the inner
+    lane wherever there is room, and drop only the lower-priority text when
+    both lanes are taken. Age-axis clearance is measured from the label rather
+    than from row pitch; month-axis annotations are set tight (`W22`), which
+    took reachable inner-lane positions from 8 of 52 to 17 of 52.
+15. **Rail and rhythm — `b025868`, `34b606c`, `e72fb15`, `1ca94ce`.** The rail
+    is slender again and carries no percentage inside the temporal frame; its
+    scale reads `A 0`. Both Calendar rails carry one decimal in a width
+    reserved for `100.0%`, so the tracks cannot differ in length. The header
+    above the grid was regularised to a two-tier rhythm, roughly 6 within a
+    block and 12 between blocks. The grid measures `437 x 265.7`, an aspect of
+    `1.645` against the golden `1.618`, with its centre at `0.597` of the
+    panel.
+
+No specimen adds alternating fills, a second accent, fixed four-week months,
+or decorative animation.
+
+### Progressive materialization
+
+The workstream follows the method established by the held ruler:
+
+1. Make the truthful structure unmistakable.
+2. Tune proportion, hierarchy, density, and breathing without hiding it.
+3. Test coexistence with present, inspection, pin, ruler, and motion.
+4. Accept playful behavior only when it emerges from temporal structure.
+
+The optimized specimen lets the projection exchange resolve twelve Weeks
+phrases into four Month quarters while the five-year bands remain anchored.
+The gap toggle itself makes the temporal phrases breathe out of, or settle
+back into, the uniform field without changing the panel during interaction,
+the visible context, exact date, or pin identity. The shared temporal frame
+intentionally widens the earlier grid once, then remains invariant. At the
+reviewed theme scale the grid and engraved LIFE track are both `437px`, and 32
+visible rows produce a `267.92px` grid height. The
+open-state projection channel is `3.75`, the five-year channel is `4`, and the
+open and closed grid heights remain effectively identical.
+
+Crossing a semantic channel now transfers ownership at the nearest-cell
+midpoint. The negative space stays visible, but no longer pauses inspection.
+Direct physical pointer review must decide whether Weeks now feels as slick
+and tactile as Months before the behavior is promoted.
 
 ### Questions
 
-- Does five-year rhythm improve orientation inside the compact attention
-  window, or merely reduce useful row capacity?
+- Does the field read first as one lifetime and then as meaningful temporal
+  phrases, rather than as detached panels or a spreadsheet?
+- Are the column and row channels perceptually coherent without being
+  numerically identical?
+- Do Weeks retain enough individual-cell legibility at the refined density?
+- Does opening and closing the rhythm feel like a useful temporal lens rather
+  than a settings toggle or a layout trick?
 - Can the present retain a calm default position when variable row gaps are
   introduced?
 - Do hit-testing, axis guides, wheel movement, pin coordinates, LIFE entrance,
@@ -279,11 +409,14 @@ Two hypotheses remain deliberately separate:
 
 ### Reject if
 
-- The panel or grid changes dimensions.
-- Fewer visible rows make the viewport feel cramped.
-- Weeks imply false four-week months or calendar quarters.
+- The panel changes dimensions during page, projection, or gap transitions,
+  exceeds the fitted screen budget, or useful context decreases.
+- Weeks imply fixed four-week or exact calendar months.
 - Existing motion must distort exact temporal coordinates to accommodate the
   gaps.
+- Calendar or LIFE interaction regresses in latency or frame pacing.
+- The field resembles detached cards, a spreadsheet, or decorative striping.
+- The channels compete with present, inspection, or the held ruler.
 
 ## Workstream 5 — Hover-guide motion
 
@@ -338,11 +471,37 @@ point; it cannot become an independent particle layer.
 
 1. Weeks ↔ Months semantic morph — complete.
 2. LIFE entrance — complete.
-3. Temporal-distance pin — next.
-4. Grid rhythm and contextual spacing.
+3. Temporal-distance pin — complete.
+4. Grid rhythm and contextual spacing — complete.
 5. Hover-guide motion.
 6. Viewport movement.
 7. Transition light treatment.
+8. Continuous temporal zoom — queued, see below.
+
+## Workstream 8 — continuous temporal zoom
+
+### Intent
+
+Replace, or sit alongside, the discrete `P` projection toggle with a
+continuous zoom: outward through weeks, months and years, inward toward days.
+Resolution becomes a gesture over one timeline rather than a switch between
+two renderings of it.
+
+### Why it is a separate workstream
+
+Everything in workstreams 1-4 assumes two fixed resolutions over a 52-week
+row. The shared lattice, the travelling seam, pin identity, hit-testing and
+both axes are all derived from that row. Days are roughly 365 per year, so the
+row stops being 52 cells and the lattice has to be re-derived at every level;
+viewport, hit-testing and pin identity all need to hold across four
+resolutions rather than two. It should begin from the stable base this
+workstream produced, not extend it in place.
+
+### Reject if
+
+- Zoom makes any single resolution worse than the discrete toggle made it.
+- The lattice stops being derivable from one atom.
+- Exact date, pin identity, or projection semantics drift across levels.
 
 Only one workstream may change runtime behavior at a time. Each one receives
 its own live review before the next begins.

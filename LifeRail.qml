@@ -28,6 +28,8 @@ Item {
   property string remainingLabel: ""
   property bool interactive: false
   property string tooltipText: "Memento Mori"
+  property real temporalFrameLeft: -1
+  property real temporalFrameRight: -1
 
   readonly property int horizonYears: Math.max(1, Math.ceil(horizonWeeks / 52))
   readonly property int yearTickCount: horizonYears + 1
@@ -36,6 +38,11 @@ Item {
   readonly property int pinYear: Math.max(0, Math.min(horizonYears,
     Math.floor(horizonWeeks * Math.max(0, Math.min(1, pinProgress)) / 52)))
   readonly property bool pinHovered: pinSpanHover.containsMouse
+  readonly property bool usesTemporalFrame: temporalFrameLeft >= 0
+    && temporalFrameRight > temporalFrameLeft
+  readonly property real trackLeftEdge: track.x
+  readonly property real trackRightEdge: track.x + track.width
+  readonly property real trackWidth: track.width
 
   signal activated()
 
@@ -44,27 +51,57 @@ Item {
 
   implicitHeight: baseHeight + (showSegmentLabels
     ? Math.max(livedSegmentLabel.implicitHeight, remainingSegmentLabel.implicitHeight)
-      + Style.space(2)
+      + Style.space(3)
     : 0)
 
   Text {
     id: lifeLabel
-    anchors.left: parent.left
+    // Inside the temporal frame the track starts at the grid's own origin, so
+    // the label is set against that edge rather than the panel's: left-hung it
+    // reads as detached from the measure it names.
+    x: root.usesTemporalFrame
+      ? Math.max(0, Math.round(root.temporalFrameLeft - Style.space(7) - width))
+      : 0
     y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
     text: "LIFE"
     color: root.interactive && lifeMouse.containsMouse
       ? Style.hoverStateColor(root.foreground, Color.accent)
       : Qt.darker(root.foreground, 1.5)
     font.family: root.fontFamily
-    font.pixelSize: Style.font.bodySmall
+    // Matched to the rail it names: at body size the word outweighed a
+    // six-pixel track. The compact rail keeps body size to sit level with
+    // the year label beside it.
+    font.pixelSize: root.usesTemporalFrame
+      ? Style.font.caption
+      : Style.font.bodySmall
     font.letterSpacing: 1
   }
 
   Text {
+    id: percentMetric
+    visible: false
+    text: "100.0%"
+    font.family: root.fontFamily
+    font.pixelSize: Style.font.bodySmall
+  }
+
+  Text {
     id: lifePercent
-    anchors.right: parent.right
+    // Inside the temporal frame the rail spans the full grid width, leaving
+    // no room the percentage could occupy without crowding its end. The
+    // compact calendar rail already states the value, and here the filled
+    // track plus the lived/remaining counts say the same thing, so LIFE
+    // simply does not repeat it.
+    visible: !root.usesTemporalFrame
+    width: percentMetric.implicitWidth
+    horizontalAlignment: Text.AlignRight
+    x: parent.width - width
     y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
-    text: Number(root.percent).toFixed(1).replace(/\.0$/, "") + "%"
+    z: 2
+    // Whole percent, matching the year rail above it: two progress readings
+    // side by side should not differ in precision, and equal digit counts
+    // keep both tracks exactly the same length.
+    text: Number(root.percent).toFixed(1) + "%"
     color: root.foreground
     font.family: root.fontFamily
     font.pixelSize: Style.font.bodySmall
@@ -72,12 +109,17 @@ Item {
 
   Rectangle {
     id: track
-    anchors.left: lifeLabel.right
-    anchors.right: lifePercent.left
-    anchors.leftMargin: Style.space(12)
-    anchors.rightMargin: Style.space(12)
+    // The rail stays slender at every size. Inside the shared frame it spans
+    // the temporal field exactly; compact rails keep the label-safe interval.
+    readonly property real naturalLeft: lifeLabel.x + lifeLabel.width
+      + Style.space(12)
+    readonly property real naturalRight: lifePercent.x - Style.space(12)
+    x: root.usesTemporalFrame ? root.temporalFrameLeft : naturalLeft
+    width: Math.max(0, (root.usesTemporalFrame
+      ? root.temporalFrameRight
+      : naturalRight) - x)
     y: root.showYearScale
-      ? Math.round((lifeLabel.implicitHeight - height) / 2)
+      ? Math.max(0, Math.round((lifeLabel.implicitHeight - height) / 2))
       : Math.round((root.height - height) / 2)
     height: Style.space(6)
     radius: Style.cornerRadius > 0 ? height / 2 : 0
@@ -260,12 +302,12 @@ Item {
         Text {
           anchors.horizontalCenter: parent.horizontalCenter
           anchors.top: parent.top
-          anchors.topMargin: Style.space(2)
+          anchors.topMargin: Style.space(1)
           visible: parent.decade && parent.year !== root.currentYear
             && (!root.pinActive || parent.year !== root.pinYear)
             && Math.abs(parent.year - root.currentYear) >= 3
             && (!root.pinActive || Math.abs(parent.year - root.pinYear) >= 3)
-          text: parent.year === 0 ? "Y 0" : String(parent.year)
+          text: parent.year === 0 ? "A 0" : String(parent.year)
           color: Qt.darker(root.foreground, 2)
           font.family: root.fontFamily
           font.pixelSize: Math.max(7, Style.font.caption - 2)
@@ -318,7 +360,7 @@ Item {
     opacity: Math.max(0, Math.min(1, root.segmentOpacity))
     anchors.left: track.left
     anchors.right: track.right
-    y: root.baseHeight + Style.space(2)
+    y: root.baseHeight + Style.space(3)
     height: visible
       ? Math.max(livedSegmentLabel.implicitHeight, remainingSegmentLabel.implicitHeight)
       : 0

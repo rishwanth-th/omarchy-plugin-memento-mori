@@ -27,6 +27,7 @@ Flickable {
   property var morphGeometry: []
   property var morphSourceRects: []
   property var morphTargetRects: []
+  property string morphInspectionDateKey: ""
   property string morphFromLivedLabel: ""
   property string morphFromRemainingLabel: ""
   property real morphProgress: 1
@@ -65,8 +66,14 @@ Flickable {
   property real pinPressY: 0
   property string pinRetargetFromDateKey: ""
   property real pinRetargetProgress: 1
+  property bool gapRhythmEnabled: true
+  property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
+  property int structurePaintCount: 0
+  property int interactionPaintCount: 0
   readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
+  readonly property bool gapRhythmAnimating: gapRhythmProgress > 0.001
+    && gapRhythmProgress < 0.999
 
   readonly property var stats: Model.lifeStats(birthKey, today, horizonWeeks)
   readonly property var projectionStats: Model.projectionStats(cells, projection)
@@ -114,6 +121,11 @@ Flickable {
   readonly property int visibleRowCount: visibleYearCount
   readonly property bool canPanEarlier: visibleYearStart > 0
   readonly property bool canPanLater: visibleYearStart + visibleYearCount < totalLifeYears
+  readonly property real temporalFrameLeft: gridOriginX()
+  readonly property real temporalFrameRight: gridOriginX() + gridWidth()
+  readonly property real lifeTrackLeft: lifeRail.trackLeftEdge
+  readonly property real lifeTrackRight: lifeRail.trackRightEdge
+  readonly property real lifeTrackWidth: lifeRail.trackWidth
 
   property var cells: []
   property int hoveredIndex: -1
@@ -127,6 +139,15 @@ Flickable {
   contentHeight: contentColumn.implicitHeight
   interactive: false
 
+  function requestStructurePaint() {
+    if (lifeCanvas) lifeCanvas.requestPaint()
+    if (interactionCanvas) interactionCanvas.requestPaint()
+  }
+
+  function requestInteractionPaint() {
+    if (interactionCanvas) interactionCanvas.requestPaint()
+  }
+
   function refreshCells(resetWindow) {
     if (!preparingMorph) finishProjectionMorph()
     cells = Model.projectionCells(projection, birthKey, today, horizonWeeks)
@@ -134,7 +155,7 @@ Flickable {
     if (resetWindow) resetToNow()
     else windowYearStart = Math.max(0,
       Math.min(totalLifeYears - visibleYearCount, windowYearStart))
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function columnsFor(mode) {
@@ -145,42 +166,176 @@ Flickable {
     return columnsFor(projection)
   }
 
-  function columnGapFor(mode) {
-    return mode === "months" ? Style.space(2) : Style.space(1)
+  function targetSemanticColumnGap() {
+    // Quarters are the only horizontal boundary that lands on a cell edge in
+    // both projections — 13 weeks and 3 months divide the row identically —
+    // so they are the only ones that can be spent as real space. They stay
+    // slightly quieter than the five-year row rhythm.
+    return Style.spaceReal(4.7)
   }
 
-  function columnGap() {
-    return columnGapFor(projection)
+  function targetLifeMonthColumnGap() {
+    // Between the ordinary week beat and the quarter channel: enough to
+    // phrase the row into twelve, quiet enough not to rival the quarter.
+    return Style.spaceReal(3.0)
+  }
+
+  function targetSemanticRowGap() {
+    // The age axis owns the larger structural interval. At the active theme
+    // scale this is only a quarter-pixel stronger than the column channel,
+    // enough to reverse hierarchy without making detached horizontal cards.
+    return Style.space(5)
+  }
+
+  function columnGapFor(mode) {
+    // Cells form a quiet continuous beat inside each semantic block; the
+    // larger channel, rather than a second color, carries hierarchy.
+    return Style.space(1)
   }
 
   function rowGap() {
     return Style.space(1)
   }
 
-  function quarterGapFor(mode) {
-    return mode === "months" ? Style.space(4) : 0
+  function semanticColumnGapForProgress(progress) {
+    var t = Math.max(0, Math.min(1, progress))
+    return columnGapFor("weeks")
+      + (targetSemanticColumnGap() - columnGapFor("weeks")) * t
   }
 
-  function quarterGap() {
-    return quarterGapFor(projection)
+  function semanticColumnGap() {
+    return semanticColumnGapForProgress(gapRhythmProgress)
+  }
+
+
+  function semanticRowGapForProgress(progress) {
+    var t = Math.max(0, Math.min(1, progress))
+    return rowGap() + (targetSemanticRowGap() - rowGap()) * t
+  }
+
+  function semanticRowGap() {
+    return semanticRowGapForProgress(gapRhythmProgress)
+  }
+
+  function lifeMonthColumnGapForProgress(progress) {
+    var t = Math.max(0, Math.min(1, progress))
+    return columnGapFor("weeks")
+      + (targetLifeMonthColumnGap() - columnGapFor("weeks")) * t
+  }
+
+  function lifeMonthColumnGap() {
+    return lifeMonthColumnGapForProgress(gapRhythmProgress)
+  }
+
+  // One predetermined lattice serves both projections.
+  //
+  // The week is the atom and is always the same width, because a week is
+  // always seven days. A life-month is a container of four or five of them,
+  // so its column is genuinely wider or narrower — the unevenness expresses
+  // real duration rather than hiding it. Quarters hold 13 weeks and 3 months
+  // in every case, so they stay even.
+  //
+  // Every coordinate below is therefore derived from weeks, which is why a
+  // boundary lands on the same pixel in Weeks and in Months by construction.
+  function weeksBeforeMonth(month) {
+    var bounded = Math.max(0, Math.min(12, month))
+    return Math.round(bounded * 52 / 12)
+  }
+
+  function weeksInMonth(month) {
+    return weeksBeforeMonth(month + 1) - weeksBeforeMonth(month)
+  }
+
+  // Weeks completed at each life-month boundary: 4, 9, 13, 17, 22, 26, 30,
+  // 35, 39, 43, 48. Closed form so no scan runs inside a cell paint.
+  function lifeMonthBoundaryCountBefore(column) {
+    var bounded = Math.max(0, Math.min(52, column))
+    return Math.max(0, Math.min(11, Math.floor((3 * bounded + 1) / 13)))
+  }
+
+  function weeksBeforeColumn(mode, column) {
+    return mode === "months" ? weeksBeforeMonth(column) : column
+  }
+
+  function monthsBeforeColumn(mode, column) {
+    return mode === "months"
+      ? Math.max(0, Math.min(11, column))
+      : lifeMonthBoundaryCountBefore(column)
+  }
+
+  function quarterBoundaryCountBefore(mode, column) {
+    return Math.max(0, Math.min(3, Math.floor(
+      monthsBeforeColumn(mode, column) / 3)))
+  }
+
+  function totalColumnGapFor(mode) {
+    return totalColumnGapForProgress(mode, gapRhythmProgress)
+  }
+
+  function totalColumnGapForProgress(mode, progress) {
+    // Identical for either projection: 40 ordinary week gaps live inside the
+    // month columns when Months is drawn, but the row still spends them.
+    return 40 * columnGapFor(mode)
+      + 8 * lifeMonthColumnGapForProgress(progress)
+      + 3 * semanticColumnGapForProgress(progress)
+  }
+
+  function averageColumnGapFor(mode) {
+    return totalColumnGapFor(mode) / Math.max(1, columnsFor(mode) - 1)
+  }
+
+  function semanticRowBoundaryCountBefore(row) {
+    var bounded = Math.max(0, Math.min(visibleRowCount - 1, row))
+    return Math.floor((visibleYearStart + bounded) / 5)
+      - Math.floor(visibleYearStart / 5)
+  }
+
+  function totalVisibleRowGap() {
+    var boundaryCount = Math.max(0, visibleRowCount - 1)
+    var semanticCount = semanticRowBoundaryCountBefore(boundaryCount)
+    return semanticCount * semanticRowGap()
+      + (boundaryCount - semanticCount) * rowGap()
+  }
+
+  function targetAverageRowGap() {
+    return (4 * rowGap() + targetSemanticRowGap()) / 5
+  }
+
+  function weekCellSizeForProgress(progress) {
+    var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
+    return Math.max(Style.space(3),
+      (available - totalColumnGapForProgress("weeks", progress)) / 52)
   }
 
   function weekCellSize() {
-    var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
-    return Math.max(Style.space(3), (available - 51 * Style.space(1)) / 52)
+    return weekCellSizeForProgress(gapRhythmProgress)
   }
 
+  function targetWeekCellSize() {
+    return weekCellSizeForProgress(1)
+  }
+
+  // A Months column is exactly the weeks it contains, so the two projections
+  // cannot disagree about where it ends.
+  function cellWidthForColumn(mode, column) {
+    if (mode !== "months") return weekCellSize()
+    var weeks = weeksInMonth(column)
+    return weeks * weekCellSize() + (weeks - 1) * columnGapFor(mode)
+  }
+
+  // Representative width, for stride pacing and label clearance only. Never
+  // use it to place geometry — a Months column is not one fixed size.
   function cellWidthFor(mode) {
-    if (mode === "months") {
-      var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
-      return Math.max(Style.space(14),
-        (available - 11 * columnGapFor(mode) - 3 * quarterGapFor(mode)) / 12)
-    }
-    return weekCellSize()
+    if (mode !== "months") return weekCellSize()
+    return (52 * weekCellSize() + 40 * columnGapFor(mode)) / 12
   }
 
   function cellWidth() {
     return cellWidthFor(projection)
+  }
+
+  function cellWidthAt(column) {
+    return cellWidthForColumn(projection, column)
   }
 
   function cellHeight() {
@@ -188,9 +343,15 @@ Flickable {
   }
 
   function columnOffsetFor(mode, column) {
-    var offset = column * (cellWidthFor(mode) + columnGapFor(mode))
-    if (mode === "months") offset += Math.floor(column / 3) * quarterGapFor(mode)
-    return offset
+    // Counted in weeks, so Weeks and Months evaluate to the same coordinate
+    // at every shared boundary.
+    var weeks = weeksBeforeColumn(mode, column)
+    var months = monthsBeforeColumn(mode, column)
+    var quarters = quarterBoundaryCountBefore(mode, column)
+    return weeks * weekCellSize()
+      + (weeks - months) * columnGapFor(mode)
+      + (months - quarters) * lifeMonthColumnGap()
+      + quarters * semanticColumnGap()
   }
 
   function columnOffset(column) {
@@ -198,13 +359,16 @@ Flickable {
   }
 
   function rowOffset(row) {
-    return row * (cellHeight() + rowGap())
+    var semanticCount = semanticRowBoundaryCountBefore(row)
+    var ordinaryCount = row - semanticCount
+    return row * cellHeight()
+      + semanticCount * semanticRowGap()
+      + ordinaryCount * rowGap()
   }
 
   function gridWidthFor(mode) {
-    return columnsFor(mode) * cellWidthFor(mode)
-      + Math.max(0, columnsFor(mode) - 1) * columnGapFor(mode)
-      + (mode === "months" ? 3 * quarterGapFor(mode) : 0)
+    // 52 weeks plus the row's whole gap budget, in either projection.
+    return 52 * weekCellSize() + totalColumnGapFor(mode)
   }
 
   function gridWidth() {
@@ -212,7 +376,7 @@ Flickable {
   }
 
   function gridHeight() {
-    return visibleRowCount * cellHeight() + Math.max(0, visibleRowCount - 1) * rowGap()
+    return visibleRowCount * cellHeight() + totalVisibleRowGap()
   }
 
   function compactGridHeight() {
@@ -221,7 +385,8 @@ Flickable {
 
   function fittedCompactYearSpan() {
     return Math.max(3, Math.min(totalLifeYears,
-      Math.floor((compactGridHeight() + rowGap()) / (cellHeight() + rowGap()))))
+      Math.floor((compactGridHeight() + targetAverageRowGap())
+        / (targetWeekCellSize() + targetAverageRowGap()))))
   }
 
   function gridOriginXFor(mode) {
@@ -258,7 +423,7 @@ Flickable {
       : ""
     if (keyboardInspecting)
       inspectionMoveBlockedUntil = Date.now() + horizontalTraversalInterval()
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function panRows(delta) {
@@ -269,7 +434,7 @@ Flickable {
     disarmHover()
     keyboardInspecting = false
     keyboardDateKey = ""
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function ensureIndexVisible(index) {
@@ -312,11 +477,14 @@ Flickable {
   }
 
   function horizontalTraversalInterval() {
-    var weekStride = cellWidthFor("weeks") + columnGapFor("weeks")
-    var activeStride = cellWidthFor(projection) + columnGapFor(projection)
-    if (projection === "months") activeStride += quarterGapFor(projection) / 3
-    return Math.max(horizontalRepeatCadence, Math.min(240,
-      Math.round(horizontalRepeatCadence * activeStride / Math.max(1, weekStride))))
+    var weekStride = cellWidthFor("weeks") + averageColumnGapFor("weeks")
+    var activeStride = cellWidthFor(projection)
+      + averageColumnGapFor(projection)
+    // One rendered pixel has one temporal cost in either projection. Months
+    // therefore waits for its full stride ratio instead of hitting an
+    // arbitrary ceiling and visually outrunning Weeks at slower repeat rates.
+    return Math.max(horizontalRepeatCadence,
+      Math.round(horizontalRepeatCadence * activeStride / Math.max(1, weekStride)))
   }
 
   function noteHorizontalRequest(now) {
@@ -346,11 +514,13 @@ Flickable {
     var target = Math.max(0, Math.min(cells.length - 1,
       base + dx + dy * columns()))
     if (target < 0 || target >= cells.length) return
+    var previousWindowStart = visibleYearStart
     keyboardDateKey = cells[target].startKey
     keyboardInspecting = true
     disarmHover()
     ensureIndexVisible(target)
-    lifeCanvas.requestPaint()
+    if (visibleYearStart !== previousWindowStart) requestStructurePaint()
+    else requestInteractionPaint()
   }
 
   function moveInspection(dx, dy) {
@@ -392,7 +562,7 @@ Flickable {
     pinRulerHovered = false
     pinnedDateKey = ""
     pinBridgeProgress = 1
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
   }
 
   function startPinBridge() {
@@ -457,7 +627,7 @@ Flickable {
       keyboardDateKey = ""
       hoveredIndex = -1
       pinRulerHovered = true
-      lifeCanvas.requestPaint()
+      requestInteractionPaint()
     }
     return true
   }
@@ -472,7 +642,7 @@ Flickable {
     else {
       pinBridgeProgress = 1
       pinRulerHovered = pinDragMouse.containsMouse
-      lifeCanvas.requestPaint()
+      requestInteractionPaint()
     }
     return true
   }
@@ -486,7 +656,7 @@ Flickable {
     dragOriginalPinnedDateKey = ""
     pinBridgeProgress = 1
     pinRulerHovered = false
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
     return true
   }
 
@@ -496,7 +666,7 @@ Flickable {
     keyboardInspecting = false
     keyboardDateKey = ""
     disarmHover()
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
   }
 
   function togglePinAtIndex(index) {
@@ -513,7 +683,7 @@ Flickable {
     keyboardDateKey = cells[index].startKey
     if (previousPinDateKey !== "") startPinRetarget(previousPinDateKey)
     else startPinBridge()
-    lifeCanvas.requestPaint()
+    requestInteractionPaint()
     return true
   }
 
@@ -530,11 +700,13 @@ Flickable {
     morphTargetRects = []
     morphFromLivedLabel = ""
     morphFromRemainingLabel = ""
+    morphInspectionDateKey = ""
     morphUsesDateOverlap = false
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function finishProjectionMorph() {
+    if (!projectionMorphing && morphFromProjection === "") return
     if (projectionMorphAnimation.running) projectionMorphAnimation.stop()
     morphProgress = 1
     clearProjectionMorph()
@@ -543,6 +715,10 @@ Flickable {
   function toggleAnimationStyle() {
     finishProjectionMorph()
     dateOverlapEnabled = !dateOverlapEnabled
+  }
+
+  function toggleGapRhythm() {
+    gapRhythmEnabled = !gapRhythmEnabled
   }
 
   function prepareEntrance(fullEntrance) {
@@ -554,7 +730,7 @@ Flickable {
     entranceLabelProgress = 0
     entranceGuideProgress = 0
     entranceAnimating = true
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function startPreparedEntrance() {
@@ -575,7 +751,7 @@ Flickable {
     entranceGuideProgress = 1
     entranceAnimating = false
     entranceFull = false
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
     entranceCompleted(completedFullEntrance)
   }
 
@@ -588,7 +764,7 @@ Flickable {
     entranceGuideProgress = 1
     entranceAnimating = false
     entranceFull = false
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
 
   function registerAnimationTap(x, y) {
@@ -629,6 +805,7 @@ Flickable {
     finishProjectionMorph()
     var sourceProjection = projection
     var sourceCells = cells
+    var sourceInspectionDateKey = activeInspectionDateKey
     morphFromLivedLabel = projectionCountLabel(sourceCells, sourceProjection, false)
     morphFromRemainingLabel = projectionCountLabel(sourceCells, sourceProjection, true)
     preparingMorph = true
@@ -639,6 +816,7 @@ Flickable {
 
     morphFromProjection = sourceProjection
     morphFromCells = sourceCells
+    morphInspectionDateKey = sourceInspectionDateKey
 
     if (dateOverlapEnabled) {
       var sourceColumns = columnsFor(sourceProjection)
@@ -694,7 +872,7 @@ Flickable {
     var localIndex = index - firstVisibleIndexFor(mode)
     var row = Math.floor(localIndex / columnsInMode)
     var column = localIndex - row * columnsInMode
-    var width = cellWidthFor(mode)
+    var width = cellWidthForColumn(mode, column)
     var start = Math.max(0, Math.min(1, startFraction))
     var end = Math.max(start, Math.min(1, endFraction))
     return {
@@ -703,6 +881,88 @@ Flickable {
       width: Math.max(Style.spacing.hairline, width * (end - start)),
       height: cellHeight()
     }
+  }
+
+  function coordinateRectForDate(mode, intervalCells, dateKey) {
+    var index = Model.projectionIndexForDate(intervalCells, dateKey)
+    if (index < firstVisibleIndexFor(mode)
+        || index >= lastVisibleIndexFor(mode, intervalCells))
+      return { visible: false, index: -1 }
+    var rect = segmentRect(mode, index, 0, 1)
+    rect.visible = true
+    rect.index = index
+    return rect
+  }
+
+  function morphGeometryProgress() {
+    var t = Math.max(0, Math.min(1, morphProgress))
+    if (!morphUsesDateOverlap) return t
+    var arrivalEnd = 0.40
+    var resolveStart = 0.60
+    if (t < arrivalEnd)
+      return 0.5 * smoothProgress(t / arrivalEnd)
+    if (t <= resolveStart) return 0.5
+    return 0.5 + 0.5 * smoothProgress((t - resolveStart)
+      / (1 - resolveStart))
+  }
+
+  function smoothProgress(value) {
+    var x = Math.max(0, Math.min(1, value))
+    return x * x * (3 - 2 * x)
+  }
+
+  function interpolatedMorphRect(dateKey) {
+    if (!projectionMorphing || !dateKey) return { visible: false, index: -1 }
+    var source = coordinateRectForDate(morphFromProjection,
+      morphFromCells, dateKey)
+    var target = coordinateRectForDate(projection, cells, dateKey)
+    if (!source.visible || !target.visible) return target.visible ? target : source
+    var t = morphGeometryProgress()
+    return {
+      visible: true,
+      index: t < 0.5 ? source.index : target.index,
+      x: source.x + (target.x - source.x) * t,
+      y: source.y + (target.y - source.y) * t,
+      width: source.width + (target.width - source.width) * t,
+      height: source.height + (target.height - source.height) * t
+    }
+  }
+
+  function rulerGeometryForRects(presentRect, targetRect) {
+    if (!presentRect || !targetRect || presentRect.visible === false
+        || targetRect.visible === false || presentRect.x === undefined
+        || targetRect.x === undefined) return { visible: false }
+    var presentCenterX = presentRect.x + presentRect.width / 2
+    var presentCenterY = presentRect.y + presentRect.height / 2
+    var targetCenterX = targetRect.x + targetRect.width / 2
+    var targetCenterY = targetRect.y + targetRect.height / 2
+    if (Math.abs(targetCenterX - presentCenterX) < 0.01
+        && Math.abs(targetCenterY - presentCenterY) < 0.01)
+      return { visible: false }
+    var horizontalLength = Math.abs(targetCenterX - presentCenterX)
+    var verticalLength = Math.abs(targetCenterY - presentCenterY)
+    return {
+      visible: true,
+      startX: presentCenterX,
+      startY: presentCenterY,
+      elbowX: targetCenterX,
+      elbowY: presentCenterY,
+      endX: targetCenterX,
+      endY: targetCenterY,
+      horizontalLength: horizontalLength,
+      verticalLength: verticalLength,
+      totalLength: horizontalLength + verticalLength,
+      horizontalDirection: horizontalLength < 0.01
+        ? 0 : (targetCenterX > presentCenterX ? 1 : -1),
+      verticalDirection: verticalLength < 0.01
+        ? 0 : (targetCenterY > presentCenterY ? 1 : -1)
+    }
+  }
+
+  function morphPinRulerGeometry() {
+    return rulerGeometryForRects(
+      interpolatedMorphRect(Model.keyForDate(today)),
+      interpolatedMorphRect(pinnedDateKey))
   }
 
   function pinRulerGeometryForIndex(targetIndex) {
@@ -714,40 +974,10 @@ Flickable {
 
     var presentRect = segmentRect(projection, presentCellIndex, 0, 1)
     var pinRect = segmentRect(projection, targetIndex, 0, 1)
-    var presentCenterX = presentRect.x + presentRect.width / 2
-    var presentCenterY = presentRect.y + presentRect.height / 2
-    var pinCenterX = pinRect.x + pinRect.width / 2
-    var pinCenterY = pinRect.y + pinRect.height / 2
-    var horizontalDirection = pinCenterX === presentCenterX
-      ? 0 : (pinCenterX > presentCenterX ? 1 : -1)
-    var verticalDirection = pinCenterY === presentCenterY
-      ? 0 : (pinCenterY > presentCenterY ? 1 : -1)
-    var startX = presentCenterX
-    var startY = presentCenterY
-    var elbowX = pinCenterX
-    var elbowY = presentCenterY
-    var endX = pinCenterX
-    var endY = pinCenterY
-
     // Center-to-center geometry keeps even adjacent intervals measurable.
     // The hairline passes through the two endpoint cells without recoloring
     // them, then crosses only the present row and the pin column.
-    var horizontalLength = Math.abs(elbowX - startX)
-    var verticalLength = Math.abs(endY - elbowY)
-    return {
-      visible: true,
-      startX: startX,
-      startY: startY,
-      elbowX: elbowX,
-      elbowY: elbowY,
-      endX: endX,
-      endY: endY,
-      horizontalLength: horizontalLength,
-      verticalLength: verticalLength,
-      totalLength: horizontalLength + verticalLength,
-      horizontalDirection: horizontalDirection,
-      verticalDirection: verticalDirection
-    }
+    return rulerGeometryForRects(presentRect, pinRect)
   }
 
   function pinRulerGeometry() {
@@ -901,20 +1131,39 @@ Flickable {
     var localX = x - gridOriginX()
     var localY = y - gridOriginY()
     if (localX < 0 || localY < 0 || localX >= gridWidth() || localY >= gridHeight()) return -1
-    var rowStride = cellHeight() + rowGap()
-    var localRow = Math.floor(localY / rowStride)
-    if (localY - localRow * rowStride > cellHeight()) return -1
-    var column = -1
-    for (var candidate = 0; candidate < columns(); candidate++) {
-      var start = columnOffset(candidate)
-      if (localX >= start && localX <= start + cellWidth()) {
-        column = candidate
-        break
-      }
-    }
-    if (column < 0) return -1
+    var localRow = nearestRowForPosition(localY)
+    var column = nearestColumnForPosition(localX)
     var index = firstVisibleIndex() + localRow * columns() + column
     return index >= firstVisibleIndex() && index < lastVisibleIndex() ? index : -1
+  }
+
+  function nearestRowForPosition(position) {
+    var low = 0
+    var high = visibleRowCount - 1
+    var size = cellHeight()
+    while (low < high) {
+      var middle = Math.floor((low + high) / 2)
+      var boundary = (rowOffset(middle) + size / 2
+        + rowOffset(middle + 1) + size / 2) / 2
+      if (position < boundary) high = middle
+      else low = middle + 1
+    }
+    return low
+  }
+
+  function nearestColumnForPosition(position) {
+    var low = 0
+    var high = columns() - 1
+    while (low < high) {
+      var middle = Math.floor((low + high) / 2)
+      // Columns may differ in width, so each midpoint is measured from its
+      // own column rather than from one shared size.
+      var boundary = (columnOffset(middle) + cellWidthAt(middle) / 2
+        + columnOffset(middle + 1) + cellWidthAt(middle + 1) / 2) / 2
+      if (position < boundary) high = middle
+      else low = middle + 1
+    }
+    return low
   }
 
   function gridContains(x, y) {
@@ -932,11 +1181,12 @@ Flickable {
   function axisMarks() {
     var marks = []
     if (projection === "weeks") {
-      // Twelve proportional life-month landmarks orient the 52-week row;
-      // exact calendar intervals remain in the canonical hover readout.
-      for (var month = 0; month < 12; month++)
-        marks.push({ position: (month + 0.5) * 52 / 12 - 0.5,
+      // The twelve proportional landmarks now sit inside the visible 4/5-week
+      // life-month groups. Exact calendar intervals remain in inspection.
+      for (var month = 0; month < 12; month++) {
+        marks.push({ position: month,
           label: String(month + 1), major: (month + 1) % 3 === 0 })
+      }
     } else {
       for (var exactMonth = 0; exactMonth < 12; exactMonth++)
         marks.push({ position: exactMonth, label: String(exactMonth + 1),
@@ -946,8 +1196,10 @@ Flickable {
   }
 
   function axisMarkX(position) {
-    if (projection === "months") return columnOffset(position) + cellWidth() / 2
-    return position * (cellWidth() + columnGap()) + cellWidth() / 2
+    // The twelve-part horizontal scale is the shared reference frame, not a
+    // child of either rendered projection. Its landmarks therefore remain
+    // stationary while Weeks and Months resolve beneath them.
+    return gridWidth() * (Math.max(0, Math.min(11, position)) + 0.5) / 12
   }
 
   function horizontalAxisContains(x, y) {
@@ -974,6 +1226,15 @@ Flickable {
       && x <= originX - Style.space(2)
       && y >= originY && y <= originY + gridHeight()
     return overLabel || overScale
+  }
+
+  // Vertical counterpart of horizontalIntervalsOverlap. Both axes displace a
+  // label only when its text envelope genuinely overlaps another's — never on
+  // mere adjacency — so a label stays in the base lane wherever it has room.
+  // Age labels all share one font size, so the summed half-heights reduce to
+  // the caption height, and the padding term matches the horizontal rule.
+  function verticalLabelsOverlap(firstY, secondY) {
+    return Math.abs(firstY - secondY) < Style.font.caption + Style.space(2)
   }
 
   function verticalMarks() {
@@ -1009,7 +1270,7 @@ Flickable {
     refreshCells(false)
     if (keyboardInspecting) ensureIndexVisible(keyboardIndex)
     else if (hasPin) ensureIndexVisible(pinnedIndex)
-    lifeCanvas.requestPaint()
+    requestStructurePaint()
   }
   onBirthKeyChanged: {
     clearTemporalSelection()
@@ -1020,14 +1281,15 @@ Flickable {
     clearTemporalSelection()
     refreshCells(true)
   }
-  onWidthChanged: lifeCanvas.requestPaint()
-  onMorphProgressChanged: lifeCanvas.requestPaint()
-  onEntranceFocusProgressChanged: lifeCanvas.requestPaint()
-  onEntranceGuideProgressChanged: lifeCanvas.requestPaint()
-  onPinBridgeProgressChanged: lifeCanvas.requestPaint()
-  onPinRetargetProgressChanged: lifeCanvas.requestPaint()
-  onPinInspectionActiveChanged: lifeCanvas.requestPaint()
-  onPinTerminalLabelPresenceChanged: lifeCanvas.requestPaint()
+  onWidthChanged: requestStructurePaint()
+  onMorphProgressChanged: requestStructurePaint()
+  onEntranceFocusProgressChanged: requestStructurePaint()
+  onEntranceGuideProgressChanged: requestInteractionPaint()
+  onPinBridgeProgressChanged: requestInteractionPaint()
+  onPinRetargetProgressChanged: requestInteractionPaint()
+  onPinInspectionActiveChanged: requestInteractionPaint()
+  onPinTerminalLabelPresenceChanged: requestInteractionPaint()
+  onGapRhythmProgressChanged: requestStructurePaint()
   onReducedMotionChanged: {
     if (reducedMotion && pinBridgeAnimation.running) {
       pinBridgeAnimation.stop()
@@ -1040,6 +1302,13 @@ Flickable {
   Behavior on pinTerminalLabelPresence {
     NumberAnimation {
       duration: root.reducedMotion ? 0 : 110
+      easing.type: Easing.OutCubic
+    }
+  }
+
+  Behavior on gapRhythmProgress {
+    NumberAnimation {
+      duration: root.reducedMotion ? 0 : 220
       easing.type: Easing.OutCubic
     }
   }
@@ -1229,7 +1498,9 @@ Flickable {
       Column {
         id: titleColumn
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Style.space(2)
+        // Ink rhythm, not box rhythm: caption leading already supplies most
+        // of the visible gap, so the title pair needs almost none of its own.
+        spacing: 0
 
         Text {
           anchors.horizontalCenter: parent.horizontalCenter
@@ -1279,6 +1550,8 @@ Flickable {
         + " " + root.projectionStats.unit + " lived"
       remainingLabel: root.projectionStats.remaining.toLocaleString(Qt.locale("en_US"), "f", 0)
         + " remaining"
+      temporalFrameLeft: root.temporalFrameLeft
+      temporalFrameRight: root.temporalFrameRight
     }
 
     Item {
@@ -1407,7 +1680,8 @@ Flickable {
       width: parent.width
       height: root.compactCanvasHeight
 
-      function paintCell(ctx, cell, rect, opacity, hovered, pinned, keyboardFocused) {
+      function paintCell(ctx, cell, rect, opacity, hovered, pinned,
+                         keyboardFocused, suppressPresent) {
         if (!cell || !rect || opacity <= 0) return
         var alpha = Math.max(0, Math.min(1, opacity))
         var accent = Color.accent
@@ -1416,7 +1690,7 @@ Flickable {
           ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
             root.foreground.b, 0.34 * alpha)
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
-        } else if (cell.status === "current") {
+        } else if (cell.status === "current" && suppressPresent !== true) {
           // Calendar already establishes the global present. LIFE adds its
           // local coordinate, so the cell resolves from quiet to exact rather
           // than replaying time from birth.
@@ -1467,16 +1741,75 @@ Flickable {
         }
       }
 
-      function paintProjection(ctx, mode, intervalCells, opacity, hoveredIndex) {
+      function paintProjection(ctx, mode, intervalCells, opacity, hoveredIndex,
+                               includeInteraction, suppressPresent) {
         if (!intervalCells || opacity <= 0) return
         var first = root.firstVisibleIndexFor(mode)
         var last = root.lastVisibleIndexFor(mode, intervalCells)
         var currentProjection = mode === root.projection && intervalCells === root.cells
+        var paintsInteraction = includeInteraction === true
         for (var index = first; index < last; index++)
           paintCell(ctx, intervalCells[index], root.segmentRect(mode, index, 0, 1),
-            opacity, index === hoveredIndex,
-            currentProjection && root.hasPin && index === root.pinnedIndex,
-            currentProjection && root.keyboardInspecting && index === root.keyboardIndex)
+            opacity, paintsInteraction && index === hoveredIndex,
+            paintsInteraction && currentProjection && root.hasPin
+              && index === root.pinnedIndex,
+            paintsInteraction && currentProjection && root.keyboardInspecting
+              && index === root.keyboardIndex,
+            suppressPresent === true)
+      }
+
+      function paintInteractionCell(ctx, index, hovered, pinned, keyboardFocused) {
+        if (index < root.firstVisibleIndex() || index >= root.lastVisibleIndex()) return
+        var cell = root.cells[index]
+        var rect = root.segmentRect(root.projection, index, 0, 1)
+
+        if (pinned && cell.status !== "current") {
+          ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, (root.pinInspectionActive ? 0.18 : 0.12)
+              * root.pinBridgeProgress)
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, (root.pinInspectionActive ? 0.92 : 0.72)
+              * root.pinBridgeProgress)
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
+          var pinInset = ctx.lineWidth / 2
+          ctx.strokeRect(rect.x + pinInset, rect.y + pinInset,
+            Math.max(0, rect.width - ctx.lineWidth),
+            Math.max(0, rect.height - ctx.lineWidth))
+        }
+
+        if (keyboardFocused && !hovered) {
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.9)
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline)
+          var focusInset = Math.max(1, ctx.lineWidth)
+          ctx.strokeRect(rect.x + focusInset, rect.y + focusInset,
+            Math.max(0, rect.width - focusInset * 2),
+            Math.max(0, rect.height - focusInset * 2))
+        }
+
+        if (hovered) {
+          ctx.strokeStyle = root.foreground
+          ctx.lineWidth = Math.max(1, Style.spacing.hairline * 2)
+          var hoverInset = ctx.lineWidth / 2
+          ctx.strokeRect(rect.x + hoverInset, rect.y + hoverInset,
+            Math.max(0, rect.width - ctx.lineWidth),
+            Math.max(0, rect.height - ctx.lineWidth))
+        }
+      }
+
+      function paintInteractionCells(ctx) {
+        var candidates = [root.pinnedIndex, root.keyboardIndex, root.hoveredIndex]
+        var seen = {}
+        for (var i = 0; i < candidates.length; i++) {
+          var index = candidates[i]
+          if (index < 0 || seen[index]) continue
+          seen[index] = true
+          paintInteractionCell(ctx, index,
+            index === root.hoveredIndex,
+            root.hasPin && index === root.pinnedIndex,
+            root.keyboardInspecting && index === root.keyboardIndex)
+        }
       }
 
       function clampUnit(value) {
@@ -1498,19 +1831,22 @@ Flickable {
         var seamX = left + (right - left) * t
 
         // The two resolutions never overlap: superimposing 52 and 12 columns
-        // creates a moire fan even when every cell is stationary.
+        // creates a moire fan even when every cell is stationary. A hard
+        // travelling seam keeps both sides at full strength, so neither the
+        // structure nor its semantic gaps ever dim or appear to drift.
         ctx.save()
         ctx.beginPath()
         ctx.rect(0, 0, Math.max(0, seamX), height)
         ctx.clip()
-        paintProjection(ctx, root.projection, root.cells, 1, -1)
+        paintProjection(ctx, root.projection, root.cells, 1, -1, false, true)
         ctx.restore()
 
         ctx.save()
         ctx.beginPath()
         ctx.rect(seamX, 0, Math.max(0, width - seamX), height)
         ctx.clip()
-        paintProjection(ctx, root.morphFromProjection, root.morphFromCells, 1, -1)
+        paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
+          1, -1, false, true)
         ctx.restore()
 
         // Mark the local change in resolution without implying that a week
@@ -1534,9 +1870,18 @@ Flickable {
         }
       }
 
-      function paintOverlapFragment(ctx, sourceCell, targetCell, rect, opacity) {
+      function paintOverlapFragment(ctx, sourceCell, targetCell, rect, opacity,
+                                    suppressPresent) {
         if (!sourceCell || !targetCell || opacity <= 0) return
         var isPresent = sourceCell.status === "current" && targetCell.status === "current"
+        if (isPresent && suppressPresent === true) {
+          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, opacity * 0.28)
+          ctx.lineWidth = Style.spacing.hairline
+          ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
+            Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
+          return
+        }
         var color = isPresent ? Color.accent : root.foreground
         var alpha = isPresent ? Math.min(1, opacity * 1.18) : opacity
 
@@ -1555,14 +1900,7 @@ Flickable {
       function paintDateOverlapMorph(ctx, t) {
         var arrivalEnd = 0.40
         var resolveStart = 0.60
-        var geometryProgress
-        if (t < arrivalEnd)
-          geometryProgress = 0.5 * smoothUnit(t / arrivalEnd)
-        else if (t <= resolveStart)
-          geometryProgress = 0.5
-        else
-          geometryProgress = 0.5 + 0.5 * smoothUnit((t - resolveStart)
-            / (1 - resolveStart))
+        var geometryProgress = root.morphGeometryProgress()
 
         var sourceSettled = 1 - smoothUnit(t / 0.30)
         var targetSettled = smoothUnit((t - 0.70) / 0.30)
@@ -1574,7 +1912,7 @@ Flickable {
         var fragmentOpacity = 0.66 * interference
 
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
-          sourceSettled, -1)
+          sourceSettled, -1, false, true)
 
         // At the midpoint the two exact sampling grids coexist only as quiet
         // outlines. Their beat pattern is real 52-week versus calendar-month
@@ -1595,16 +1933,52 @@ Flickable {
               * geometryProgress
           }
           paintOverlapFragment(ctx, geometry.sourceCell, geometry.targetCell,
-            rect, fragmentOpacity)
+            rect, fragmentOpacity, true)
         }
 
-        paintProjection(ctx, root.projection, root.cells, targetSettled, -1)
+        paintProjection(ctx, root.projection, root.cells,
+          targetSettled, -1, false, true)
       }
 
       function paintProjectionMorph(ctx) {
         var t = clampUnit(root.morphProgress)
-        if (root.morphUsesDateOverlap) paintDateOverlapMorph(ctx, t)
-        else paintProjectionSeam(ctx, t)
+        if (root.morphUsesDateOverlap) {
+          paintDateOverlapMorph(ctx, t)
+          // Only the overlap lens superimposes two resolutions, so only it
+          // needs its structural channels masked back as a fixed scaffold.
+          // The travelling seam already keeps each side's gaps at that
+          // projection's own fixed geometry.
+          paintStableMorphChannels(ctx, t)
+        } else {
+          paintProjectionSeam(ctx, t)
+        }
+      }
+
+      function paintStableMorphChannels(ctx, t) {
+        if (root.gapRhythmProgress <= 0.001) return
+        var originX = root.gridOriginX()
+        var originY = root.gridOriginY()
+        var quarterGap = root.semanticColumnGap()
+        var rowGap = root.semanticRowGap()
+
+        // Five-year age bands and quarters belong to both projections. Mask
+        // them back over moving cells so they remain a fixed scaffold.
+        ctx.fillStyle = Color.popups.background
+        for (var row = 1; row < root.visibleRowCount; row++) {
+          if ((root.visibleYearStart + row) % 5 !== 0) continue
+          ctx.fillRect(originX,
+            originY + root.rowOffset(row) - rowGap,
+            root.gridWidth(), rowGap)
+        }
+        for (var quarter = 3; quarter < 12; quarter += 3) {
+          ctx.fillRect(originX + root.columnOffsetFor("months", quarter)
+              - quarterGap,
+            originY, quarterGap, root.gridHeight())
+        }
+
+        // The eight ordinary life-month boundaries are no longer projection
+        // geometry at all. They are one stationary set of marks painted after
+        // the field, so nothing about them has to be reconciled here.
       }
 
       function paintPinRuler(ctx) {
@@ -1763,13 +2137,293 @@ Flickable {
             * root.pinTerminalLabelPresence)
       }
 
-      onPaint: {
-        var ctx = getContext("2d")
-        ctx.reset()
-        ctx.clearRect(0, 0, width, height)
+      function morphLabelForDateInProjection(mode, intervalCells, dateKey) {
+        var index = Model.projectionIndexForDate(intervalCells, dateKey)
+        if (index < 0 || index >= intervalCells.length)
+          return { position: "", age: "" }
+        var parts = Model.projectionReadoutParts(intervalCells[index], mode, root.today)
+        return {
+          // Set tight: the axis annotation is the widest thing competing
+          // with the twelve fixed scale marks, and the separating space costs
+          // a whole glyph. Dropping it roughly doubles how often the label
+          // can settle back into the inner lane.
+          position: mode === "months"
+            ? parts.position.replace("MONTH ", "M")
+            : parts.position.replace("WEEK ", "W"),
+          age: String(Math.floor(index / root.columnsFor(mode)))
+        }
+      }
+
+      function morphLabelForDate(dateKey) {
+        var sourceSide = root.morphGeometryProgress() < 0.5
+        return morphLabelForDateInProjection(
+          sourceSide ? root.morphFromProjection : root.projection,
+          sourceSide ? root.morphFromCells : root.cells,
+          dateKey)
+      }
+
+      // Each label carries its own envelope. A dynamic annotation claims
+      // breathing room from another annotation, but against the small fixed
+      // scale numbers it only has to avoid overprinting them — which is what
+      // lets it settle back into the inner lane wherever there is room.
+      function horizontalIntervalsOverlap(firstX, firstWidth, secondX, secondWidth) {
+        return Math.abs(firstX - secondX)
+          < (firstWidth + secondWidth) / 2 + Style.space(2)
+      }
+
+      function horizontalLabelConflictsScale(ctx, centerX, width) {
+        var marks = root.axisMarks()
+        var originX = root.gridOriginX()
+        for (var index = 0; index < marks.length; index++) {
+          var markX = originX + root.axisMarkX(marks[index].position)
+          // Raw glyph width, as the age axis uses raw glyph height: the
+          // separation term in horizontalIntervalsOverlap is the whole
+          // clearance. Inflating each envelope first made the inner lane
+          // effectively unreachable, so a label could never settle back.
+          var markWidth = ctx.measureText(marks[index].label).width
+          if (horizontalIntervalsOverlap(centerX, width, markX, markWidth))
+            return true
+        }
+        return false
+      }
+
+      function paintFixedMorphHorizontalTick(ctx, candidate) {
+        var rect = candidate.rect
+        var label = candidate.label
+        var color = candidate.color
+        var opacity = candidate.opacity
+        if (!rect.visible || !label || opacity <= 0) return
+        var originY = root.gridOriginY()
+        var centerX = rect.x + rect.width / 2
+        var tickY = originY - Style.space(candidate.lane === 1 ? 20 : 10)
+        var tickWidth = ctx.measureText(label).width + Style.space(6)
+        if (candidate.labelVisible !== false) {
+          ctx.fillStyle = Color.popups.background
+          ctx.fillRect(centerX - tickWidth / 2, tickY - Style.space(6),
+            tickWidth, Style.space(12))
+          ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+          ctx.textAlign = "center"
+          ctx.fillText(label, centerX, tickY)
+          if (candidate.lane === 1)
+            ctx.fillRect(centerX, tickY + Style.space(6),
+              Style.spacing.hairline,
+              Math.max(0, originY - Style.space(6)
+                - (tickY + Style.space(6))))
+        }
+        ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+        ctx.fillRect(centerX, originY - Style.space(6),
+          Style.spacing.hairline, Style.space(6))
+      }
+
+      function morphHorizontalTickCandidates(dateKey, color, current) {
+        if (!dateKey) return []
+        var progress = root.morphGeometryProgress()
+        var sourceRect = root.coordinateRectForDate(root.morphFromProjection,
+          root.morphFromCells, dateKey)
+        var targetRect = root.coordinateRectForDate(root.projection,
+          root.cells, dateKey)
+        var sourceLabel = morphLabelForDateInProjection(root.morphFromProjection,
+          root.morphFromCells, dateKey).position
+        var targetLabel = morphLabelForDateInProjection(root.projection,
+          root.cells, dateKey).position
+        var sourceOpacity = 1 - smoothUnit(progress / 0.44)
+        var targetOpacity = smoothUnit((progress - 0.56) / 0.44)
+        return [
+          { rect: sourceRect, label: sourceLabel, color: color,
+            opacity: sourceOpacity, current: current },
+          { rect: targetRect, label: targetLabel, color: color,
+            opacity: targetOpacity, current: current }
+        ]
+      }
+
+      function resolveAndPaintMorphHorizontalTicks(ctx, presentKey, inspectionKey) {
+        var candidates = morphHorizontalTickCandidates(presentKey,
+          Color.accent, true)
+        if (inspectionKey) {
+          var inspectionCandidates = morphHorizontalTickCandidates(inspectionKey,
+            root.foreground, false)
+          candidates = candidates.concat(inspectionCandidates)
+        }
+        var occupied = [[], []]
+        for (var index = 0; index < candidates.length; index++) {
+          var candidate = candidates[index]
+          if (!candidate.rect.visible || !candidate.label
+              || candidate.opacity <= 0.01) continue
+          var centerX = candidate.rect.x + candidate.rect.width / 2
+          var textWidth = ctx.measureText(candidate.label).width
+          var width = textWidth + Style.space(6)
+          var lane = horizontalLabelConflictsScale(ctx, centerX, textWidth)
+            ? 1 : 0
+          var collides = false
+          for (var first = 0; first < occupied[lane].length; first++) {
+            var interval = occupied[lane][first]
+            if (horizontalIntervalsOverlap(centerX, width,
+                interval.x, interval.width)) {
+              collides = true
+              break
+            }
+          }
+          if (collides && lane === 0) {
+            lane = 1
+            collides = false
+            for (var second = 0; second < occupied[lane].length; second++) {
+              var outerInterval = occupied[lane][second]
+              if (horizontalIntervalsOverlap(centerX, width,
+                  outerInterval.x, outerInterval.width)) {
+                collides = true
+                break
+              }
+            }
+          }
+          candidate.lane = lane
+          candidate.labelVisible = !collides || candidate.current
+          if (candidate.labelVisible)
+            occupied[lane].push({ x: centerX, width: width })
+          paintFixedMorphHorizontalTick(ctx, candidate)
+        }
+      }
+
+      function verticalLabelConflictsPermanent(rect, dateKey) {
+        if (!rect.visible) return false
+        var label = morphLabelForDate(dateKey)
+        var centerY = rect.y + rect.height / 2
+        var originY = root.gridOriginY()
+        var marks = root.verticalMarks()
+        for (var index = 0; index < marks.length; index++) {
+          var mark = marks[index]
+          if (mark.current || mark.inspected
+              || String(mark.age) === label.age) continue
+          var markY = originY + root.rowOffset(mark.row)
+            + root.cellHeight() / 2
+          if (root.verticalLabelsOverlap(markY, centerY)) return true
+        }
+        return false
+      }
+
+      function morphVerticalLabelPlacement(rect, dateKey, avoidRect, avoidKey) {
+        var lane = verticalLabelConflictsPermanent(rect, dateKey) ? 1 : 0
+        if (!avoidRect || !avoidRect.visible) return { lane: lane, visible: true }
+        var avoidLane = verticalLabelConflictsPermanent(avoidRect, avoidKey) ? 1 : 0
+        var centerY = rect.y + rect.height / 2
+        var avoidY = avoidRect.y + avoidRect.height / 2
+        if (lane !== avoidLane
+            || !root.verticalLabelsOverlap(centerY, avoidY))
+          return { lane: lane, visible: true }
+        var alternateLane = lane === 0 ? 1 : 0
+        var alternateBlocked = alternateLane === 1
+          ? verticalLabelConflictsPermanent(rect, dateKey)
+          : false
+        return { lane: alternateLane, visible: !alternateBlocked }
+      }
+
+      function paintMorphGuide(ctx, rect, dateKey, color, opacity,
+                               avoidRect, avoidKey) {
+        if (!rect.visible || opacity <= 0) return
+        var originX = root.gridOriginX()
+        var originY = root.gridOriginY()
+        var centerX = rect.x + rect.width / 2
+        var centerY = rect.y + rect.height / 2
+        var label = morphLabelForDate(dateKey)
+
+        ctx.fillStyle = Qt.rgba(color.r, color.g, color.b, opacity)
+        ctx.fillRect(originX - Style.space(3), centerY,
+          Math.max(0, centerX - originX + Style.space(3)),
+          Style.spacing.hairline)
+        // The moving guide belongs to the cell. It stops at the grid edge;
+        // fixed source/destination ticks own the axis during the morph.
+        ctx.fillRect(centerX, originY, Style.spacing.hairline,
+          Math.max(0, centerY - originY))
+
+        ctx.font = Style.font.caption + "px " + root.fontFamily
+        ctx.textBaseline = "middle"
+        if (label.age) {
+          var placement = morphVerticalLabelPlacement(rect, dateKey,
+            avoidRect, avoidKey)
+          var labelX = originX - Style.space(placement.lane === 1 ? 18 : 4)
+          if (placement.visible) {
+            ctx.fillStyle = Color.popups.background
+            ctx.fillRect(labelX - Style.space(14), centerY - Style.space(6),
+              Style.space(16), Style.space(12))
+            ctx.fillStyle = color
+            ctx.textAlign = "right"
+            ctx.fillText(label.age, labelX, centerY)
+            if (placement.lane === 1)
+              ctx.fillRect(labelX + Style.space(2), centerY,
+                Style.space(15), Style.spacing.hairline)
+          }
+          ctx.fillStyle = color
+          ctx.fillRect(originX - Style.space(3), centerY,
+            Style.space(3), Style.spacing.hairline)
+        }
+      }
+
+      function paintMorphCell(ctx, rect, role) {
+        if (!rect.visible) return
+        if (role === "present") {
+          ctx.fillStyle = Color.accent
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+          return
+        }
+        if (role === "pin") {
+          ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+            root.foreground.b, 0.12)
+          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+        }
+        ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, role === "pin" ? 0.72 : 0.9)
+        ctx.lineWidth = Math.max(1, Style.spacing.hairline
+          * (role === "pin" ? 2 : 1))
+        var inset = ctx.lineWidth / 2
+        ctx.strokeRect(rect.x + inset, rect.y + inset,
+          Math.max(0, rect.width - ctx.lineWidth),
+          Math.max(0, rect.height - ctx.lineWidth))
+      }
+
+      function paintMorphRuler(ctx, geometry) {
+        if (!geometry.visible || geometry.totalLength <= 0) return
+        ctx.beginPath()
+        ctx.moveTo(geometry.startX, geometry.startY)
+        if (geometry.horizontalLength > 0)
+          ctx.lineTo(geometry.elbowX, geometry.elbowY)
+        if (geometry.verticalLength > 0)
+          ctx.lineTo(geometry.endX, geometry.endY)
+        ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, 0.46)
+        ctx.lineWidth = Style.spacing.hairline
+        ctx.lineJoin = "miter"
+        ctx.lineCap = "square"
+        ctx.stroke()
+      }
+
+      function paintMorphCoordinateOverlay(ctx) {
+        var presentKey = Model.keyForDate(root.today)
+        var presentRect = root.interpolatedMorphRect(presentKey)
+        var inspectionKey = root.morphInspectionDateKey
+        var inspectionRect = inspectionKey && inspectionKey !== presentKey
+          && inspectionKey !== root.pinnedDateKey
+          ? root.interpolatedMorphRect(inspectionKey)
+          : ({ visible: false })
+        var pinRect = root.hasPin
+          ? root.interpolatedMorphRect(root.pinnedDateKey)
+          : ({ visible: false })
+
+        paintMorphGuide(ctx, presentRect, presentKey, Color.accent, 0.32,
+          null, "")
+        if (inspectionRect.visible)
+          paintMorphGuide(ctx, inspectionRect, inspectionKey,
+            root.foreground, 0.18, presentRect, presentKey)
+        resolveAndPaintMorphHorizontalTicks(ctx, presentKey,
+          inspectionRect.visible ? inspectionKey : "")
+        paintMorphRuler(ctx, root.morphPinRulerGeometry())
+        paintMorphCell(ctx, presentRect, "present")
+        if (inspectionRect.visible) paintMorphCell(ctx, inspectionRect, "inspection")
+        if (pinRect.visible) paintMorphCell(ctx, pinRect, "pin")
+      }
+
+      function paintInteractionOverlay(ctx) {
         if (!root.cells || root.cells.length === 0) return
 
-        var cellWidth = root.cellWidth()
+        var morphing = root.projectionMorphing
         var cellHeight = root.cellHeight()
         var columns = root.columns()
         var axis = root.axisMarks()
@@ -1802,8 +2456,74 @@ Flickable {
         var inspectedColor = inspectionIndex !== root.presentCellIndex
           ? root.foreground
           : Color.accent
+        // Allocate dynamic age readings after the permanent five-year scale.
+        // Present has priority; inspection may use the other lane, and only
+        // its text disappears when neither lane is clean. Exact ticks remain.
+        var verticalPlacements = {}
+        var dynamicVerticalMarks = []
+        for (var dynamicIndex = 0; dynamicIndex < vertical.length; dynamicIndex++) {
+          if (vertical[dynamicIndex].current)
+            dynamicVerticalMarks.unshift(vertical[dynamicIndex])
+          else if (vertical[dynamicIndex].inspected)
+            dynamicVerticalMarks.push(vertical[dynamicIndex])
+        }
+        var occupiedVertical = [[], []]
+        for (var dynamicMarkIndex = 0;
+             dynamicMarkIndex < dynamicVerticalMarks.length;
+             dynamicMarkIndex++) {
+          var dynamicMark = dynamicVerticalMarks[dynamicMarkIndex]
+          var dynamicY = originY + root.rowOffset(dynamicMark.row)
+            + cellHeight / 2
+          var permanentCollision = false
+          for (var stationaryIndex = 0;
+               stationaryIndex < vertical.length;
+               stationaryIndex++) {
+            var stationaryMark = vertical[stationaryIndex]
+            if (stationaryMark.current || stationaryMark.inspected) continue
+            var stationaryY = originY + root.rowOffset(stationaryMark.row)
+              + cellHeight / 2
+            if (root.verticalLabelsOverlap(stationaryY, dynamicY)) {
+              permanentCollision = true
+              break
+            }
+          }
+          var dynamicLane = permanentCollision ? 1 : 0
+          var dynamicCollision = false
+          for (var occupiedIndex = 0;
+               occupiedIndex < occupiedVertical[dynamicLane].length;
+               occupiedIndex++) {
+            if (root.verticalLabelsOverlap(
+                occupiedVertical[dynamicLane][occupiedIndex], dynamicY)) {
+              dynamicCollision = true
+              break
+            }
+          }
+          if (dynamicCollision && dynamicLane === 0) {
+            dynamicLane = 1
+            dynamicCollision = permanentCollision
+            if (!dynamicCollision) {
+              for (var outerOccupiedIndex = 0;
+                   outerOccupiedIndex < occupiedVertical[1].length;
+                   outerOccupiedIndex++) {
+                if (root.verticalLabelsOverlap(
+                    occupiedVertical[1][outerOccupiedIndex], dynamicY)) {
+                  dynamicCollision = true
+                  break
+                }
+              }
+            }
+          }
+          var verticalLabelVisible = !dynamicCollision || dynamicMark.current
+          verticalPlacements[dynamicMark.row] = {
+            lane: dynamicLane,
+            visible: verticalLabelVisible
+          }
+          if (verticalLabelVisible)
+            occupiedVertical[dynamicLane].push(dynamicY)
+        }
         ctx.textAlign = "right"
         for (var v = 0; v < vertical.length; v++) {
+          if (morphing && (vertical[v].current || vertical[v].inspected)) continue
           ctx.fillStyle = vertical[v].current
             ? Color.accent
             : (vertical[v].inspected
@@ -1813,26 +2533,18 @@ Flickable {
                 : Qt.darker(root.foreground, 1.8)))
           var verticalY = originY + root.rowOffset(vertical[v].row)
             + cellHeight / 2
-          var verticalOuterLane = false
-          if (vertical[v].inspected && !vertical[v].current) {
-            for (var compare = 0; compare < vertical.length; compare++) {
-              if (compare === v) continue
-              var compareY = originY + root.rowOffset(vertical[compare].row)
-                + cellHeight / 2
-              if (Math.abs(compareY - verticalY)
-                  < Style.font.caption + Style.space(2)) {
-                verticalOuterLane = true
-                break
-              }
-            }
-          }
+          var verticalPlacement = verticalPlacements[vertical[v].row]
+            || ({ lane: 0, visible: true })
+          var verticalOuterLane = verticalPlacement.lane === 1
           var verticalLabelX = originX
             - Style.space(verticalOuterLane ? 18 : 4)
-          if (verticalOuterLane) {
-            ctx.fillRect(verticalLabelX + Style.space(2), verticalY,
-              Style.space(15), Style.spacing.hairline)
+          if (verticalPlacement.visible) {
+            if (verticalOuterLane) {
+              ctx.fillRect(verticalLabelX + Style.space(2), verticalY,
+                Style.space(15), Style.spacing.hairline)
+            }
+            ctx.fillText(String(vertical[v].age), verticalLabelX, verticalY)
           }
-          ctx.fillText(String(vertical[v].age), verticalLabelX, verticalY)
           ctx.fillRect(originX - (vertical[v].fiveYear ? Style.space(3) : Style.space(1)),
             verticalY,
             vertical[v].fiveYear ? Style.space(3) : Style.space(1),
@@ -1843,7 +2555,7 @@ Flickable {
         // exact tick, moving only its text outward when nearby labels collide.
         // The hold is represented separately by dimension brackets.
         var horizontalTicks = []
-        var horizontalCandidates = [
+        var horizontalCandidates = morphing ? [] : [
           { index: root.presentCellIndex, current: true },
           { index: axisInspectionIndex, current: false }
         ]
@@ -1862,46 +2574,89 @@ Flickable {
         for (var h = 0; h < horizontalTicks.length; h++) {
           var tickColumn = (horizontalTicks[h].index - root.firstVisibleIndex()) % columns
           var tickCell = root.cells[horizontalTicks[h].index]
-          var tickX = originX + root.columnOffset(tickColumn) + cellWidth / 2
+          var tickX = originX + root.columnOffset(tickColumn)
+             + root.cellWidthAt(tickColumn) / 2
           var tickParts = Model.projectionReadoutParts(tickCell, root.projection, root.today)
           var tickLabel = root.projection === "months"
-            ? tickParts.position.replace("MONTH ", "M ")
-            : tickParts.position.replace("WEEK ", "W ")
+            ? tickParts.position.replace("MONTH ", "M")
+            : tickParts.position.replace("WEEK ", "W")
           var tickWidth = ctx.measureText(tickLabel).width + Style.space(6)
           horizontalTicks[h].x = tickX
           horizontalTicks[h].label = tickLabel
+          // width draws the knockout; textWidth decides collisions.
           horizontalTicks[h].width = tickWidth
+          horizontalTicks[h].textWidth = ctx.measureText(tickLabel).width
         }
 
-        if (horizontalTicks.length === 2
-            && Math.abs(horizontalTicks[0].x - horizontalTicks[1].x)
-              < (horizontalTicks[0].width + horizontalTicks[1].width) / 2
-                + Style.space(2))
-          horizontalTicks[1].outerLane = true
+        // The permanent 1-12 scale owns lane zero. Dynamic labels begin in
+        // the first clean lane; inspection text yields only when both lanes
+        // are occupied, while its exact tick remains attached to the grid.
+        var occupiedHorizontal = [[], []]
+        for (var resolvedTick = 0;
+             resolvedTick < horizontalTicks.length;
+             resolvedTick++) {
+          var tickToResolve = horizontalTicks[resolvedTick]
+          var resolvedLane = horizontalLabelConflictsScale(ctx,
+            tickToResolve.x, tickToResolve.textWidth) ? 1 : 0
+          var tickCollision = false
+          for (var laneIndex = 0;
+               laneIndex < occupiedHorizontal[resolvedLane].length;
+               laneIndex++) {
+            var occupiedTick = occupiedHorizontal[resolvedLane][laneIndex]
+            if (horizontalIntervalsOverlap(tickToResolve.x,
+                tickToResolve.width, occupiedTick.x, occupiedTick.width)) {
+              tickCollision = true
+              break
+            }
+          }
+          if (tickCollision && resolvedLane === 0) {
+            resolvedLane = 1
+            tickCollision = false
+            for (var outerLaneIndex = 0;
+                 outerLaneIndex < occupiedHorizontal[1].length;
+                 outerLaneIndex++) {
+              var outerTick = occupiedHorizontal[1][outerLaneIndex]
+              if (horizontalIntervalsOverlap(tickToResolve.x,
+                  tickToResolve.width, outerTick.x, outerTick.width)) {
+                tickCollision = true
+                break
+              }
+            }
+          }
+          tickToResolve.outerLane = resolvedLane === 1
+          tickToResolve.labelVisible = !tickCollision || tickToResolve.current
+          if (tickToResolve.labelVisible)
+            occupiedHorizontal[resolvedLane].push({
+              x: tickToResolve.x,
+              width: tickToResolve.width
+            })
+        }
 
         for (var paintedTick = 0; paintedTick < horizontalTicks.length; paintedTick++) {
           var horizontalTick = horizontalTicks[paintedTick]
           var tickY = originY - Style.space(horizontalTick.outerLane ? 20 : 10)
-          ctx.fillStyle = Color.popups.background
-          ctx.fillRect(horizontalTick.x - horizontalTick.width / 2,
-            tickY - Style.space(6), horizontalTick.width, Style.space(12))
+          if (horizontalTick.labelVisible) {
+            ctx.fillStyle = Color.popups.background
+            ctx.fillRect(horizontalTick.x - horizontalTick.width / 2,
+              tickY - Style.space(6), horizontalTick.width, Style.space(12))
+            ctx.fillStyle = horizontalTick.current ? Color.accent : root.foreground
+            ctx.textAlign = "center"
+            ctx.fillText(horizontalTick.label, horizontalTick.x, tickY)
+            if (horizontalTick.outerLane)
+              ctx.fillRect(horizontalTick.x, tickY + Style.space(6),
+                Style.spacing.hairline,
+                Math.max(0, originY - Style.space(6)
+                  - (tickY + Style.space(6))))
+          }
           ctx.fillStyle = horizontalTick.current ? Color.accent : root.foreground
-          ctx.textAlign = "center"
-          ctx.fillText(horizontalTick.label, horizontalTick.x, tickY)
-          if (horizontalTick.outerLane)
-            ctx.fillRect(horizontalTick.x, tickY + Style.space(6),
-              Style.spacing.hairline,
-              Math.max(0, originY - Style.space(6)
-                - (tickY + Style.space(6))))
           ctx.fillRect(horizontalTick.x, originY - Style.space(6),
             Style.spacing.hairline, Style.space(6))
         }
 
-        // Present and ephemeral inspection reach the axes. The pin keeps its
-        // secondary axis labels and ticks, but the orthogonal ruler is its only
-        // full connecting geometry; a second pin-to-axis L would obscure the
-        // present-to-pin measurement.
-        var guideCandidates = [
+        // Present and ephemeral inspection reach the axes. The hold stays out
+        // of those lanes; its orthogonal ruler is the single relationship to
+        // present, avoiding a competing second pin-to-axis L.
+        var guideCandidates = morphing ? [] : [
           { index: root.presentCellIndex, current: true, pinned: false },
           { index: inspectionIndex, current: false, pinned: false }
         ]
@@ -1924,7 +2679,8 @@ Flickable {
           var guideLocal = guides[g].index - root.firstVisibleIndex()
           var guideRow = Math.floor(guideLocal / columns)
           var guideColumn = guideLocal % columns
-          var guideX = originX + root.columnOffset(guideColumn) + cellWidth / 2
+          var guideX = originX + root.columnOffset(guideColumn)
+             + root.cellWidthAt(guideColumn) / 2
           var guideY = originY + root.rowOffset(guideRow) + cellHeight / 2
           var guideColor = guides[g].current ? Color.accent : root.foreground
           var guideOpacity = guides[g].current ? 0.32 : (guides[g].pinned ? 0.28 : 0.18)
@@ -1943,9 +2699,9 @@ Flickable {
             verticalLength * guideProgress)
         }
 
-        if (root.projectionMorphing) paintProjectionMorph(ctx)
+        if (morphing) paintMorphCoordinateOverlay(ctx)
         else {
-          paintProjection(ctx, root.projection, root.cells, 1, root.hoveredIndex)
+          paintInteractionCells(ctx)
           paintPinRuler(ctx)
           paintPinRulerLabels(ctx)
         }
@@ -1958,6 +2714,31 @@ Flickable {
           ctx.fillText("↑", width - rightGutter / 2, originY + cellHeight / 2)
         if (root.canPanLater)
           ctx.fillText("↓", width - rightGutter / 2, originY + root.gridHeight() - cellHeight / 2)
+      }
+
+      onPaint: {
+        root.structurePaintCount++
+        var ctx = getContext("2d")
+        ctx.reset()
+        ctx.clearRect(0, 0, width, height)
+        if (!root.cells || root.cells.length === 0) return
+        if (root.projectionMorphing) paintProjectionMorph(ctx)
+        else paintProjection(ctx, root.projection, root.cells,
+          1, -1, false, false)
+      }
+
+      Canvas {
+        id: interactionCanvas
+        anchors.fill: parent
+        z: 1
+
+        onPaint: {
+          root.interactionPaintCount++
+          var ctx = getContext("2d")
+          ctx.reset()
+          ctx.clearRect(0, 0, width, height)
+          lifeCanvas.paintInteractionOverlay(ctx)
+        }
       }
 
       MouseArea {
@@ -1980,18 +2761,18 @@ Flickable {
             root.horizontalAxisHovered = overHorizontal
             root.verticalAxisHovered = overVertical
             root.projectionToggleHovered = overToggle
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           }
           var overRuler = root.pinRulerContains(mouse.x, mouse.y)
           if (overRuler !== root.pinRulerHovered) {
             root.pinRulerHovered = overRuler
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           }
           if (overRuler) {
             root.keyboardInspecting = false
             root.keyboardDateKey = ""
             if (root.hoveredIndex !== -1) root.hoveredIndex = -1
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
             return
           }
           var next = root.hitTest(mouse.x, mouse.y)
@@ -1999,11 +2780,11 @@ Flickable {
             root.keyboardInspecting = false
             root.keyboardDateKey = ""
             root.hoveredIndex = next
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           } else if (next < 0 && !root.gridContains(mouse.x, mouse.y)
                      && root.hoveredIndex !== -1) {
             root.hoveredIndex = -1
-            lifeCanvas.requestPaint()
+            root.requestInteractionPaint()
           }
         }
         onExited: {
@@ -2012,7 +2793,7 @@ Flickable {
           root.projectionToggleHovered = false
           root.pinRulerHovered = false
           root.disarmHover()
-          lifeCanvas.requestPaint()
+          root.requestInteractionPaint()
         }
         onClicked: function(mouse) {
           root.hoverArmed = true
@@ -2062,11 +2843,11 @@ Flickable {
           root.keyboardInspecting = false
           root.keyboardDateKey = ""
           root.hoveredIndex = -1
-          lifeCanvas.requestPaint()
+          root.requestInteractionPaint()
         }
         onExited: {
           if (!root.draggingPin) root.pinRulerHovered = false
-          lifeCanvas.requestPaint()
+          root.requestInteractionPaint()
         }
         onPressed: function(mouse) {
           var point = pinDragMouse.mapToItem(lifeCanvas, mouse.x, mouse.y)

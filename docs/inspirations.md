@@ -31,9 +31,12 @@ a different product.
 
 The article's slightly stronger separation between five-year row groups is a
 useful contextual-spacing specimen. It groups truthful age intervals rather
-than pretending birth-anchored weeks align into fixed calendar months. A
-future geometry experiment may test that rhythm under the panel's fixed
-height, viewport, and hit-testing constraints.
+than pretending birth-anchored weeks align into fixed calendar months. The
+active specimen treats negative space as temporal structure: five-year life
+bands vertically, twelve proportional 4/5-week life-month phrases in Weeks,
+and four exact quarters in Months. Its channel weights are intentionally
+proportioned to the cells they separate rather than copied from one existing
+gap. The unchanged grid remains the control.
 
 ### Tim Urban — “The Tail End”
 

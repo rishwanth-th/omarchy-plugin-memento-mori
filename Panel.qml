@@ -253,10 +253,49 @@ Panel {
     setWeekStart(Model.toggledWeekStart(root.weekStart))
   }
 
+  function toggleGapRhythm() {
+    lifeView.toggleGapRhythm()
+  }
+
+  // Live review entry points. Projection and animation style are otherwise
+  // keyboard-only, which makes them unreachable while capturing the very
+  // motion they produce.
+  function toggleProjection() {
+    lifeView.toggleProjection()
+  }
+
+  function toggleAnimationStyle() {
+    lifeView.toggleAnimationStyle()
+  }
+
+  function moveInspection(dx, dy) {
+    lifeView.moveInspection(dx, dy)
+  }
+
   function interactionState() {
+    var morphPresentRect = lifeView.interpolatedMorphRect(
+      Model.keyForDate(root.today))
+    var morphInspectionRect = lifeView.interpolatedMorphRect(
+      lifeView.morphInspectionDateKey)
+    var morphPinRect = lifeView.interpolatedMorphRect(lifeView.pinnedDateKey)
     return JSON.stringify({
       page: root.panelPage,
       projection: lifeView.projection,
+      morphFromProjection: lifeView.morphFromProjection,
+      morphProgress: lifeView.morphProgress,
+      morphGeometryProgress: lifeView.morphGeometryProgress(),
+      projectionMorphing: lifeView.projectionMorphing,
+      dateOverlapEnabled: lifeView.dateOverlapEnabled,
+      morphInspectionDateKey: lifeView.morphInspectionDateKey,
+      morphPresentX: morphPresentRect.visible ? morphPresentRect.x : -1,
+      morphPresentY: morphPresentRect.visible ? morphPresentRect.y : -1,
+      morphInspectionX: morphInspectionRect.visible ? morphInspectionRect.x : -1,
+      morphInspectionY: morphInspectionRect.visible ? morphInspectionRect.y : -1,
+      morphPinX: morphPinRect.visible ? morphPinRect.x : -1,
+      morphPinY: morphPinRect.visible ? morphPinRect.y : -1,
+      gapRhythmEnabled: lifeView.gapRhythmEnabled,
+      gapRhythmProgress: lifeView.gapRhythmProgress,
+      gapRhythmAnimating: lifeView.gapRhythmAnimating,
       presentIndex: lifeView.presentCellIndex,
       inspectedIndex: lifeView.inspectedIndex(),
       keyboardInspecting: lifeView.keyboardInspecting,
@@ -265,6 +304,28 @@ Panel {
       hoverArmed: lifeView.hoverArmed,
       horizontalRepeatCadence: lifeView.horizontalRepeatCadence,
       horizontalTraversalInterval: lifeView.horizontalTraversalInterval(),
+      semanticColumnGap: lifeView.semanticColumnGap(),
+      semanticRowGap: lifeView.semanticRowGap(),
+      ordinaryColumnGap: lifeView.columnGapFor(lifeView.projection),
+      ordinaryRowGap: lifeView.rowGap(),
+      cellWidth: lifeView.cellWidth(),
+      cellHeight: lifeView.cellHeight(),
+      gridWidth: lifeView.gridWidth(),
+      gridHeight: lifeView.gridHeight(),
+      panelContentWidth: panel.contentWidth,
+      panelContentHeight: panel.contentHeight,
+      panelOriginY: panel.cardOrigin.y,
+      panelScreenHeight: panel.screenH,
+      panelAnchorY: panel.anchorScreenPos.y,
+      panelAnchorHeight: panel.anchorH,
+      temporalFrameLeft: lifeView.temporalFrameLeft,
+      temporalFrameRight: lifeView.temporalFrameRight,
+      lifeTrackLeft: lifeView.lifeTrackLeft,
+      lifeTrackRight: lifeView.lifeTrackRight,
+      lifeTrackWidth: lifeView.lifeTrackWidth,
+      structurePaintCount: lifeView.structurePaintCount,
+      interactionPaintCount: lifeView.interactionPaintCount,
+      visibleRowCount: lifeView.visibleRowCount,
       inspectionMoveBlocked: Date.now() < lifeView.inspectionMoveBlockedUntil,
       pinnedDateKey: lifeView.pinnedDateKey,
       pinnedIndex: lifeView.pinnedIndex,
@@ -313,11 +374,11 @@ Panel {
     open: root.opened
     centerOnBar: true
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(560))
+    contentWidth: panel.fittedContentWidth(Style.space(620))
     // Calendar is the size contract for both pages. LIFE spends the recovered
     // height on its Canvas rather than resizing the anchored widget.
     contentHeight: panel.fittedContentHeight(Math.max(root.calendarFrameImplicitHeight,
-      calendarColumn.implicitHeight))
+      calendarColumn.implicitHeight) + Style.space(46))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -355,6 +416,7 @@ Panel {
           else if (t === "m" || t === "M") root.showCalendar()
           else if (t === "p" || t === "P") lifeView.toggleProjection()
           else if (t === "a" || t === "A") lifeView.toggleAnimationStyle()
+          else if (t === "g" || t === "G") lifeView.toggleGapRhythm()
           return
         }
         if (t === "m" || t === "M") root.showLife()
@@ -527,11 +589,23 @@ Panel {
               }
 
               Text {
+                id: yearPercentMetric
+                visible: false
+                text: "100.0%"
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+
+              Text {
                 id: yearPercent
                 visible: !root.editingLife
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.yearDonePercent + "%"
+                width: yearPercentMetric.implicitWidth
+                horizontalAlignment: Text.AlignRight
+                // Both readings carry one decimal and one reserved width, so
+                // neither the precision nor the track length can disagree.
+                text: Number(root.yearDone * 100).toFixed(1) + "%"
                 color: root.contentForeground
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.bodySmall

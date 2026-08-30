@@ -63,10 +63,24 @@ tiny `M →` cue is an action. The first, present, and last visible ages appear
 alongside every five-year landmark. Wheel and keyboard navigation slide the
 window one life-year at a time, and returning to now restores the default.
 
-Calendar defines the panel dimensions. Weeks and Months share its exact frame,
-Canvas budget, grid envelope, and vertical row stride, so entering LIFE or
-changing resolution moves neither the widget nor the grid. The rail supplies
-global horizon context while the grid remains a movable local view.
+Calendar defines the stable panel dimensions. LIFE uses the same panel frame
+with a deliberately wider temporal field: Weeks and Months share one grid
+envelope and vertical row stride. The LIFE rail occupies that field's full
+horizontal span and stays a slender track at every size. It carries no
+percentage inside the temporal frame: the track is six pixels tall, so seating
+text within it would cost the rail its weight, and a background knockout would
+cut a hole in the very measure the value describes. The filled track and the
+lived/remaining readouts already state the same thing, and the compact
+calendar rail states the number. Its age scale is labelled `A 0`, because the
+scale counts age rather than calendar years. Entering LIFE or changing
+resolution therefore moves neither the widget nor the temporal frame. The rail
+supplies global horizon context while the grid remains a movable 31-life-year
+local view at the reviewed theme scale.
+
+Both rails in Calendar carry one decimal and a width reserved for `100.0%`,
+right-aligned. Two progress readings side by side must not differ in
+precision, and the reserved width keeps the two tracks exactly equal however
+many digits either value happens to take.
 
 ## Progress grammar
 
@@ -86,8 +100,37 @@ birth-anchored interval remains there (`20–26 AUG 2026`). The inspected
 axes. Past, present, and future are not repeated in text because the cells and
 legend already encode that state.
 
-Crossing the tiny gaps between cells preserves the last hovered interval,
-avoiding a flash back to the present. Hover receives a crisp outline distinct
+## One predetermined lattice
+
+Every horizontal coordinate is derived from the week, top down, and both
+projections read the same lattice. The week is the atom and is always the same
+width, because a week is always seven days. A life-month is a container of
+four or five of them, so its Months column is literally the weeks it contains
+and is genuinely wider or narrower. The unevenness is information rather than
+a cost: it is the column width finally meaning something. Quarters hold 13
+weeks and 3 months in every case, so they stay even.
+
+Because every coordinate counts weeks, a boundary lands on the same pixel in
+Weeks and in Months by construction, not by tuning. This is forced, and the
+arithmetic is worth recording. A boundary can coincide in both projections
+only if `round(52m/12) / m` is constant; those ratios are 4.00, 4.50, **4.333**,
+4.25, 4.40, **4.333**, 4.286, 4.375, **4.333**, 4.30, 4.364, so only the
+quarters qualify. With uniform weeks *and* uniform months, no choice of gap
+widths can align the other eight — earlier attempts to tune them reached a
+floor of ±2.63px and no further.
+
+Only quarters are therefore spent as real space: 13 weeks and 3 months divide
+the row identically, so a quarter channel lands on a cell edge in both
+projections and cannot shift. The eight remaining life-month boundaries stay
+an invariant of the geometry rather than a drawn thing. They are the exact
+twelfths, and the Months gaps are centred on them for free; Weeks leaves them
+implicit, because a calendar month divides a week there and a line drawn
+through a cell reads as a defect. The `M 1..12` axis already names the phrases.
+
+Visible gaps remain truthful negative space, but are not dead interaction
+zones. Midpoint ownership assigns every point in a channel to its nearest
+cell, so crossing a semantic gap advances inspection continuously instead of
+pausing or flashing back to present. Hover receives a crisp outline distinct
 from the filled present cell; V1 does not imply click or persistent selection.
 
 Opening LIFE begins from present even when the popup appears beneath a parked
@@ -99,6 +142,26 @@ cell.
 Present retains accent ticks on both axes while hover adds foreground ticks
 without replacing them. When both points share an axis coordinate, the one
 accent tick remains rather than drawing competing labels in one place.
+The twelve-part horizontal scale is a stationary reference shared by Weeks
+and Months. During a projection change, active source and destination ticks
+dissolve at their own fixed coordinates instead of sliding across that scale.
+Permanent scale labels own the inner axis lane. Present and inspection use the
+first clean dynamic lane with a short leader when displaced. Present has
+priority; if the permanent scale and present already consume both lanes, only
+the lower-priority inspection text yields while its exact tick, guide, cell,
+and full header reading remain.
+
+Both axes run one rule: a label displaces only where its text envelope
+genuinely overlaps another's, never on mere adjacency, and settles back into
+the inner lane wherever it has room. Each label carries its own envelope, so an
+annotation claims breathing room from another annotation while needing only to
+avoid overprinting the small fixed scale numbers. Row pitch is not uniform —
+a five-year band carries its channel above the row — so clearance is measured
+from the label, not from the row; measuring from pitch would displace a label
+approached from one side and not the other. Axis annotations are set tight
+(`W22`, not `W 22`): the separating space costs a whole glyph, and at twelve
+scale marks across the row that glyph decides whether the inner lane is
+reachable at all.
 Hairline guides connect each point only upward to the horizontal axis and
 leftward to the vertical axis; they never continue into later columns or
 lower ages. Quiet edge arrows disclose whether earlier or later rows remain.
@@ -147,12 +210,13 @@ travel right `9M`, rise `2Y`, and terminate at `15M`. Its route from accented
 present to neutral pin communicates direction; signs and BEFORE/AFTER prose
 would repeat what the geometry already says.
 
-Exact present/inspection coordinates merge. When their text would collide,
-the present label stays nearest its axis while only the inspection label moves
-to a second lane with a short leader back to its exact tick. The held ruler is
-therefore free of axis-label collisions. Its neutral outline, engraved values,
-and line strengthen together only while the held point, either ruler leg, or
-the LIFE span is inspected.
+Exact present/inspection coordinates merge. Near collisions use the same
+two-lane policy as the permanent scales: present takes the first clean lane,
+inspection takes the other, and inspection text alone disappears if neither
+is clean. The exact inspection tick and header reading remain, so suppression
+never hides the inspected date. The held ruler is therefore free of axis-label
+collisions. Its neutral outline, engraved values, and line strengthen together
+only while the held point, either ruler leg, or the LIFE span is inspected.
 
 Labels earn their space from rendered geometry. Both component values interrupt
 the center of their own hairline with a small background knockout; the vertical
@@ -182,10 +246,10 @@ uses an open-hand cursor at rest and a closed hand while moving; no separate
 drag handle or persistent instruction is added.
 
 Horizontal keyboard traversal preserves one interval per deliberate press.
-During key repeat, its cadence is scaled by rendered cell stride, so traversing
-Months covers approximately the same visual distance per second as Weeks
-instead of racing across the twelve-column projection. Vertical movement
-remains one exact life-year row in either projection.
+During key repeat, its cadence is scaled by the full rendered cell stride, so
+Weeks and Months traverse at the same target visual speed despite their
+different column widths. Vertical movement remains one exact life-year row in
+either projection.
 
 One exact date may be held at a time. Retargeting replaces it, leaving LIFE
 clears it, and projection changes map it into the containing week or month
@@ -195,11 +259,16 @@ this plugin.
 
 ## V2 motion grammar
 
-Projection changes use a calm left-to-right resolution seam by default. It
-finishes in `360ms`, never overlays the two settled grids, and preserves the
-panel, viewport, axes, row stride, and present anchor. The pinned lived and
-remaining readouts resolve through simultaneous local shimmers constrained to
-their text envelopes, rather than one tracer crossing the empty rail. The
+Projection changes use a travelling seam by default, finishing in `360ms`.
+A hard clip sweeps across the field with the destination at full strength on
+one side and the source at full strength on the other, and a faint seam line
+marking the boundary. Nothing dims: the two resolutions never overlap, because
+superimposing 52 and 12 columns produces a moire fan even when every cell is
+stationary. An opacity cross-dissolve was tried in place of this and rejected —
+it reintroduced exactly that interference, and its complementary curves passed
+through a near-blank trough at the midpoint. The panel, viewport, axes, row
+stride, and present anchor remain fixed. The pinned lived and remaining readouts resolve
+through simultaneous local shimmers constrained to their text envelopes. The
 lived readout owns the active unit; remaining stays unitless before, during,
 and after the transition so its envelope never expands temporarily.
 
@@ -209,7 +278,21 @@ grid, alternates the motion style without creating a third projection or a
 visible setting. `P` toggles Weeks and Months as one reversible projection
 action. The lens splits intervals only at their real shared dates, holds their
 interference at a stable midpoint, and resolves in `520ms`. It is never
-persisted; the calm seam remains the startup default.
+persisted; the calm exchange remains the startup default.
+
+In both styles, the active coordinate is one synchronized atom. Present,
+inspection, and the held endpoint each derive their displayed cell, guides,
+and local ruler from the same interpolation progress. Horizontal source and
+destination ticks stay fixed and cross-dissolve around that traveling atom.
+Only the exact-overlap lens superimposes two resolutions, so only it masks its
+structural channels back as a fixed scaffold; the travelling seam already
+keeps each side's gaps at that projection's own geometry. The lens draws every
+real date-overlap fragment at full strength, lived cells filled and future
+cells outlined, because that interference is the effect rather than a defect —
+narrowing it to a band around the present threshold removed the depth cue
+entirely and was reverted. This prevents reference geometry from appearing to
+chase the point it locates, and remains a foundation for focused aesthetic
+iteration on both projection styles.
 
 ## Implementation boundary
 
@@ -217,8 +300,11 @@ persisted; the calm seam remains the startup default.
   active bindings, inherited Omarchy routing, and future shortcut allocation.
 - `horizonWeeks = 4000` is the default and core model.
 - Exact birth date and horizon override are local widget settings.
-- One `Canvas` renders the dense grid; date, projection, and hit-test math
-  remains outside QML object trees where practical.
+- One structural `Canvas` renders the dense grid and a separate lightweight
+  interaction `Canvas` renders hover, focus, pins, axes, guides, rulers, and
+  labels. Pointer and keyboard inspection must not repaint the dense field.
+  Date, projection, and hit-test math remains outside QML object trees where
+  practical.
 - The fixed Canvas paints only the absolute rows in the current attention
   window; scrolling changes that window without resizing the panel.
 - Motion must preserve stable geometry and respect reduced-motion settings.

@@ -19,6 +19,19 @@ The plugin exposes IPC entry points for profile-owned shortcuts:
 omarchy-shell rishwanth.memento-mori toggle
 omarchy-shell rishwanth.memento-mori showCalendar
 omarchy-shell rishwanth.memento-mori showLife
+omarchy-shell rishwanth.memento-mori toggleGaps
+```
+
+Three further entry points exist for live review rather than for binding.
+Projection, animation style, and inspection movement are otherwise
+keyboard-only, which makes them unreachable while capturing the very motion
+they produce; driving them over IPC is what makes a finding reproducible
+instead of a matter of eye:
+
+```bash
+omarchy-shell rishwanth.memento-mori toggleProjection
+omarchy-shell rishwanth.memento-mori toggleAnimation
+omarchy-shell rishwanth.memento-mori moveInspection <dx> <dy>
 ```
 
 Omarchy's stock `Super+Ctrl+Alt+D` binding targets `omarchy.clock`. Replacing
@@ -94,6 +107,7 @@ fields.
 | `T` or `Space` | Return the viewport and inspection cursor to now without changing an existing pin. |
 | `P` | Toggle the projection between Weeks and Months. |
 | `A` | Toggle the session-only projection animation style. |
+| `G` | Open or close the session-only semantic gap rhythm. |
 | `M` | Return to Calendar. |
 | `Escape` | Clear an active temporal pin first; close the popup when no pin remains. |
 
@@ -101,6 +115,8 @@ fields.
 
 - Scroll over the grid to move the attention viewport by one life-year.
 - Hover a cell to inspect its exact interval and coordinate guides.
+- Visible semantic gaps belong to the nearest cell at their midpoint, so
+  pointer inspection remains continuous while the spacing stays visible.
 - Click a non-present cell to pin it, click another to retarget the one pin,
   or click the pinned cell or present to clear it.
 - Hover the pin, either orthogonal ruler leg, or the LIFE span to recall the
@@ -117,6 +133,9 @@ fields.
 - Click the `M →` projection cue to toggle Weeks and Months.
 - Triple-click an otherwise inert part of the grid to toggle projection
   animation style.
+- Gap rhythm currently uses the `G` key or `toggleGaps` IPC entry point. Its
+  live-review specimen intentionally adds no permanent mode bar or pointer
+  control.
 - Click the back action to return to Calendar.
 - Click the now action, when visible, to restore the present-centered viewport.
 - The pin is session-only. Leaving LIFE clears it; it is never written to
@@ -129,15 +148,17 @@ fields.
 - `T` and Space restore keyboard inspection to present and disarm inherited
   hover. Deliberate pointer movement hands inspection back to hover.
 - One horizontal press always moves one projected interval. Held-key repeat is
-  paced by rendered cell distance, so Months and Weeks traverse the grid at a
-  coherent visual speed despite their different column widths.
+  paced by full rendered cell stride, so Months and Weeks share the same
+  target visual speed despite their different column widths.
+- Pointer and keyboard inspection repaint only the interaction layer; the
+  dense structural grid repaints only when its geometry or state changes.
 - Vertical movement remains one life-year row per press in both projections.
 
 ## Current key budget
 
 The following constraints apply before adding another interaction:
 
-- `M`, `T`, `P`, and `A` are active LIFE mnemonics.
+- `M`, `T`, `P`, `A`, and `G` are active LIFE mnemonics.
 - `Escape`, `Tab`, arrows, `H/J/K/L`, `Enter`, `Space`, and `X` are intercepted
   by the shared catcher before ordinary text-key routing.
 - `H/J/K/L` and arrows now belong to one LIFE inspection cursor. The viewport
@@ -161,14 +182,26 @@ The active plugin exposes a read-only probe for verifying that routing:
 omarchy-shell rishwanth.memento-mori interactionState
 ```
 
-If installed files contain `moveInspection` but the command reports `Function
-not found`, Omarchy is still holding a stale plugin component. Rescan first,
-then restart the shell only if the stale instance survives:
+### Never trust a rescan
+
+`omarchy-shell shell rescanPlugins` does **not** reliably reload changed QML.
+The previously loaded component keeps running, so a probe or a screenshot
+reports the OLD behaviour while the files on disk are already new. This has
+produced false "verified live" conclusions more than once: an edit appears to
+have no effect, or a fix appears to work when the old code is still running.
+Nothing in the probe output reveals it.
+
+A full shell restart replaces the process, so it always loads from disk. Use
+the sync script for every live check — it installs, asserts byte parity,
+always restarts, waits for the plugin to answer, and fails loudly on QML
+errors:
 
 ```bash
-omarchy-shell shell rescanPlugins
-omarchy restart shell
+npm run sync
 ```
+
+Only fall back to running the steps by hand if that script cannot run, and
+never conclude anything from a rescan alone.
 
 ## Temporal-distance pin proof of concept
 
@@ -196,7 +229,8 @@ DAZ-277 currently implements this deliberately bounded grammar:
    or LIFE span recalls its full delta through the same inspection readout.
 10. Opening and T/Space begin from present with hover disarmed; pointer motion
     must deliberately reclaim inspection. Horizontal repeat cadence is
-    projection-aware so Months does not visually outrun Weeks.
+    derived from full rendered stride so Months does not visually outrun
+    Weeks.
 
 `X` remains consumed and inert. No multi-pin accumulation, persisted state, or
 personal-history annotation is part of this proof of concept.
