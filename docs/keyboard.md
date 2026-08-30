@@ -218,17 +218,26 @@ a binding on `barWidgetRegistry.widgets`, so unregistering does unload the
 mounted item. Recorded here because the wrong explanation is plausible enough
 to be re-derived.
 
-A full shell restart replaces the process, so it always loads from disk. Use
-the sync script for every live check — it installs, asserts byte parity,
-always restarts, waits for the plugin to answer, and fails loudly on QML
-errors:
+A full shell restart replaces the process, so it always loads from disk.
+
+The installed plugin is a git clone whose origin is this checkout, so the
+intended way to move code onto the shell is `omarchy plugin update`, which
+fast-forwards it. Do **not** copy files into that directory: a copied-over
+clone is permanently "locally modified", and `omarchy plugin update` then
+refuses to run at all (`cannot fast-forward; you have local changes`). If that
+has already happened, recover with `git -C <plugin-dir> reset --hard` and
+`git clean -fd`.
+
+The whole loop is therefore: commit, update, restart. `npm run sync` does
+exactly that and then verifies it — it refuses a dirty checkout, asserts the
+installed revision matches, restarts, waits for the plugin to answer, and
+fails loudly on QML errors:
 
 ```bash
 npm run sync
 ```
 
-Only fall back to running the steps by hand if that script cannot run, and
-never conclude anything from a rescan alone.
+Never conclude anything from a rescan alone.
 
 ## Temporal-distance pin proof of concept
 
