@@ -69,30 +69,21 @@ Item {
 
   Text {
     id: lifePercent
-    // The percentage belongs to the span it measures, so it is engraved into
-    // the middle of the lived portion rather than at its leading edge, where
-    // the present tick already owns the position. Derived from the frame
-    // rather than the track so compact rails keep their own label-safe fit.
-    readonly property real framedWidth: Math.max(0,
-      root.temporalFrameRight - root.temporalFrameLeft)
-    readonly property real livedWidth: framedWidth
-      * Math.max(0, Math.min(1, root.progress))
-    readonly property real livedCenterX: root.temporalFrameLeft
-      + livedWidth / 2 - width / 2
+    // The rail keeps the temporal frame's full width, so the percentage sits
+    // just outside its right end rather than inside a track too slender to
+    // seat text. A thicker bar would buy legibility with the rail's weight,
+    // and the value does not carry enough significance to cost that.
     x: root.usesTemporalFrame
-      ? Math.round(Math.max(root.temporalFrameLeft,
-          Math.min(root.temporalFrameRight - width, livedCenterX)))
+      ? Math.round(Math.min(parent.width - width,
+          root.temporalFrameRight + Style.space(6)))
       : parent.width - width
     y: root.usesTemporalFrame
       ? Math.round(track.y + (track.height - height) / 2)
       : (root.showYearScale ? 0 : Math.round((root.height - height) / 2))
     z: 2
     text: Number(root.percent).toFixed(1).replace(/\.0$/, "") + "%"
-    // Inside the frame the value rides the lived fill itself. No background
-    // knockout: cutting the rail to seat a label breaks the very measure the
-    // label describes. It stays quiet enough to read as part of the fill.
     color: root.usesTemporalFrame
-      ? Color.popups.background
+      ? Qt.darker(root.foreground, 1.5)
       : root.foreground
     font.family: root.fontFamily
     font.pixelSize: root.usesTemporalFrame
@@ -102,10 +93,8 @@ Item {
 
   Rectangle {
     id: track
-    // Inside the shared frame the rail carries its own value, so it is given
-    // enough height to seat the percentage within the measure instead of
-    // cutting a hole in it. Compact rails without a shared frame retain the
-    // ordinary thin track and label-safe interval.
+    // The rail stays slender at every size. Inside the shared frame it spans
+    // the temporal field exactly; compact rails keep the label-safe interval.
     readonly property real naturalLeft: lifeLabel.x + lifeLabel.width
       + Style.space(12)
     readonly property real naturalRight: lifePercent.x - Style.space(12)
@@ -116,7 +105,7 @@ Item {
     y: root.showYearScale
       ? Math.max(0, Math.round((lifeLabel.implicitHeight - height) / 2))
       : Math.round((root.height - height) / 2)
-    height: root.usesTemporalFrame ? Style.space(12) : Style.space(6)
+    height: Style.space(6)
     radius: Style.cornerRadius > 0 ? height / 2 : 0
     color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
 
