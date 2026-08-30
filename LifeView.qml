@@ -1228,6 +1228,18 @@ Flickable {
     return overLabel || overScale
   }
 
+  function verticalLabelClearance() {
+    // Row pitch is not uniform: a five-year band carries its channel above
+    // the row, so the neighbour above sits `cellHeight + semanticRowGap`
+    // away while the neighbour below sits only `cellHeight + rowGap` away.
+    // Measuring clearance from text height alone lands between those two
+    // distances, so a label would displace when approached from one side and
+    // not from the other. Clearing the largest adjacent pitch makes the
+    // behaviour identical in both directions; two rows apart still clears.
+    return Math.max(Style.font.caption + Style.space(2),
+      cellHeight() + semanticRowGap() + Style.spacing.hairline)
+  }
+
   function verticalMarks() {
     var nowRow = currentGridRow()
     var inspectedRow = activeInspectionIndex >= firstVisibleIndex()
@@ -2272,7 +2284,7 @@ Flickable {
           var markY = originY + root.rowOffset(mark.row)
             + root.cellHeight() / 2
           if (Math.abs(markY - centerY)
-              < Style.font.caption + Style.space(2)) return true
+              < root.verticalLabelClearance()) return true
         }
         return false
       }
@@ -2285,7 +2297,7 @@ Flickable {
         var avoidY = avoidRect.y + avoidRect.height / 2
         if (lane !== avoidLane
             || Math.abs(centerY - avoidY)
-              >= Style.font.caption + Style.space(2))
+              >= root.verticalLabelClearance())
           return { lane: lane, visible: true }
         var alternateLane = lane === 0 ? 1 : 0
         var alternateBlocked = alternateLane === 1
@@ -2461,7 +2473,7 @@ Flickable {
             var stationaryY = originY + root.rowOffset(stationaryMark.row)
               + cellHeight / 2
             if (Math.abs(stationaryY - dynamicY)
-                < Style.font.caption + Style.space(2)) {
+                < root.verticalLabelClearance()) {
               permanentCollision = true
               break
             }
@@ -2472,7 +2484,7 @@ Flickable {
                occupiedIndex < occupiedVertical[dynamicLane].length;
                occupiedIndex++) {
             if (Math.abs(occupiedVertical[dynamicLane][occupiedIndex] - dynamicY)
-                < Style.font.caption + Style.space(2)) {
+                < root.verticalLabelClearance()) {
               dynamicCollision = true
               break
             }
@@ -2485,7 +2497,7 @@ Flickable {
                    outerOccupiedIndex < occupiedVertical[1].length;
                    outerOccupiedIndex++) {
                 if (Math.abs(occupiedVertical[1][outerOccupiedIndex] - dynamicY)
-                    < Style.font.caption + Style.space(2)) {
+                    < root.verticalLabelClearance()) {
                   dynamicCollision = true
                   break
                 }

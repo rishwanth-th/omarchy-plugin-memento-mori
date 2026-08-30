@@ -268,6 +268,10 @@ Panel {
     lifeView.toggleAnimationStyle()
   }
 
+  function moveInspection(dx, dy) {
+    lifeView.moveInspection(dx, dy)
+  }
+
   function interactionState() {
     var morphPresentRect = lifeView.interpolatedMorphRect(
       Model.keyForDate(root.today))
