@@ -1753,17 +1753,40 @@ Flickable {
       }
 
       function paintProjectionSeam(ctx, t) {
-        // Structural channels are a reference frame, not a traveling object.
-        // Source and destination cross-dissolve in place with complementary
-        // opacity, so something is always substantially visible instead of
-        // both topologies passing through a near-blank trough together.
-        var eased = smoothUnit(t)
-        var sourceOpacity = 1 - eased
-        var targetOpacity = eased
+        var sourceLeft = root.gridOriginXFor(root.morphFromProjection)
+        var targetLeft = root.gridOriginXFor(root.projection)
+        var sourceRight = sourceLeft + root.gridWidthFor(root.morphFromProjection)
+        var targetRight = targetLeft + root.gridWidthFor(root.projection)
+        var left = sourceLeft + (targetLeft - sourceLeft) * t
+        var right = sourceRight + (targetRight - sourceRight) * t
+        var seamX = left + (right - left) * t
+
+        // The two resolutions never overlap: superimposing 52 and 12 columns
+        // creates a moire fan even when every cell is stationary. A hard
+        // travelling seam keeps both sides at full strength, so neither the
+        // structure nor its semantic gaps ever dim or appear to drift.
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(0, 0, Math.max(0, seamX), height)
+        ctx.clip()
+        paintProjection(ctx, root.projection, root.cells, 1, -1, false, true)
+        ctx.restore()
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(seamX, 0, Math.max(0, width - seamX), height)
+        ctx.clip()
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
-          sourceOpacity, -1, false, true)
-        paintProjection(ctx, root.projection, root.cells,
-          targetOpacity, -1, false, true)
+          1, -1, false, true)
+        ctx.restore()
+
+        // Mark the local change in resolution without implying that a week
+        // has one spatial destination inside a calendar month.
+        var seamAlpha = Math.sin(Math.PI * t) * 0.22
+        ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, seamAlpha)
+        ctx.fillRect(seamX, root.gridOriginY() - Style.space(2),
+          Style.spacing.hairline, root.gridHeight() + Style.space(4))
       }
 
       function paintProjectionWireframe(ctx, rects, opacity) {
@@ -1797,6 +1820,11 @@ Flickable {
           ctx.fillStyle = Qt.rgba(color.r, color.g, color.b,
             alpha * (isPresent ? 0.92 : 0.24))
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+        } else {
+          ctx.strokeStyle = Qt.rgba(color.r, color.g, color.b, alpha * 0.28)
+          ctx.lineWidth = Style.spacing.hairline
+          ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
+            Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
         }
       }
 
@@ -1811,14 +1839,8 @@ Flickable {
         if (t < arrivalEnd) interference = smoothUnit(t / arrivalEnd)
         else if (t <= resolveStart) interference = 1
         else interference = 1 - smoothUnit((t - resolveStart) / (1 - resolveStart))
-        // Keep the exact-date depth cue weighted toward the present
-        // threshold without erasing it: a wide moving field of every
-        // past/future edge reads as moire, but cutting it to near-zero lost
-        // the "3D time folding" cue entirely. A moderate wire opacity and a
-        // wider fold band restore a visible fold while staying subordinate
-        // to the calm exchange.
-        var wireOpacity = 0.05 * interference
-        var fragmentOpacity = 0.56 * interference
+        var wireOpacity = 0.09 * interference
+        var fragmentOpacity = 0.66 * interference
 
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
           sourceSettled, -1, false, true)
@@ -1829,12 +1851,6 @@ Flickable {
         paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity)
         paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity)
 
-        var presentRect = root.interpolatedMorphRect(
-          Model.keyForDate(root.today))
-        var presentCenterY = presentRect.visible
-          ? presentRect.y + presentRect.height / 2
-          : -1
-        var presentFoldRadius = root.cellHeight() * 3.2
         for (var i = 0; i < root.morphGeometry.length; i++) {
           var geometry = root.morphGeometry[i]
           var sourceRect = geometry.sourceRect
@@ -1847,14 +1863,8 @@ Flickable {
             height: sourceRect.height + (targetRect.height - sourceRect.height)
               * geometryProgress
           }
-          var isPresent = geometry.sourceCell.status === "current"
-            && geometry.targetCell.status === "current"
-          var nearPresent = presentCenterY >= 0
-            && Math.abs(rect.y + rect.height / 2 - presentCenterY)
-              <= presentFoldRadius
-          if (isPresent || nearPresent)
-            paintOverlapFragment(ctx, geometry.sourceCell, geometry.targetCell,
-              rect, fragmentOpacity, true)
+          paintOverlapFragment(ctx, geometry.sourceCell, geometry.targetCell,
+            rect, fragmentOpacity, true)
         }
 
         paintProjection(ctx, root.projection, root.cells,
@@ -1863,9 +1873,16 @@ Flickable {
 
       function paintProjectionMorph(ctx) {
         var t = clampUnit(root.morphProgress)
-        if (root.morphUsesDateOverlap) paintDateOverlapMorph(ctx, t)
-        else paintProjectionSeam(ctx, t)
-        paintStableMorphChannels(ctx, t)
+        if (root.morphUsesDateOverlap) {
+          paintDateOverlapMorph(ctx, t)
+          // Only the overlap lens superimposes two resolutions, so only it
+          // needs its structural channels masked back as a fixed scaffold.
+          // The travelling seam already keeps each side's gaps at that
+          // projection's own fixed geometry.
+          paintStableMorphChannels(ctx, t)
+        } else {
+          paintProjectionSeam(ctx, t)
+        }
       }
 
       function paintStableMorphChannels(ctx, t) {
