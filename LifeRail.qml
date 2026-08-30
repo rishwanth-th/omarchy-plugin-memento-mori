@@ -68,8 +68,21 @@ Item {
       ? Style.hoverStateColor(root.foreground, Color.accent)
       : Qt.darker(root.foreground, 1.5)
     font.family: root.fontFamily
-    font.pixelSize: Style.font.bodySmall
+    // Matched to the rail it names: at body size the word outweighed a
+    // six-pixel track. The compact rail keeps body size to sit level with
+    // the year label beside it.
+    font.pixelSize: root.usesTemporalFrame
+      ? Style.font.caption
+      : Style.font.bodySmall
     font.letterSpacing: 1
+  }
+
+  Text {
+    id: percentMetric
+    visible: false
+    text: "100.0%"
+    font.family: root.fontFamily
+    font.pixelSize: Style.font.bodySmall
   }
 
   Text {
@@ -80,13 +93,15 @@ Item {
     // track plus the lived/remaining counts say the same thing, so LIFE
     // simply does not repeat it.
     visible: !root.usesTemporalFrame
+    width: percentMetric.implicitWidth
+    horizontalAlignment: Text.AlignRight
     x: parent.width - width
     y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
     z: 2
     // Whole percent, matching the year rail above it: two progress readings
     // side by side should not differ in precision, and equal digit counts
     // keep both tracks exactly the same length.
-    text: Math.round(root.percent) + "%"
+    text: Number(root.percent).toFixed(1) + "%"
     color: root.foreground
     font.family: root.fontFamily
     font.pixelSize: Style.font.bodySmall

@@ -589,11 +589,23 @@ Panel {
               }
 
               Text {
+                id: yearPercentMetric
+                visible: false
+                text: "100.0%"
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+
+              Text {
                 id: yearPercent
                 visible: !root.editingLife
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.yearDonePercent + "%"
+                width: yearPercentMetric.implicitWidth
+                horizontalAlignment: Text.AlignRight
+                // Both readings carry one decimal and one reserved width, so
+                // neither the precision nor the track length can disagree.
+                text: Number(root.yearDone * 100).toFixed(1) + "%"
                 color: root.contentForeground
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.bodySmall
