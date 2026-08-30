@@ -174,6 +174,12 @@ Flickable {
     return Style.spaceReal(4.7)
   }
 
+  function targetLifeMonthColumnGap() {
+    // Between the ordinary week beat and the quarter channel: enough to
+    // phrase the row into twelve, quiet enough not to rival the quarter.
+    return Style.spaceReal(3.0)
+  }
+
   function targetSemanticRowGap() {
     // The age axis owns the larger structural interval. At the active theme
     // scale this is only a quarter-pixel stronger than the column channel,
@@ -211,23 +217,55 @@ Flickable {
     return semanticRowGapForProgress(gapRhythmProgress)
   }
 
-  // Only quarters become real gaps. 13 weeks and 3 months are the same
-  // fraction of the row, so a quarter channel lands on a cell edge in both
-  // projections and cannot shift between them.
-  //
-  // The eight remaining life-month boundaries stay an invariant of the
-  // geometry rather than a drawn thing: they are the exact twelfths, and the
-  // Months gaps are centred on them for free. Weeks leaves them implicit
-  // because a calendar month divides a week there, and a line through a cell
-  // reads as a defect. The `M 1..12` axis already names the phrases.
-  function semanticColumnBoundaryCountBefore(mode, column) {
-    var bounded = Math.max(0, Math.min(columnsFor(mode), column))
-    return Math.max(0, Math.min(3,
-      Math.floor(bounded / (mode === "months" ? 3 : 13))))
+  function lifeMonthColumnGapForProgress(progress) {
+    var t = Math.max(0, Math.min(1, progress))
+    return columnGapFor("weeks")
+      + (targetLifeMonthColumnGap() - columnGapFor("weeks")) * t
   }
 
-  function totalSemanticColumnBoundaryCount(mode) {
-    return 3
+  function lifeMonthColumnGap() {
+    return lifeMonthColumnGapForProgress(gapRhythmProgress)
+  }
+
+  // One predetermined lattice serves both projections.
+  //
+  // The week is the atom and is always the same width, because a week is
+  // always seven days. A life-month is a container of four or five of them,
+  // so its column is genuinely wider or narrower — the unevenness expresses
+  // real duration rather than hiding it. Quarters hold 13 weeks and 3 months
+  // in every case, so they stay even.
+  //
+  // Every coordinate below is therefore derived from weeks, which is why a
+  // boundary lands on the same pixel in Weeks and in Months by construction.
+  function weeksBeforeMonth(month) {
+    var bounded = Math.max(0, Math.min(12, month))
+    return Math.round(bounded * 52 / 12)
+  }
+
+  function weeksInMonth(month) {
+    return weeksBeforeMonth(month + 1) - weeksBeforeMonth(month)
+  }
+
+  // Weeks completed at each life-month boundary: 4, 9, 13, 17, 22, 26, 30,
+  // 35, 39, 43, 48. Closed form so no scan runs inside a cell paint.
+  function lifeMonthBoundaryCountBefore(column) {
+    var bounded = Math.max(0, Math.min(52, column))
+    return Math.max(0, Math.min(11, Math.floor((3 * bounded + 1) / 13)))
+  }
+
+  function weeksBeforeColumn(mode, column) {
+    return mode === "months" ? weeksBeforeMonth(column) : column
+  }
+
+  function monthsBeforeColumn(mode, column) {
+    return mode === "months"
+      ? Math.max(0, Math.min(11, column))
+      : lifeMonthBoundaryCountBefore(column)
+  }
+
+  function quarterBoundaryCountBefore(mode, column) {
+    return Math.max(0, Math.min(3, Math.floor(
+      monthsBeforeColumn(mode, column) / 3)))
   }
 
   function totalColumnGapFor(mode) {
@@ -235,10 +273,11 @@ Flickable {
   }
 
   function totalColumnGapForProgress(mode, progress) {
-    var boundaryCount = totalSemanticColumnBoundaryCount(mode)
-    var ordinaryCount = columnsFor(mode) - 1 - boundaryCount
-    return ordinaryCount * columnGapFor(mode)
-      + boundaryCount * semanticColumnGapForProgress(progress)
+    // Identical for either projection: 40 ordinary week gaps live inside the
+    // month columns when Months is drawn, but the row still spends them.
+    return 40 * columnGapFor(mode)
+      + 8 * lifeMonthColumnGapForProgress(progress)
+      + 3 * semanticColumnGapForProgress(progress)
   }
 
   function averageColumnGapFor(mode) {
@@ -276,17 +315,27 @@ Flickable {
     return weekCellSizeForProgress(1)
   }
 
+  // A Months column is exactly the weeks it contains, so the two projections
+  // cannot disagree about where it ends.
+  function cellWidthForColumn(mode, column) {
+    if (mode !== "months") return weekCellSize()
+    var weeks = weeksInMonth(column)
+    return weeks * weekCellSize() + (weeks - 1) * columnGapFor(mode)
+  }
+
+  // Representative width, for stride pacing and label clearance only. Never
+  // use it to place geometry — a Months column is not one fixed size.
   function cellWidthFor(mode) {
-    if (mode === "months") {
-      var available = Math.max(Style.space(260), lifeCanvas.width - lifeCanvas.leftGutter - lifeCanvas.rightGutter)
-      return Math.max(Style.space(14),
-        (available - totalColumnGapFor(mode)) / 12)
-    }
-    return weekCellSize()
+    if (mode !== "months") return weekCellSize()
+    return (52 * weekCellSize() + 40 * columnGapFor(mode)) / 12
   }
 
   function cellWidth() {
     return cellWidthFor(projection)
+  }
+
+  function cellWidthAt(column) {
+    return cellWidthForColumn(projection, column)
   }
 
   function cellHeight() {
@@ -294,11 +343,15 @@ Flickable {
   }
 
   function columnOffsetFor(mode, column) {
-    var semanticCount = semanticColumnBoundaryCountBefore(mode, column)
-    var ordinaryCount = column - semanticCount
-    return column * cellWidthFor(mode)
-      + semanticCount * semanticColumnGap()
-      + ordinaryCount * columnGapFor(mode)
+    // Counted in weeks, so Weeks and Months evaluate to the same coordinate
+    // at every shared boundary.
+    var weeks = weeksBeforeColumn(mode, column)
+    var months = monthsBeforeColumn(mode, column)
+    var quarters = quarterBoundaryCountBefore(mode, column)
+    return weeks * weekCellSize()
+      + (weeks - months) * columnGapFor(mode)
+      + (months - quarters) * lifeMonthColumnGap()
+      + quarters * semanticColumnGap()
   }
 
   function columnOffset(column) {
@@ -314,8 +367,8 @@ Flickable {
   }
 
   function gridWidthFor(mode) {
-    return columnsFor(mode) * cellWidthFor(mode)
-      + totalColumnGapFor(mode)
+    // 52 weeks plus the row's whole gap budget, in either projection.
+    return 52 * weekCellSize() + totalColumnGapFor(mode)
   }
 
   function gridWidth() {
@@ -819,7 +872,7 @@ Flickable {
     var localIndex = index - firstVisibleIndexFor(mode)
     var row = Math.floor(localIndex / columnsInMode)
     var column = localIndex - row * columnsInMode
-    var width = cellWidthFor(mode)
+    var width = cellWidthForColumn(mode, column)
     var start = Math.max(0, Math.min(1, startFraction))
     var end = Math.max(start, Math.min(1, endFraction))
     return {
@@ -1101,11 +1154,12 @@ Flickable {
   function nearestColumnForPosition(position) {
     var low = 0
     var high = columns() - 1
-    var size = cellWidth()
     while (low < high) {
       var middle = Math.floor((low + high) / 2)
-      var boundary = (columnOffset(middle) + size / 2
-        + columnOffset(middle + 1) + size / 2) / 2
+      // Columns may differ in width, so each midpoint is measured from its
+      // own column rather than from one shared size.
+      var boundary = (columnOffset(middle) + cellWidthAt(middle) / 2
+        + columnOffset(middle + 1) + cellWidthAt(middle + 1) / 2) / 2
       if (position < boundary) high = middle
       else low = middle + 1
     }
@@ -2348,7 +2402,6 @@ Flickable {
         if (!root.cells || root.cells.length === 0) return
 
         var morphing = root.projectionMorphing
-        var cellWidth = root.cellWidth()
         var cellHeight = root.cellHeight()
         var columns = root.columns()
         var axis = root.axisMarks()
@@ -2500,7 +2553,8 @@ Flickable {
         for (var h = 0; h < horizontalTicks.length; h++) {
           var tickColumn = (horizontalTicks[h].index - root.firstVisibleIndex()) % columns
           var tickCell = root.cells[horizontalTicks[h].index]
-          var tickX = originX + root.columnOffset(tickColumn) + cellWidth / 2
+          var tickX = originX + root.columnOffset(tickColumn)
+             + root.cellWidthAt(tickColumn) / 2
           var tickParts = Model.projectionReadoutParts(tickCell, root.projection, root.today)
           var tickLabel = root.projection === "months"
             ? tickParts.position.replace("MONTH ", "M ")
@@ -2602,7 +2656,8 @@ Flickable {
           var guideLocal = guides[g].index - root.firstVisibleIndex()
           var guideRow = Math.floor(guideLocal / columns)
           var guideColumn = guideLocal % columns
-          var guideX = originX + root.columnOffset(guideColumn) + cellWidth / 2
+          var guideX = originX + root.columnOffset(guideColumn)
+             + root.cellWidthAt(guideColumn) / 2
           var guideY = originY + root.rowOffset(guideRow) + cellHeight / 2
           var guideColor = guides[g].current ? Color.accent : root.foreground
           var guideOpacity = guides[g].current ? 0.32 : (guides[g].pinned ? 0.28 : 0.18)
