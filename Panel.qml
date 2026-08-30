@@ -233,8 +233,13 @@ Panel {
     lifeView.resetToNow()
     lifeView.prepareEntrance(!root.lifeEntrancePlayed)
     root.panelPage = "life"
+    // A deferred call can outlive the object it captured: a plugin reload
+    // unregisters the component while this closure is still queued, and the
+    // callback then lands on an invalidated LifeView. Check the function is
+    // still there rather than trusting the reference.
     Qt.callLater(function() {
-      lifeView.startPreparedEntrance()
+      if (lifeView && typeof lifeView.startPreparedEntrance === "function")
+        lifeView.startPreparedEntrance()
       if (keyCatcher) keyCatcher.forceActiveFocus()
     })
   }

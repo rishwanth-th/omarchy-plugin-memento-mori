@@ -191,6 +191,16 @@ produced false "verified live" conclusions more than once: an edit appears to
 have no effect, or a fix appears to work when the old code is still running.
 Nothing in the probe output reveals it.
 
+The cause is in the reload path rather than in this plugin.
+`rescanPlugins` calls `reloadPlugins`, which unloads panels and services,
+calls `Qt.clearComponentCache()`, and rescans. But `unloadPluginWidgets` only
+*unregisters* widget components from the registry — it does not destroy
+instances already mounted in the bar. This plugin is a bar widget, so its
+mounted instance survives and keeps its whole object tree alive: `panelLoader`
+→ `Panel` → `LifeView`/`LifeRail`, all still the previous components. Clearing
+the component cache only affects objects created afterwards, so nothing about
+the live instance changes.
+
 A full shell restart replaces the process, so it always loads from disk. Use
 the sync script for every live check — it installs, asserts byte parity,
 always restarts, waits for the plugin to answer, and fails loudly on QML
