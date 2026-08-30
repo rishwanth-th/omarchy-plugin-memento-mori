@@ -56,7 +56,12 @@ Item {
 
   Text {
     id: lifeLabel
-    anchors.left: parent.left
+    // Inside the temporal frame the track starts at the grid's own origin, so
+    // the label is set against that edge rather than the panel's: left-hung it
+    // reads as detached from the measure it names.
+    x: root.usesTemporalFrame
+      ? Math.max(0, Math.round(root.temporalFrameLeft - Style.space(7) - width))
+      : 0
     y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
     text: "LIFE"
     color: root.interactive && lifeMouse.containsMouse
@@ -69,26 +74,22 @@ Item {
 
   Text {
     id: lifePercent
-    // The rail keeps the temporal frame's full width, so the percentage sits
-    // just outside its right end rather than inside a track too slender to
-    // seat text. A thicker bar would buy legibility with the rail's weight,
-    // and the value does not carry enough significance to cost that.
-    x: root.usesTemporalFrame
-      ? Math.round(Math.min(parent.width - width,
-          root.temporalFrameRight + Style.space(6)))
-      : parent.width - width
-    y: root.usesTemporalFrame
-      ? Math.round(track.y + (track.height - height) / 2)
-      : (root.showYearScale ? 0 : Math.round((root.height - height) / 2))
+    // Inside the temporal frame the rail spans the full grid width, leaving
+    // no room the percentage could occupy without crowding its end. The
+    // compact calendar rail already states the value, and here the filled
+    // track plus the lived/remaining counts say the same thing, so LIFE
+    // simply does not repeat it.
+    visible: !root.usesTemporalFrame
+    x: parent.width - width
+    y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
     z: 2
-    text: Number(root.percent).toFixed(1).replace(/\.0$/, "") + "%"
-    color: root.usesTemporalFrame
-      ? Qt.darker(root.foreground, 1.5)
-      : root.foreground
+    // Whole percent, matching the year rail above it: two progress readings
+    // side by side should not differ in precision, and equal digit counts
+    // keep both tracks exactly the same length.
+    text: Math.round(root.percent) + "%"
+    color: root.foreground
     font.family: root.fontFamily
-    font.pixelSize: root.usesTemporalFrame
-      ? Style.font.caption
-      : Style.font.bodySmall
+    font.pixelSize: Style.font.bodySmall
   }
 
   Rectangle {
@@ -291,7 +292,7 @@ Item {
             && (!root.pinActive || parent.year !== root.pinYear)
             && Math.abs(parent.year - root.currentYear) >= 3
             && (!root.pinActive || Math.abs(parent.year - root.pinYear) >= 3)
-          text: parent.year === 0 ? "Y 0" : String(parent.year)
+          text: parent.year === 0 ? "A 0" : String(parent.year)
           color: Qt.darker(root.foreground, 2)
           font.family: root.fontFamily
           font.pixelSize: Math.max(7, Style.font.caption - 2)
