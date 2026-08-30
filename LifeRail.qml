@@ -88,26 +88,24 @@ Item {
       : (root.showYearScale ? 0 : Math.round((root.height - height) / 2))
     z: 2
     text: Number(root.percent).toFixed(1).replace(/\.0$/, "") + "%"
-    color: root.foreground
+    // Inside the frame the value rides the lived fill itself. No background
+    // knockout: cutting the rail to seat a label breaks the very measure the
+    // label describes. It stays quiet enough to read as part of the fill.
+    color: root.usesTemporalFrame
+      ? Color.popups.background
+      : root.foreground
     font.family: root.fontFamily
-    font.pixelSize: Style.font.bodySmall
-
-    Rectangle {
-      x: -Style.space(3)
-      y: -Style.space(1)
-      width: parent.width + Style.space(6)
-      height: parent.height + Style.space(2)
-      z: -1
-      radius: Style.cornerRadius
-      color: Color.popups.background
-    }
+    font.pixelSize: root.usesTemporalFrame
+      ? Style.font.caption
+      : Style.font.bodySmall
   }
 
   Rectangle {
     id: track
-    // In LIFE the percentage is an engraved terminal value: the complete
-    // temporal span continues behind a small background knockout. Compact
-    // rails without a shared frame retain the ordinary label-safe interval.
+    // Inside the shared frame the rail carries its own value, so it is given
+    // enough height to seat the percentage within the measure instead of
+    // cutting a hole in it. Compact rails without a shared frame retain the
+    // ordinary thin track and label-safe interval.
     readonly property real naturalLeft: lifeLabel.x + lifeLabel.width
       + Style.space(12)
     readonly property real naturalRight: lifePercent.x - Style.space(12)
@@ -116,9 +114,9 @@ Item {
       ? root.temporalFrameRight
       : naturalRight) - x)
     y: root.showYearScale
-      ? Math.round((lifeLabel.implicitHeight - height) / 2)
+      ? Math.max(0, Math.round((lifeLabel.implicitHeight - height) / 2))
       : Math.round((root.height - height) / 2)
-    height: Style.space(6)
+    height: root.usesTemporalFrame ? Style.space(12) : Style.space(6)
     radius: Style.cornerRadius > 0 ? height / 2 : 0
     color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
 

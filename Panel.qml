@@ -257,6 +257,17 @@ Panel {
     lifeView.toggleGapRhythm()
   }
 
+  // Live review entry points. Projection and animation style are otherwise
+  // keyboard-only, which makes them unreachable while capturing the very
+  // motion they produce.
+  function toggleProjection() {
+    lifeView.toggleProjection()
+  }
+
+  function toggleAnimationStyle() {
+    lifeView.toggleAnimationStyle()
+  }
+
   function interactionState() {
     var morphPresentRect = lifeView.interpolatedMorphRect(
       Model.keyForDate(root.today))
