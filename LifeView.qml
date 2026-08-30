@@ -1228,16 +1228,13 @@ Flickable {
     return overLabel || overScale
   }
 
-  function verticalLabelClearance() {
-    // Row pitch is not uniform: a five-year band carries its channel above
-    // the row, so the neighbour above sits `cellHeight + semanticRowGap`
-    // away while the neighbour below sits only `cellHeight + rowGap` away.
-    // Measuring clearance from text height alone lands between those two
-    // distances, so a label would displace when approached from one side and
-    // not from the other. Clearing the largest adjacent pitch makes the
-    // behaviour identical in both directions; two rows apart still clears.
-    return Math.max(Style.font.caption + Style.space(2),
-      cellHeight() + semanticRowGap() + Style.spacing.hairline)
+  // Vertical counterpart of horizontalIntervalsOverlap. Both axes displace a
+  // label only when its text envelope genuinely overlaps another's — never on
+  // mere adjacency — so a label stays in the base lane wherever it has room.
+  // Age labels all share one font size, so the summed half-heights reduce to
+  // the caption height, and the padding term matches the horizontal rule.
+  function verticalLabelsOverlap(firstY, secondY) {
+    return Math.abs(firstY - secondY) < Style.font.caption + Style.space(2)
   }
 
   function verticalMarks() {
@@ -2283,8 +2280,7 @@ Flickable {
               || String(mark.age) === label.age) continue
           var markY = originY + root.rowOffset(mark.row)
             + root.cellHeight() / 2
-          if (Math.abs(markY - centerY)
-              < root.verticalLabelClearance()) return true
+          if (root.verticalLabelsOverlap(markY, centerY)) return true
         }
         return false
       }
@@ -2296,8 +2292,7 @@ Flickable {
         var centerY = rect.y + rect.height / 2
         var avoidY = avoidRect.y + avoidRect.height / 2
         if (lane !== avoidLane
-            || Math.abs(centerY - avoidY)
-              >= root.verticalLabelClearance())
+            || !root.verticalLabelsOverlap(centerY, avoidY))
           return { lane: lane, visible: true }
         var alternateLane = lane === 0 ? 1 : 0
         var alternateBlocked = alternateLane === 1
@@ -2472,8 +2467,7 @@ Flickable {
             if (stationaryMark.current || stationaryMark.inspected) continue
             var stationaryY = originY + root.rowOffset(stationaryMark.row)
               + cellHeight / 2
-            if (Math.abs(stationaryY - dynamicY)
-                < root.verticalLabelClearance()) {
+            if (root.verticalLabelsOverlap(stationaryY, dynamicY)) {
               permanentCollision = true
               break
             }
@@ -2483,8 +2477,8 @@ Flickable {
           for (var occupiedIndex = 0;
                occupiedIndex < occupiedVertical[dynamicLane].length;
                occupiedIndex++) {
-            if (Math.abs(occupiedVertical[dynamicLane][occupiedIndex] - dynamicY)
-                < root.verticalLabelClearance()) {
+            if (root.verticalLabelsOverlap(
+                occupiedVertical[dynamicLane][occupiedIndex], dynamicY)) {
               dynamicCollision = true
               break
             }
@@ -2496,8 +2490,8 @@ Flickable {
               for (var outerOccupiedIndex = 0;
                    outerOccupiedIndex < occupiedVertical[1].length;
                    outerOccupiedIndex++) {
-                if (Math.abs(occupiedVertical[1][outerOccupiedIndex] - dynamicY)
-                    < root.verticalLabelClearance()) {
+                if (root.verticalLabelsOverlap(
+                    occupiedVertical[1][outerOccupiedIndex], dynamicY)) {
                   dynamicCollision = true
                   break
                 }
