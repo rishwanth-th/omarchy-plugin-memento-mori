@@ -237,6 +237,22 @@ fails loudly on QML errors:
 npm run sync
 ```
 
+### The skill documents this differently
+
+Omarchy's own agent skill (`skills/omarchy/plugins.md`) states:
+
+> Saving a file anywhere under `~/.config/omarchy/plugins/` reloads plugin
+> code automatically. If a change somehow fails to apply, force a reload with
+> `omarchy-shell shell rescanPlugins`.
+
+Neither half held for this plugin when measured, and the test wrote directly
+into `~/.config/omarchy/plugins/` — the skill's own in-place workflow — so
+this is not a consequence of developing out of tree. The skill does not
+mention `omarchy restart shell` for plugin code anywhere.
+
+Expect a future agent to arrive believing the skill. That is the trap: the
+documented mechanism is the one that silently does nothing.
+
 Never conclude anything from a rescan alone.
 
 ## Temporal-distance pin proof of concept
