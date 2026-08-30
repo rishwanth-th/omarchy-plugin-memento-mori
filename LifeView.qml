@@ -1498,7 +1498,9 @@ Flickable {
       Column {
         id: titleColumn
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Style.space(2)
+        // Ink rhythm, not box rhythm: caption leading already supplies most
+        // of the visible gap, so the title pair needs almost none of its own.
+        spacing: 0
 
         Text {
           anchors.horizontalCenter: parent.horizontalCenter

@@ -51,7 +51,7 @@ Item {
 
   implicitHeight: baseHeight + (showSegmentLabels
     ? Math.max(livedSegmentLabel.implicitHeight, remainingSegmentLabel.implicitHeight)
-      + Style.space(2)
+      + Style.space(3)
     : 0)
 
   Text {
@@ -302,7 +302,7 @@ Item {
         Text {
           anchors.horizontalCenter: parent.horizontalCenter
           anchors.top: parent.top
-          anchors.topMargin: Style.space(2)
+          anchors.topMargin: Style.space(1)
           visible: parent.decade && parent.year !== root.currentYear
             && (!root.pinActive || parent.year !== root.pinYear)
             && Math.abs(parent.year - root.currentYear) >= 3
@@ -360,7 +360,7 @@ Item {
     opacity: Math.max(0, Math.min(1, root.segmentOpacity))
     anchors.left: track.left
     anchors.right: track.right
-    y: root.baseHeight + Style.space(2)
+    y: root.baseHeight + Style.space(3)
     height: visible
       ? Math.max(livedSegmentLabel.implicitHeight, remainingSegmentLabel.implicitHeight)
       : 0
