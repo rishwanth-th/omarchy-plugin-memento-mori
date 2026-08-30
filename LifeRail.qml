@@ -69,10 +69,23 @@ Item {
 
   Text {
     id: lifePercent
+    // The percentage belongs to the span it measures, so it is engraved into
+    // the middle of the lived portion rather than at its leading edge, where
+    // the present tick already owns the position. Derived from the frame
+    // rather than the track so compact rails keep their own label-safe fit.
+    readonly property real framedWidth: Math.max(0,
+      root.temporalFrameRight - root.temporalFrameLeft)
+    readonly property real livedWidth: framedWidth
+      * Math.max(0, Math.min(1, root.progress))
+    readonly property real livedCenterX: root.temporalFrameLeft
+      + livedWidth / 2 - width / 2
     x: root.usesTemporalFrame
-      ? root.temporalFrameRight - width
+      ? Math.round(Math.max(root.temporalFrameLeft,
+          Math.min(root.temporalFrameRight - width, livedCenterX)))
       : parent.width - width
-    y: root.showYearScale ? 0 : Math.round((root.height - height) / 2)
+    y: root.usesTemporalFrame
+      ? Math.round(track.y + (track.height - height) / 2)
+      : (root.showYearScale ? 0 : Math.round((root.height - height) / 2))
     z: 2
     text: Number(root.percent).toFixed(1).replace(/\.0$/, "") + "%"
     color: root.foreground
