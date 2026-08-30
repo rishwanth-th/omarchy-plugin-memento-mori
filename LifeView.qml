@@ -214,6 +214,12 @@ Flickable {
   // Only quarters become real gaps. 13 weeks and 3 months are the same
   // fraction of the row, so a quarter channel lands on a cell edge in both
   // projections and cannot shift between them.
+  //
+  // The eight remaining life-month boundaries stay an invariant of the
+  // geometry rather than a drawn thing: they are the exact twelfths, and the
+  // Months gaps are centred on them for free. Weeks leaves them implicit
+  // because a calendar month divides a week there, and a line through a cell
+  // reads as a defect. The `M 1..12` axis already names the phrases.
   function semanticColumnBoundaryCountBefore(mode, column) {
     var bounded = Math.max(0, Math.min(columnsFor(mode), column))
     return Math.max(0, Math.min(3,
@@ -1869,28 +1875,6 @@ Flickable {
           targetSettled, -1, false, true)
       }
 
-      function paintLifeMonthMarks(ctx) {
-        // The eight ordinary life-month boundaries fall at exact twelfths of
-        // the row. That coordinate is provably identical in both projections,
-        // but it only lands on a cell edge in Months — in Weeks a calendar
-        // month genuinely divides a week. So they are drawn as marks rather
-        // than spent as space, once, outside either projection's geometry.
-        // Being one fixed frame, they cannot travel during a morph.
-        var presence = Math.max(0, Math.min(1, root.gapRhythmProgress))
-        if (presence <= 0.001) return
-        var originX = root.gridOriginX()
-        var originY = root.gridOriginY()
-        var markWidth = Style.spacing.hairline
-        ctx.fillStyle = Qt.rgba(Color.popups.background.r,
-          Color.popups.background.g, Color.popups.background.b, presence)
-        for (var month = 1; month < 12; month++) {
-          if (month % 3 === 0) continue
-          ctx.fillRect(
-            originX + root.columnOffsetFor("months", month) - markWidth,
-            originY, markWidth, root.gridHeight())
-        }
-      }
-
       function paintProjectionMorph(ctx) {
         var t = clampUnit(root.morphProgress)
         if (root.morphUsesDateOverlap) {
@@ -2663,7 +2647,6 @@ Flickable {
         if (root.projectionMorphing) paintProjectionMorph(ctx)
         else paintProjection(ctx, root.projection, root.cells,
           1, -1, false, false)
-        paintLifeMonthMarks(ctx)
       }
 
       Canvas {
