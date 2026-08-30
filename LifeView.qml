@@ -167,15 +167,10 @@ Flickable {
   }
 
   function targetSemanticColumnGap() {
-    // Column groups need enough air to remain visible between narrow Weeks
-    // cells, but remain slightly quieter than the five-year rhythm.
-    return Style.spaceReal(4.0)
-  }
-
-  function targetQuarterColumnGap() {
-    // Quarters are the one horizontal boundary both projections agree on
-    // exactly, so they keep a stronger channel than the eight ordinary
-    // life-month phrases while staying under the five-year row rhythm.
+    // Quarters are the only horizontal boundary that lands on a cell edge in
+    // both projections — 13 weeks and 3 months divide the row identically —
+    // so they are the only ones that can be spent as real space. They stay
+    // slightly quieter than the five-year row rhythm.
     return Style.spaceReal(4.7)
   }
 
@@ -206,15 +201,6 @@ Flickable {
     return semanticColumnGapForProgress(gapRhythmProgress)
   }
 
-  function quarterColumnGapForProgress(progress) {
-    var t = Math.max(0, Math.min(1, progress))
-    return columnGapFor("weeks")
-      + (targetQuarterColumnGap() - columnGapFor("weeks")) * t
-  }
-
-  function quarterColumnGap() {
-    return quarterColumnGapForProgress(gapRhythmProgress)
-  }
 
   function semanticRowGapForProgress(progress) {
     var t = Math.max(0, Math.min(1, progress))
@@ -225,37 +211,16 @@ Flickable {
     return semanticRowGapForProgress(gapRhythmProgress)
   }
 
-  function weekLifeMonthBoundaryCountBefore(column) {
-    // Boundaries at completed weeks 4, 9, 13, 17, 22, 26, 30, 35, 39,
-    // 43, and 48. This closed form replaces a scan inside every cell paint.
-    var bounded = Math.max(0, Math.min(52, column))
-    return Math.max(0, Math.min(11, Math.floor((3 * bounded + 1) / 13)))
-  }
-
-  // Both projections articulate the same eleven life-month boundaries. In
-  // Months every column edge is one of them; in Weeks they fall on the
-  // rounded 4/5-week partition. Sharing the boundary set — and therefore the
-  // gap budget — is what keeps the two resolutions from shifting against each
-  // other when the projection changes.
+  // Only quarters become real gaps. 13 weeks and 3 months are the same
+  // fraction of the row, so a quarter channel lands on a cell edge in both
+  // projections and cannot shift between them.
   function semanticColumnBoundaryCountBefore(mode, column) {
     var bounded = Math.max(0, Math.min(columnsFor(mode), column))
-    return mode === "months"
-      ? Math.max(0, Math.min(11, bounded))
-      : weekLifeMonthBoundaryCountBefore(bounded)
-  }
-
-  function quarterColumnBoundaryCountBefore(mode, column) {
-    // Quarters are the third, sixth, and ninth of those boundaries in both
-    // projections, which is precisely why they already coincide exactly.
     return Math.max(0, Math.min(3,
-      Math.floor(semanticColumnBoundaryCountBefore(mode, column) / 3)))
+      Math.floor(bounded / (mode === "months" ? 3 : 13))))
   }
 
   function totalSemanticColumnBoundaryCount(mode) {
-    return 11
-  }
-
-  function totalQuarterColumnBoundaryCount(mode) {
     return 3
   }
 
@@ -264,13 +229,10 @@ Flickable {
   }
 
   function totalColumnGapForProgress(mode, progress) {
-    var quarterCount = totalQuarterColumnBoundaryCount(mode)
-    var phraseCount = totalSemanticColumnBoundaryCount(mode) - quarterCount
-    var ordinaryCount = columnsFor(mode) - 1
-      - totalSemanticColumnBoundaryCount(mode)
+    var boundaryCount = totalSemanticColumnBoundaryCount(mode)
+    var ordinaryCount = columnsFor(mode) - 1 - boundaryCount
     return ordinaryCount * columnGapFor(mode)
-      + phraseCount * semanticColumnGapForProgress(progress)
-      + quarterCount * quarterColumnGapForProgress(progress)
+      + boundaryCount * semanticColumnGapForProgress(progress)
   }
 
   function averageColumnGapFor(mode) {
@@ -327,11 +289,9 @@ Flickable {
 
   function columnOffsetFor(mode, column) {
     var semanticCount = semanticColumnBoundaryCountBefore(mode, column)
-    var quarterCount = quarterColumnBoundaryCountBefore(mode, column)
     var ordinaryCount = column - semanticCount
     return column * cellWidthFor(mode)
-      + quarterCount * quarterColumnGap()
-      + (semanticCount - quarterCount) * semanticColumnGap()
+      + semanticCount * semanticColumnGap()
       + ordinaryCount * columnGapFor(mode)
   }
 
@@ -1909,6 +1869,28 @@ Flickable {
           targetSettled, -1, false, true)
       }
 
+      function paintLifeMonthMarks(ctx) {
+        // The eight ordinary life-month boundaries fall at exact twelfths of
+        // the row. That coordinate is provably identical in both projections,
+        // but it only lands on a cell edge in Months — in Weeks a calendar
+        // month genuinely divides a week. So they are drawn as marks rather
+        // than spent as space, once, outside either projection's geometry.
+        // Being one fixed frame, they cannot travel during a morph.
+        var presence = Math.max(0, Math.min(1, root.gapRhythmProgress))
+        if (presence <= 0.001) return
+        var originX = root.gridOriginX()
+        var originY = root.gridOriginY()
+        var markWidth = Style.spacing.hairline
+        ctx.fillStyle = Qt.rgba(Color.popups.background.r,
+          Color.popups.background.g, Color.popups.background.b, presence)
+        for (var month = 1; month < 12; month++) {
+          if (month % 3 === 0) continue
+          ctx.fillRect(
+            originX + root.columnOffsetFor("months", month) - markWidth,
+            originY, markWidth, root.gridHeight())
+        }
+      }
+
       function paintProjectionMorph(ctx) {
         var t = clampUnit(root.morphProgress)
         if (root.morphUsesDateOverlap) {
@@ -1927,8 +1909,7 @@ Flickable {
         if (root.gapRhythmProgress <= 0.001) return
         var originX = root.gridOriginX()
         var originY = root.gridOriginY()
-        var columnGap = root.semanticColumnGap()
-        var quarterGap = root.quarterColumnGap()
+        var quarterGap = root.semanticColumnGap()
         var rowGap = root.semanticRowGap()
 
         // Five-year age bands and quarters belong to both projections. Mask
@@ -1946,34 +1927,9 @@ Flickable {
             originY, quarterGap, root.gridHeight())
         }
 
-        // The eight ordinary life-month phrases now carry the same channel in
-        // both projections, so they cross-dissolve between two positions at
-        // most 2.6px apart instead of changing weight as well as place.
-        var weeksPresence = root.projection === "weeks"
-          ? smoothUnit(t)
-          : 1 - smoothUnit(t)
-        var monthsPresence = 1 - weeksPresence
-        var ordinaryMonthGap = columnGap
-        for (var month = 1; month < 12; month++) {
-          if (month % 3 === 0) continue
-          if (monthsPresence > 0.001) {
-            ctx.fillStyle = Qt.rgba(Color.popups.background.r,
-              Color.popups.background.g, Color.popups.background.b,
-              monthsPresence)
-            ctx.fillRect(originX + root.columnOffsetFor("months", month)
-                - ordinaryMonthGap,
-              originY, ordinaryMonthGap, root.gridHeight())
-          }
-          if (weeksPresence > 0.001) {
-            var boundaryColumn = Math.round(month * 52 / 12)
-            ctx.fillStyle = Qt.rgba(Color.popups.background.r,
-              Color.popups.background.g, Color.popups.background.b,
-              weeksPresence)
-            ctx.fillRect(originX + root.columnOffsetFor("weeks", boundaryColumn)
-                - columnGap,
-              originY, columnGap, root.gridHeight())
-          }
-        }
+        // The eight ordinary life-month boundaries are no longer projection
+        // geometry at all. They are one stationary set of marks painted after
+        // the field, so nothing about them has to be reconciled here.
       }
 
       function paintPinRuler(ctx) {
@@ -2707,6 +2663,7 @@ Flickable {
         if (root.projectionMorphing) paintProjectionMorph(ctx)
         else paintProjection(ctx, root.projection, root.cells,
           1, -1, false, false)
+        paintLifeMonthMarks(ctx)
       }
 
       Canvas {
