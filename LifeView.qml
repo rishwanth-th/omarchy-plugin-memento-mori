@@ -2141,9 +2141,13 @@ Flickable {
           return { position: "", age: "" }
         var parts = Model.projectionReadoutParts(intervalCells[index], mode, root.today)
         return {
+          // Set tight: the axis annotation is the widest thing competing
+          // with the twelve fixed scale marks, and the separating space costs
+          // a whole glyph. Dropping it roughly doubles how often the label
+          // can settle back into the inner lane.
           position: mode === "months"
-            ? parts.position.replace("MONTH ", "M ")
-            : parts.position.replace("WEEK ", "W "),
+            ? parts.position.replace("MONTH ", "M")
+            : parts.position.replace("WEEK ", "W"),
           age: String(Math.floor(index / root.columnsFor(mode)))
         }
       }
@@ -2572,8 +2576,8 @@ Flickable {
              + root.cellWidthAt(tickColumn) / 2
           var tickParts = Model.projectionReadoutParts(tickCell, root.projection, root.today)
           var tickLabel = root.projection === "months"
-            ? tickParts.position.replace("MONTH ", "M ")
-            : tickParts.position.replace("WEEK ", "W ")
+            ? tickParts.position.replace("MONTH ", "M")
+            : tickParts.position.replace("WEEK ", "W")
           var tickWidth = ctx.measureText(tickLabel).width + Style.space(6)
           horizontalTicks[h].x = tickX
           horizontalTicks[h].label = tickLabel
