@@ -336,6 +336,34 @@ that precision.
     confines moving lived fragments to a narrow present-time fold rather than
     animating a full-field interference texture.
 
+12. **Restored motion — `6c67a06`.** Specimen 11's in-place exchange and its
+    narrowed lens were both regressions and were reverted to the originals.
+    The default is again a travelling seam at full strength on either side;
+    the exact-overlap lens again draws every fragment. Live frame-stepping
+    confirmed the seam sweeping, which specimen 11's opacity crossfade had
+    replaced with a near-blank trough.
+13. **One predetermined lattice — `b653bc9`.** Every horizontal coordinate is
+    derived from the week. A Months column is literally the weeks it contains,
+    so 4-week and 5-week months render at `31.10px` and `39.12px` while all 52
+    week cells stay identical at `7.02px`. Boundaries coincide by
+    construction; measured on rendered pixels, worst mismatch `0.5px`, against
+    `4.45px` before. Only quarters are spent as real space; the eight
+    life-month boundaries remain an undrawn invariant (`7f122d9`).
+14. **One label rule — `47990ea`, `9329bef`, `1307388`.** Both axes displace a
+    label only on real text-envelope overlap, settle it back into the inner
+    lane wherever there is room, and drop only the lower-priority text when
+    both lanes are taken. Age-axis clearance is measured from the label rather
+    than from row pitch; month-axis annotations are set tight (`W22`), which
+    took reachable inner-lane positions from 8 of 52 to 17 of 52.
+15. **Rail and rhythm — `b025868`, `34b606c`, `e72fb15`, `1ca94ce`.** The rail
+    is slender again and carries no percentage inside the temporal frame; its
+    scale reads `A 0`. Both Calendar rails carry one decimal in a width
+    reserved for `100.0%`, so the tracks cannot differ in length. The header
+    above the grid was regularised to a two-tier rhythm, roughly 6 within a
+    block and 12 between blocks. The grid measures `437 x 265.7`, an aspect of
+    `1.645` against the golden `1.618`, with its centre at `0.597` of the
+    panel.
+
 No specimen adds alternating fills, a second accent, fixed four-week months,
 or decorative animation.
 
@@ -444,10 +472,36 @@ point; it cannot become an independent particle layer.
 1. Weeks ↔ Months semantic morph — complete.
 2. LIFE entrance — complete.
 3. Temporal-distance pin — complete.
-4. Grid rhythm and contextual spacing — active.
+4. Grid rhythm and contextual spacing — complete.
 5. Hover-guide motion.
 6. Viewport movement.
 7. Transition light treatment.
+8. Continuous temporal zoom — queued, see below.
+
+## Workstream 8 — continuous temporal zoom
+
+### Intent
+
+Replace, or sit alongside, the discrete `P` projection toggle with a
+continuous zoom: outward through weeks, months and years, inward toward days.
+Resolution becomes a gesture over one timeline rather than a switch between
+two renderings of it.
+
+### Why it is a separate workstream
+
+Everything in workstreams 1-4 assumes two fixed resolutions over a 52-week
+row. The shared lattice, the travelling seam, pin identity, hit-testing and
+both axes are all derived from that row. Days are roughly 365 per year, so the
+row stops being 52 cells and the lattice has to be re-derived at every level;
+viewport, hit-testing and pin identity all need to hold across four
+resolutions rather than two. It should begin from the stable base this
+workstream produced, not extend it in place.
+
+### Reject if
+
+- Zoom makes any single resolution worse than the discrete toggle made it.
+- The lattice stops being derivable from one atom.
+- Exact date, pin identity, or projection semantics drift across levels.
 
 Only one workstream may change runtime behavior at a time. Each one receives
 its own live review before the next begins.
