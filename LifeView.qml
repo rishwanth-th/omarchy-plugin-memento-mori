@@ -2156,6 +2156,10 @@ Flickable {
           dateKey)
       }
 
+      // Each label carries its own envelope. A dynamic annotation claims
+      // breathing room from another annotation, but against the small fixed
+      // scale numbers it only has to avoid overprinting them — which is what
+      // lets it settle back into the inner lane wherever there is room.
       function horizontalIntervalsOverlap(firstX, firstWidth, secondX, secondWidth) {
         return Math.abs(firstX - secondX)
           < (firstWidth + secondWidth) / 2 + Style.space(2)
@@ -2166,8 +2170,11 @@ Flickable {
         var originX = root.gridOriginX()
         for (var index = 0; index < marks.length; index++) {
           var markX = originX + root.axisMarkX(marks[index].position)
+          // Raw glyph width, as the age axis uses raw glyph height: the
+          // separation term in horizontalIntervalsOverlap is the whole
+          // clearance. Inflating each envelope first made the inner lane
+          // effectively unreachable, so a label could never settle back.
           var markWidth = ctx.measureText(marks[index].label).width
-            + Style.space(4)
           if (horizontalIntervalsOverlap(centerX, width, markX, markWidth))
             return true
         }
@@ -2237,8 +2244,10 @@ Flickable {
           if (!candidate.rect.visible || !candidate.label
               || candidate.opacity <= 0.01) continue
           var centerX = candidate.rect.x + candidate.rect.width / 2
-          var width = ctx.measureText(candidate.label).width + Style.space(6)
-          var lane = horizontalLabelConflictsScale(ctx, centerX, width) ? 1 : 0
+          var textWidth = ctx.measureText(candidate.label).width
+          var width = textWidth + Style.space(6)
+          var lane = horizontalLabelConflictsScale(ctx, centerX, textWidth)
+            ? 1 : 0
           var collides = false
           for (var first = 0; first < occupied[lane].length; first++) {
             var interval = occupied[lane][first]
@@ -2568,7 +2577,9 @@ Flickable {
           var tickWidth = ctx.measureText(tickLabel).width + Style.space(6)
           horizontalTicks[h].x = tickX
           horizontalTicks[h].label = tickLabel
+          // width draws the knockout; textWidth decides collisions.
           horizontalTicks[h].width = tickWidth
+          horizontalTicks[h].textWidth = ctx.measureText(tickLabel).width
         }
 
         // The permanent 1-12 scale owns lane zero. Dynamic labels begin in
@@ -2580,7 +2591,7 @@ Flickable {
              resolvedTick++) {
           var tickToResolve = horizontalTicks[resolvedTick]
           var resolvedLane = horizontalLabelConflictsScale(ctx,
-            tickToResolve.x, tickToResolve.width) ? 1 : 0
+            tickToResolve.x, tickToResolve.textWidth) ? 1 : 0
           var tickCollision = false
           for (var laneIndex = 0;
                laneIndex < occupiedHorizontal[resolvedLane].length;
