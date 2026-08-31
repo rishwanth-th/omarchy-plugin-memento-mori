@@ -45,6 +45,24 @@ echo "    installed ${DEST_REV:0:7}"
   exit 1
 }
 
+# The restart below is a workaround, not a preference. It is only needed while
+# plugin QML is never re-read in-process (omacom/omarchy#6981) and while the
+# faster Quickshell.reload(false) path is unsafe on this quickshell
+# (quickshell-mirror/quickshell#956). Both are version-bound, so notice when the
+# versions move and re-check rather than carrying this forever.
+VERIFIED_OMARCHY="4.0.1-1"
+VERIFIED_QUICKSHELL="0.3.1-1"
+NOW_OMARCHY="$(omarchy version 2>/dev/null | head -1 | tr -d ' ')"
+NOW_QUICKSHELL="$(pacman -Qi quickshell 2>/dev/null | awk -F': ' '/^Version/{print $2}' | tr -d ' ')"
+if [ -n "$NOW_OMARCHY$NOW_QUICKSHELL" ] \
+   && { [ "$NOW_OMARCHY" != "$VERIFIED_OMARCHY" ] || [ "$NOW_QUICKSHELL" != "$VERIFIED_QUICKSHELL" ]; }; then
+  echo "==> NOTE: versions moved since these constraints were verified"
+  echo "    omarchy    $VERIFIED_OMARCHY -> ${NOW_OMARCHY:-?}"
+  echo "    quickshell $VERIFIED_QUICKSHELL -> ${NOW_QUICKSHELL:-?}"
+  echo "    Re-check whether the restart is still required, and whether"
+  echo "    Quickshell.reload(false) is now safe. See docs/development.md."
+fi
+
 echo "==> restart shell (rescan does not reload bar-widget QML)"
 omarchy restart shell >/dev/null 2>&1
 for _ in $(seq 1 30); do

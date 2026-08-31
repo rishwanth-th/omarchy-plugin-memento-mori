@@ -131,6 +131,28 @@ that teardown fix is packaged.
 
 Never conclude anything from a rescan alone.
 
+### When upstream fixes this
+
+Everything above is version-bound, so it should not outlive the bugs. The two
+constraints are independent and can lift separately:
+
+- **Plugin QML is never re-read in-process** (omacom/omarchy#6981). Lifts when
+  a release ships the `reloadPlugins()` fix — omacom/omarchy#8766 replaces the
+  dead `Qt.clearComponentCache` guard with `Quickshell.reload(false)`. Once it
+  lands, `omarchy-shell shell rescanPlugins` may be enough and the restart in
+  `sync-live.sh` can go.
+- **`Quickshell.reload(false)` is unsafe here** (quickshell-mirror/quickshell#956).
+  Lifts when a packaged quickshell carries teardown fix `2d3b3e9`. Until then
+  the fast path crashes on the `IpcHandler` teardown boundary this plugin sits on.
+
+`scripts/sync-live.sh` pins the versions these were verified against
+(`4.0.1-1` / `0.3.1-1`) and prints a notice when either moves, so the prompt to
+re-check arrives during a normal sync rather than depending on someone
+rereading this file. Re-verify with the probe in
+[Never trust a rescan](#never-trust-a-rescan): change a constant the plugin
+reports over IPC, save, and see whether the reported value follows without a
+restart.
+
 ## Live review entry points
 
 Projection, animation style and inspection movement are otherwise keyboard-only,
