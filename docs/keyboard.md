@@ -253,6 +253,24 @@ mention `omarchy restart shell` for plugin code anywhere.
 Expect a future agent to arrive believing the skill. That is the trap: the
 documented mechanism is the one that silently does nothing.
 
+### Why not the faster reload
+
+`Quickshell.reload(false)` does pick up edited plugin QML in-process — verified
+here: same PID, changed value, no restart. It is much faster than restarting
+the shell, and omacom/omarchy PR #8766 proposes it as the upstream fix.
+
+Do not use it in this loop on quickshell 0.3.1. That release has a confirmed
+use-after-free at the `EngineGeneration` teardown boundary
+(quickshell-mirror/quickshell#956). On the PR, a reviewer built 0.3.1 twice —
+once with the upstream teardown fix `2d3b3e9`, once without — and the unpatched
+build crashed in five of six runs when a plugin watcher drove real edits
+through that path. The symbolized traces run through
+`IpcHandler::updateRegistration()`, and this plugin registers an `IpcHandler`,
+so it sits directly on the crashing path.
+
+A full restart is slower and safe. Revisit once a quickshell release carrying
+that teardown fix is packaged.
+
 Never conclude anything from a rescan alone.
 
 ## Temporal-distance pin proof of concept
