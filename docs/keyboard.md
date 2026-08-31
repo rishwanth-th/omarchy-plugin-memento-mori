@@ -253,11 +253,18 @@ mention `omarchy restart shell` for plugin code anywhere.
 Expect a future agent to arrive believing the skill. That is the trap: the
 documented mechanism is the one that silently does nothing.
 
+Tracked upstream — omacom/omarchy#6981 is the fullest write-up,
+omacom/omarchy#8555 covers bar widgets specifically, and omacom/omarchy#9251
+reports the same symptom. The cause is that `shell.qml` guards its cache clear
+with `typeof Qt.clearComponentCache === "function"`, and
+`QQmlEngine::clearComponentCache()` is a C++-only method that has never been
+bound to the QML `Qt` object in Qt 5 or Qt 6, so the guard is always false.
+
 ### Why not the faster reload
 
 `Quickshell.reload(false)` does pick up edited plugin QML in-process — verified
 here: same PID, changed value, no restart. It is much faster than restarting
-the shell, and omacom/omarchy PR #8766 proposes it as the upstream fix.
+the shell, and omacom/omarchy#8766 proposes it as the upstream fix.
 
 Do not use it in this loop on quickshell 0.3.1. That release has a confirmed
 use-after-free at the `EngineGeneration` teardown boundary
