@@ -104,6 +104,13 @@ with `typeof Qt.clearComponentCache === "function"`, and
 `QQmlEngine::clearComponentCache()` is a C++-only method that has never been
 bound to the QML `Qt` object in Qt 5 or Qt 6, so the guard is always false.
 
+The workaround this repo uses is
+[`scripts/sync-live.sh`](../scripts/sync-live.sh) (`npm run sync`): pull the
+committed state with `omarchy plugin update`, restart the shell, then assert
+the installed revision matches the checkout and that no QML errors were logged.
+The assertion is the point — the failure is silent, so a loop that does not
+check cannot tell you it worked.
+
 ### Why not the faster reload
 
 `Quickshell.reload(false)` does pick up edited plugin QML in-process — verified
