@@ -14,7 +14,7 @@
 #    then keeps serving the old component, so a probe or screenshot reports
 #    the OLD behaviour while the files on disk are new. Nothing in the probe
 #    output reveals it. A restart replaces the process, so it always loads
-#    from disk. See docs/keyboard.md.
+#    from disk. See docs/development.md.
 set -euo pipefail
 
 PLUGIN_ID="rishwanth.memento-mori"
