@@ -118,19 +118,22 @@ omarchy plugin remove rishwanth.memento-mori
   what each contributed.
 - [Roadmap](docs/roadmap.md) holds V2 interaction questions without turning
   them into promised features.
+- [Development](docs/development.md) records how to get a change onto the live
+  shell and why the loop restarts rather than hot-reloading.
 
 ## Development
 
 ```bash
-npm test
+npm test          # model tests
+npm run sync      # put this checkout on the live shell, verified
 omarchy plugin validate .
-omarchy-shell rishwanth.memento-mori interactionState
 ```
 
-`interactionState` is a read-only runtime probe for keyboard cursor, hover,
-pin, projection and animation state, gap lens, render-layer activity, shared
-frame geometry, and viewport state. It is useful when a QML hot reload appears
-to have retained an older component instance.
+`npm run sync` commits nothing itself — it pulls the committed state into the
+installed plugin and restarts the shell, because plugin QML is never re-read
+while the shell runs. Do not copy files into the installed plugin directory;
+that breaks `omarchy plugin update`. See [development.md](docs/development.md)
+for both, and for the read-only `interactionState` probe.
 
 The implementation is deliberately small:
 
