@@ -156,9 +156,6 @@ BarWidget {
     function moveInspection(dx: int, dy: int): void {
       if (panelLoader.item) panelLoader.item.moveInspection(dx, dy)
     }
-    // TEMPORARY diagnostic: does Quickshell's generation reload pick up
-    // edited plugin QML without restarting the process?
-    function probeReload(): void { Quickshell.reload(false) }
     function showLife(): void { root.showLife() }
     function showCalendar(): void { root.showCalendar() }
     function interactionState(): string {
