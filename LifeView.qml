@@ -71,6 +71,7 @@ Flickable {
   // grid's width and as a count of life-year rows.
   property real foldReachX: 0.34
   property real foldReachRows: 4.5
+  property real foldLiftRatio: 0.30
   property bool gapRhythmEnabled: true
   property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
   property int structurePaintCount: 0
@@ -1073,6 +1074,13 @@ Flickable {
     }
   }
 
+  // How far the fold stands off the grid at its peak. Derived from the cell
+  // so it holds at any scale, and small enough that it reads as relief rather
+  // than as a second grid that has come loose.
+  function foldLift() {
+    return cellHeight() * foldLiftRatio
+  }
+
   // One at the present, nothing past the reach, smooth between. The reach is
   // wider than it is tall because a row is a life-year: a few rows already
   // spans years, while the same span across the row is only weeks.
@@ -1910,18 +1918,18 @@ Flickable {
       // through the midpoint and must stay whole everywhere, or the far field
       // would empty out at exactly the moment both settled projections are
       // gone.
-      function paintProjectionWireframe(ctx, rects, opacity, focus) {
+      function paintProjectionWireframe(ctx, rects, opacity, focus, lift) {
         if (!rects || opacity <= 0) return
         ctx.lineWidth = Style.spacing.hairline
         var colour = root.foreground
         for (var index = 0; index < rects.length; index++) {
           var rect = rects[index]
-          var strength = opacity
-          if (focus) strength *= root.foldFalloff(focus,
-            rect.x + rect.width / 2, rect.y + rect.height / 2)
+          var reach = focus ? root.foldFalloff(focus,
+            rect.x + rect.width / 2, rect.y + rect.height / 2) : 1
+          var strength = opacity * reach
           if (strength <= 0.002) continue
           ctx.strokeStyle = Qt.rgba(colour.r, colour.g, colour.b, strength)
-          ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
+          ctx.strokeRect(rect.x + 0.5, rect.y + 0.5 - lift * reach,
             Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
         }
       }
@@ -1968,9 +1976,18 @@ Flickable {
         // At the midpoint the two exact sampling grids coexist only as quiet
         // outlines. Their beat pattern is real 52-week versus calendar-month
         // interference, not an independently drawn decorative texture.
+        // Both lattices are displaced by the same amount, so the beat between
+        // them is untouched and only the layer they form moves. Scaled by the
+        // same falloff that gives the fold its extent, so it domes at the
+        // present and comes back down to the grid at its edges rather than
+        // rising as a flat plate — and by the interference, so the rise, the
+        // exchange and the fall are one gesture instead of a fade.
         var focus = root.foldFocus()
-        paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity, focus)
-        paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity, focus)
+        var lift = root.foldLift() * channels.interference
+        paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity,
+          focus, lift)
+        paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity,
+          focus, lift)
 
         for (var i = 0; i < root.morphGeometry.length; i++) {
           var geometry = root.morphGeometry[i]
