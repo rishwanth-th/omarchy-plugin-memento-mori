@@ -150,6 +150,9 @@ BarWidget {
     function toggleProjection(): void {
       if (panelLoader.item) panelLoader.item.toggleProjection()
     }
+    function zoom(direction: int): void {
+      if (panelLoader.item) panelLoader.item.zoomProjection(direction)
+    }
     function toggleAnimation(): void {
       if (panelLoader.item) panelLoader.item.toggleAnimationStyle()
     }

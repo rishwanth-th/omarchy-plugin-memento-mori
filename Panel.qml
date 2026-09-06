@@ -269,6 +269,10 @@ Panel {
     lifeView.toggleProjection()
   }
 
+  function zoomProjection(direction) {
+    lifeView.zoomProjection(direction)
+  }
+
   function toggleAnimationStyle() {
     lifeView.toggleAnimationStyle()
   }

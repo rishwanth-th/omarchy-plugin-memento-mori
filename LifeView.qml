@@ -166,7 +166,26 @@ Flickable {
   }
 
   function columnsFor(mode) {
-    return mode === "months" ? 12 : 52
+    return Model.projectionColumns(mode)
+  }
+
+  // A rate unit divides the row evenly, so its columns are one width and its
+  // groupings are exact: twenty books to a row is five to a quarter. Nothing
+  // above the cell has to be re-derived to add one, which is the whole reason
+  // a rung like this is cheap.
+  function isRateProjection(mode) {
+    return Model.rateUnit(mode) !== null
+  }
+
+  // Boundaries inside a row that are not quarter boundaries. Books spend 16
+  // of them; the week and month projections spend the row's fixed budget.
+  function rateOrdinaryBoundaries(mode) {
+    var columns = columnsFor(mode)
+    return Math.max(0, columns - 1 - rateQuarterBoundaries(mode))
+  }
+
+  function rateQuarterBoundaries(mode) {
+    return 3
   }
 
   function columns() {
@@ -271,6 +290,10 @@ Flickable {
   }
 
   function quarterBoundaryCountBefore(mode, column) {
+    if (isRateProjection(mode)) {
+      var perQuarter = columnsFor(mode) / 4
+      return Math.max(0, Math.min(3, Math.floor(column / perQuarter)))
+    }
     return Math.max(0, Math.min(3, Math.floor(
       monthsBeforeColumn(mode, column) / 3)))
   }
@@ -325,6 +348,12 @@ Flickable {
   // A Months column is exactly the weeks it contains, so the two projections
   // cannot disagree about where it ends.
   function cellWidthForColumn(mode, column) {
+    if (isRateProjection(mode)) {
+      var spent = rateOrdinaryBoundaries(mode) * columnGapFor(mode)
+        + rateQuarterBoundaries(mode) * semanticColumnGap()
+      return Math.max(Style.space(3),
+        (canonicalRowWidth() - spent) / columnsFor(mode))
+    }
     if (mode !== "months") return weekCellSize()
     var weeks = weeksInMonth(column)
     return weeks * weekCellSize() + (weeks - 1) * columnGapFor(mode)
@@ -350,6 +379,13 @@ Flickable {
   }
 
   function columnOffsetFor(mode, column) {
+    if (isRateProjection(mode)) {
+      var index = Math.max(0, Math.min(columnsFor(mode), column))
+      var quarters = quarterBoundaryCountBefore(mode, index)
+      return index * cellWidthForColumn(mode, 0)
+        + (index - quarters) * columnGapFor(mode)
+        + quarters * semanticColumnGap()
+    }
     // Counted in weeks, so Weeks and Months evaluate to the same coordinate
     // at every shared boundary.
     var weeks = weeksBeforeColumn(mode, column)
@@ -373,9 +409,14 @@ Flickable {
       + ordinaryCount * rowGap()
   }
 
+  // Every rung draws the same envelope, so a zoom changes what the row is
+  // divided into and never how wide it is.
+  function canonicalRowWidth() {
+    return 52 * weekCellSize() + totalColumnGapFor("weeks")
+  }
+
   function gridWidthFor(mode) {
-    // 52 weeks plus the row's whole gap budget, in either projection.
-    return 52 * weekCellSize() + totalColumnGapFor(mode)
+    return canonicalRowWidth()
   }
 
   function gridWidth() {
@@ -840,7 +881,12 @@ Flickable {
     morphFromCells = sourceCells
     morphInspectionDateKey = sourceInspectionDateKey
 
-    if (dateOverlapEnabled) {
+    // The overlap lens needs the two projections to share cell boundaries,
+    // which only holds inside one hierarchy. Weeks and books meet at the day
+    // and nowhere above it, so there are no exact fragments to draw and the
+    // travelling seam carries that step instead.
+    if (dateOverlapEnabled && !isRateProjection(projection)
+        && !isRateProjection(sourceProjection)) {
       var sourceColumns = columnsFor(sourceProjection)
       var targetColumns = columnsFor(projection)
       var sourceFirst = Math.max(0,
@@ -867,8 +913,14 @@ Flickable {
     projectionMorphAnimation.start()
   }
 
+  // Zoom, not a swap. Coarser walks up the ladder and stops at the top
+  // rather than wrapping, because a scale has ends.
+  function zoomProjection(direction) {
+    setProjection(Model.stepProjection(projection, direction))
+  }
+
   function toggleProjection() {
-    setProjection(projection === "weeks" ? "months" : "weeks")
+    zoomProjection(projection === "months" ? -1 : 1)
   }
 
   function firstVisibleIndexFor(mode) {

@@ -366,11 +366,10 @@ function projectionReadout(cell, mode, today) {
 function projectionReadoutParts(cell, mode, today) {
   if (!cell) return ""
   var date = compactDateRangeParts(cell.startKey, cell.endKey)
-  var monthMode = mode === "months"
-  var span = monthMode ? 12 : 52
+  var span = projectionColumns(mode)
   var offset = Math.max(0, Math.floor(Number(cell.index) || 0))
   var age = Math.floor(offset / span)
-  var position = (monthMode ? "MONTH " : "WEEK ") + (offset % span + 1)
+  var position = projection(mode).singular + " " + (offset % span + 1)
   var statuses = { lived: "PAST", current: "PRESENT", future: "FUTURE" }
   return {
     date: date.date,
@@ -391,7 +390,7 @@ function projectionStats(cells, mode) {
   return {
     lived: lived,
     remaining: Math.max(0, intervals.length - lived),
-    unit: mode === "months" ? "months" : "weeks"
+    unit: projection(mode).unit
   }
 }
 
@@ -441,7 +440,7 @@ function projectionDelta(cells, mode, dateKey) {
 
   var signedCount = targetIndex - presentIndex
   var count = Math.abs(signedCount)
-  var singular = mode === "months" ? "MONTH" : "WEEK"
+  var singular = projection(mode).singular
   var unit = count === 1 ? singular : singular + "S"
   var direction = signedCount < 0 ? "BEFORE NOW" : "AFTER NOW"
   return {
@@ -478,14 +477,14 @@ function projectionRulerDelta(cells, mode, dateKey) {
       totalLabel: ""
     }
 
-  var columnCount = mode === "months" ? 12 : 52
+  var columnCount = projectionColumns(mode)
   var presentColumn = presentIndex % columnCount
   var targetColumn = targetIndex % columnCount
   var horizontalCount = targetColumn - presentColumn
   var verticalCount = Math.floor(targetIndex / columnCount)
     - Math.floor(presentIndex / columnCount)
   var totalCount = targetIndex - presentIndex
-  var horizontalUnit = mode === "months" ? "M" : "W"
+  var horizontalUnit = projection(mode).letter
   function magnitudeLabel(value, unit) {
     if (value === 0) return ""
     return Math.abs(value) + unit
@@ -591,6 +590,39 @@ var DAYS_PER_YEAR = 365.2425
 
 var RATE_UNITS = {
   books: { perYear: 20, label: "Book", unit: "books", singular: "book" }
+}
+
+// One place that says what a projection is, so a new rung is a table entry
+// rather than another branch threaded through everything that draws.
+// `columns` is how many of the unit fill one life-year row, which is the only
+// number the geometry needs.
+var PROJECTIONS = {
+  weeks:  { columns: 52, unit: "weeks",  singular: "WEEK",  letter: "W" },
+  months: { columns: 12, unit: "months", singular: "MONTH", letter: "M" },
+  books:  { columns: 20, unit: "books",  singular: "BOOK",  letter: "B" }
+}
+
+// Ordered fine to coarse: this is the ladder, and stepping along it is the
+// zoom. Weeks and books belong to different hierarchies and only meet at the
+// day, which is why they sit next to each other here without nesting.
+var PROJECTION_LADDER = ["weeks", "books", "months"]
+
+function projection(mode) {
+  return PROJECTIONS[mode] || PROJECTIONS.weeks
+}
+
+function projectionColumns(mode) {
+  return projection(mode).columns
+}
+
+// The next rung up or down, stopping at the ends rather than wrapping, so
+// zooming has a floor and a ceiling the way a scale does.
+function stepProjection(mode, direction) {
+  var at = PROJECTION_LADDER.indexOf(mode)
+  if (at < 0) at = 0
+  var next = at + (direction < 0 ? -1 : 1)
+  if (next < 0 || next >= PROJECTION_LADDER.length) return mode
+  return PROJECTION_LADDER[next]
 }
 
 // Where a rate unit's nth edge falls, in whole days from birth. The rounding
@@ -768,6 +800,11 @@ if (typeof module !== "undefined") {
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,
     rateUnit: rateUnit,
+    projection: projection,
+    projectionColumns: projectionColumns,
+    stepProjection: stepProjection,
+    PROJECTIONS: PROJECTIONS,
+    PROJECTION_LADDER: PROJECTION_LADDER,
     rateUnitDayOffset: rateUnitDayOffset,
     RATE_UNITS: RATE_UNITS,
     temporalViewportStart: temporalViewportStart,
