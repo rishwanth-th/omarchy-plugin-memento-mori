@@ -70,7 +70,14 @@ var PROJECTION_MORPH = {
     // by holding the morph on its plateau where the fragments carry the whole
     // image: 0.66 there reads within 0.4% of the settled grid.
     fragmentInk: 0.66,
-    wireInk: 0.09
+    // The two lattices are stroked across every visible cell, so this is a
+    // full field of hairlines rather than a local mark, so this value decides
+    // how far above the grid that field sits. Measured at the midpoint
+    // against the settled ends, within one capture run each: 0.09 rides
+    // +0.63 of a level above the grid and reads as a hovering sheet, 0.06
+    // sinks to -0.69 and reads as sunken, and the layer comes out flush near
+    // 0.075. It should sit just proud, not float and not submerge.
+    wireInk: 0.08
   }
 }
 
