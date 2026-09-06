@@ -152,3 +152,27 @@ test("the lens hands off its ink without a trough", () => {
       `ink budget was ${carried.toFixed(4)} at t=${t}`)
   })
 })
+
+test("speed is the ease's own derivative, not a curve resembling it", () => {
+  // If it were merely shaped like the motion it would drift out of step with
+  // it. Checked against the ease it is supposed to be the speed of.
+  const step = 1e-6
+  eachTime((t) => {
+    if (t < 0.01 || t > 0.99) return
+    const measured = (Motion.morphGeometry(t + step, true)
+      - Motion.morphGeometry(t - step, true)) / (2 * step)
+    assert.ok(Math.abs(measured - Motion.speed(t)) < 1e-4,
+      `speed disagreed with the ease at t=${t}`)
+  })
+  // Still at both ends, half again as fast as average in the middle.
+  assert.equal(Motion.speed(0), 0)
+  assert.equal(Motion.speed(1), 0)
+  assert.ok(Math.abs(Motion.speed(0.5) - 1.5) < 1e-12)
+})
+
+test("a morph travels exactly one journey, so speed averages one", () => {
+  let total = 0
+  const step = 1 / (SAMPLES - 1)
+  eachTime((t) => { total += Motion.speed(t) * step })
+  assert.ok(Math.abs(total - 1) < 1e-3, `travelled ${total.toFixed(4)}`)
+})

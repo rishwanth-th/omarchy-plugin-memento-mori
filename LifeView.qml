@@ -72,6 +72,8 @@ Flickable {
   property real foldReachX: 0.34
   property real foldReachRows: 4.5
   property real foldLiftRatio: 0.30
+  // How far the cursor draws out at the fastest point of a morph.
+  property real cursorStretch: 0.34
   property bool gapRhythmEnabled: true
   property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
   property int structurePaintCount: 0
@@ -2496,8 +2498,29 @@ Flickable {
         }
       }
 
-      function paintMorphCell(ctx, rect, role) {
-        if (!rect.visible) return
+      // A cursor that only translates reads as being redrawn in a new place
+      // rather than as having gone there. Stretching it along its travel by
+      // the morph's own speed — the exact derivative of the ease, so it is
+      // the motion and not a curve resembling it — gives it the character of
+      // having crossed the distance. Height gives back what width takes, so
+      // it keeps its mass and the row's rhythm is undisturbed.
+      function morphCursorRect(rect) {
+        if (!root.projectionMorphing) return rect
+        var stretch = 1 + Motion.speed(root.morphProgress) * root.cursorStretch
+        var width = rect.width * stretch
+        var height = rect.height / stretch
+        return {
+          visible: rect.visible,
+          x: rect.x - (width - rect.width) / 2,
+          y: rect.y - (height - rect.height) / 2,
+          width: width,
+          height: height
+        }
+      }
+
+      function paintMorphCell(ctx, plainRect, role) {
+        if (!plainRect.visible) return
+        var rect = morphCursorRect(plainRect)
         if (role === "present") {
           ctx.fillStyle = Color.accent
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)

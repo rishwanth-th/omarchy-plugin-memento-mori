@@ -38,6 +38,15 @@ function bell(time) {
   return smoothstep(1 - Math.abs(2 * clamp01(time) - 1))
 }
 
+// How fast the morph is travelling, as a multiple of its own average speed.
+// The exact derivative of the ease, so it is the motion rather than a curve
+// that resembles it: still at both ends, half again as fast as average at the
+// middle. Something that moves at a stated speed can be drawn as moving.
+function speed(time) {
+  var t = clamp01(time)
+  return 6 * t * (1 - t)
+}
+
 // ---- The projection morph, as data.
 //
 // Two treatments answer the same question — what happens to a week when the
@@ -187,6 +196,7 @@ if (typeof module !== "undefined") {
     smoothstep: smoothstep,
     ramp: ramp,
     bell: bell,
+    speed: speed,
     morphGeometry: morphGeometry,
     lensChannels: lensChannels,
     morphLabelChannels: morphLabelChannels,
