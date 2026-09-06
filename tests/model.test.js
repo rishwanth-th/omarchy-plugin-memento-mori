@@ -279,3 +279,48 @@ test("the temporal viewport favors the future and clamps at both ends", () => {
   assert.equal(Model.temporalViewportStart(76, 77, 24), 53)
   assert.equal(Model.temporalViewportStart(3, 8, 24), 0)
 })
+
+test("a rate unit divides the year without ever drifting from it", () => {
+  const books = Model.RATE_UNITS.books
+  // Twenty books is a year to the day, at every year of a life. The rounding
+  // is applied to the running total rather than to each length, so lengths
+  // vary by a day and the edges do not accumulate error - unlike the week
+  // grid, where a 364-day row drifts 96 days from the birthday over a life.
+  for (let year = 1; year <= 77; year++) {
+    const edge = Model.rateUnitDayOffset(books, books.perYear * year)
+    assert.equal(edge, Math.round(year * 365.2425),
+      `the year ${year} edge drifted`)
+  }
+  // Five books to a quarter, exactly, which is what lets a rate unit sit in
+  // the existing quarter frame with nothing above it re-derived.
+  assert.equal(books.perYear % 4, 0)
+})
+
+test("rate-unit cells are exact, contiguous, and vary by a day", () => {
+  const today = localDate(2026, 9, 6)
+  const cells = Model.projectionCells("books", "2001-08-23", today, 4000)
+  assert.ok(cells.length > 1500)
+  assert.equal(cells[0].startKey, "2001-08-23")
+
+  const lengths = new Set()
+  for (let i = 0; i < 400; i++) {
+    const start = new Date(cells[i].startKey + "T12:00:00")
+    const end = new Date(cells[i].endKey + "T12:00:00")
+    lengths.add(Math.round((end - start) / 86400000) + 1)
+    if (i > 0) {
+      // No day belongs to two cells, and none belongs to none.
+      const previousEnd = new Date(cells[i - 1].endKey + "T12:00:00")
+      assert.equal(Math.round((start - previousEnd) / 86400000), 1,
+        `a gap or overlap at cell ${i}`)
+    }
+  }
+  assert.deepEqual([...lengths].sort(), [18, 19])
+})
+
+test("an unknown mode is still the week grid", () => {
+  const today = localDate(2026, 9, 6)
+  const weeks = Model.projectionCells("weeks", "2001-08-23", today, 4000)
+  const unknown = Model.projectionCells("sandwiches", "2001-08-23", today, 4000)
+  assert.equal(unknown.length, weeks.length)
+  assert.equal(unknown[0].startKey, weeks[0].startKey)
+})

@@ -583,6 +583,27 @@ function projectionOverlapSegments(sourceCells, targetCells,
   return segments
 }
 
+// Units defined as a count per year rather than by the calendar. They tile
+// the year by construction, which is what lets them sit in the existing
+// quarter/year frame without any of it being re-derived: twenty books to a
+// year is five to a quarter, exactly.
+var DAYS_PER_YEAR = 365.2425
+
+var RATE_UNITS = {
+  books: { perYear: 20, label: "Book", unit: "books", singular: "book" }
+}
+
+// Where a rate unit's nth edge falls, in whole days from birth. The rounding
+// is applied to the running total rather than to each length, so the lengths
+// vary by a day while the edges never drift from the year they divide.
+function rateUnitDayOffset(rate, index) {
+  return Math.round(index * DAYS_PER_YEAR / rate.perYear)
+}
+
+function rateUnit(mode) {
+  return RATE_UNITS[mode] || null
+}
+
 function projectionCells(mode, birthKey, today, horizonValue) {
   var now = today instanceof Date ? today : new Date()
   var normalizedBirth = parseBirthDate(birthKey, now)
@@ -610,6 +631,20 @@ function projectionCells(mode, birthKey, today, horizonValue) {
       end = addDays(addCalendarYears(birth, index + 1), -1)
       if (utcDayNumber(end) > utcDayNumber(horizonEnd)) end = horizonEnd
       primary = "Year " + (index + 1)
+    } else if (RATE_UNITS[mode]) {
+      // A rate unit has no exact boundary — nobody finishes their five
+      // hundredth book on a particular Tuesday — so its edges are placed by
+      // rounding an exact fraction of the year rather than by the calendar.
+      // Rounding the cumulative position rather than the length keeps the
+      // count landing on the year: twenty books is one year to the day, and
+      // no drift accumulates across a life.
+      var rate = RATE_UNITS[mode]
+      start = addDays(birth, rateUnitDayOffset(rate, index))
+      if (utcDayNumber(start) > utcDayNumber(horizonEnd)) break
+      end = addDays(birth, rateUnitDayOffset(rate, index + 1) - 1)
+      if (utcDayNumber(end) > utcDayNumber(horizonEnd)) end = horizonEnd
+      primary = "Year " + (Math.floor(index / rate.perYear) + 1) + " · "
+        + rate.label + " " + (index % rate.perYear + 1)
     } else {
       if (index >= horizonWeeks) break
       start = addDays(birth, index * 7)
@@ -732,6 +767,9 @@ if (typeof module !== "undefined") {
     lifeProgressForDate: lifeProgressForDate,
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,
+    rateUnit: rateUnit,
+    rateUnitDayOffset: rateUnitDayOffset,
+    RATE_UNITS: RATE_UNITS,
     temporalViewportStart: temporalViewportStart,
     monthGrid: monthGrid,
     stepMonth: stepMonth,
