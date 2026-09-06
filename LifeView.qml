@@ -1983,7 +1983,7 @@ Flickable {
         // rising as a flat plate — and by the interference, so the rise, the
         // exchange and the fall are one gesture instead of a fade.
         var focus = root.foldFocus()
-        var lift = root.foldLift() * channels.interference
+        var lift = root.foldLift() * channels.fold
         paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity,
           focus, lift)
         paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity,

@@ -31,6 +31,13 @@ function ramp(time, start, end) {
   return smoothstep((time - start) / (end - start))
 }
 
+// Rises and falls once, symmetrically, with no corner anywhere: still at
+// both ends and still again at the top. A trapezoid arrives, waits, and
+// leaves as three events; this is one gesture.
+function bell(time) {
+  return smoothstep(1 - Math.abs(2 * clamp01(time) - 1))
+}
+
 // ---- The projection morph, as data.
 //
 // Two treatments answer the same question — what happens to a week when the
@@ -50,7 +57,7 @@ var PROJECTION_MORPH = {
     markOpacity: 0.22
   },
   lens: {
-    duration: 640,
+    duration: 820,
     // Edges, in clock order. Everything the lens paints is one of these.
     //
     // Two edges, and everything else follows from them. The interference is
@@ -84,6 +91,11 @@ var PROJECTION_MORPH = {
     // it is pure addition where the fold is and absent everywhere else. The
     // grid it rises from is carried entirely by the fragments, which is what
     // lets this read as relief instead of as a sheet.
+    //
+    // That is also what frees the fold's envelope. While the wire was
+    // load-bearing its shape was owned by conservation and had to be the
+    // interference exactly, flat top and all. It owes the grid nothing now,
+    // so it can take the shape that reads best: one breath.
     wireInk: 0.08
   }
 }
@@ -117,12 +129,18 @@ function lensChannels(time) {
   // The grid is therefore whole at every instant: the two treatments differ
   // in whether the resolutions are superimposed, never in how much is there.
   var interference = 1 - source - target
+  // The fragments answer to conservation and so must follow the interference
+  // exactly. The fold does not, and a trapezoid would have it arrive, wait
+  // and leave as three separate events; on a bell it rises, exchanges and
+  // settles as one.
+  var fold = bell(t)
   return {
     source: source,
     target: target,
     fragment: lens.fragmentInk * interference,
-    wire: lens.wireInk * interference,
-    interference: interference
+    wire: lens.wireInk * fold,
+    interference: interference,
+    fold: fold
   }
 }
 
@@ -168,6 +186,7 @@ if (typeof module !== "undefined") {
     clamp01: clamp01,
     smoothstep: smoothstep,
     ramp: ramp,
+    bell: bell,
     morphGeometry: morphGeometry,
     lensChannels: lensChannels,
     morphLabelChannels: morphLabelChannels,

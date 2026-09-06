@@ -84,6 +84,28 @@ test("both treatments move with the same character", () => {
   })
 })
 
+test("the fold rises and falls as one gesture", () => {
+  // Still at both ends and still again at the top, with no corner between:
+  // a trapezoid would arrive, wait and leave as three separate events.
+  assert.equal(Motion.bell(0), 0)
+  assert.equal(Motion.bell(1), 0)
+  assert.ok(Math.abs(Motion.bell(0.5) - 1) < 1e-12)
+  eachTime((t) => {
+    assert.ok(Math.abs(Motion.bell(t) - Motion.bell(1 - t)) < 1e-12,
+      `the breath was asymmetric at t=${t}`)
+  })
+  const step = 1 / (SAMPLES - 1)
+  let rising = true
+  for (let i = 1; i < SAMPLES; i++) {
+    const t = i * step
+    const slope = Motion.bell(t) - Motion.bell(t - step)
+    if (rising && slope < 0) rising = false
+    // Once it turns over it must not rise again: one breath, not several.
+    else if (!rising) assert.ok(slope <= 1e-12, `the fold rose twice, at t=${t}`)
+  }
+  assert.ok(!rising, "the fold never came back down")
+})
+
 test("the seam is marked only while it is travelling", () => {
   // The endpoints carry a float residue from sin(pi), far below anything a
   // single alpha step can paint, so they are read as absent rather than zero.
