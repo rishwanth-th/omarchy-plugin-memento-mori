@@ -2,6 +2,7 @@ import QtQuick
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
+import "Motion.js" as Motion
 
 Flickable {
   id: root
@@ -70,7 +71,8 @@ Flickable {
   property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
   property int structurePaintCount: 0
   property int interactionPaintCount: 0
-  readonly property int projectionMorphDuration: morphUsesDateOverlap ? 520 : 360
+  readonly property int projectionMorphDuration:
+    Motion.projectionMorphDuration(morphUsesDateOverlap)
   readonly property bool projectionMorphing: morphFromProjection !== "" && morphProgress < 1
   readonly property bool gapRhythmAnimating: gapRhythmProgress > 0.001
     && gapRhythmProgress < 0.999
@@ -910,20 +912,7 @@ Flickable {
   }
 
   function morphGeometryProgress() {
-    var t = Math.max(0, Math.min(1, morphProgress))
-    if (!morphUsesDateOverlap) return t
-    var arrivalEnd = 0.40
-    var resolveStart = 0.60
-    if (t < arrivalEnd)
-      return 0.5 * smoothProgress(t / arrivalEnd)
-    if (t <= resolveStart) return 0.5
-    return 0.5 + 0.5 * smoothProgress((t - resolveStart)
-      / (1 - resolveStart))
-  }
-
-  function smoothProgress(value) {
-    var x = Math.max(0, Math.min(1, value))
-    return x * x * (3 - 2 * x)
+    return Motion.morphGeometry(morphProgress, morphUsesDateOverlap)
   }
 
   function interpolatedMorphRect(dateKey) {
@@ -1828,12 +1817,11 @@ Flickable {
       }
 
       function clampUnit(value) {
-        return Math.max(0, Math.min(1, value))
+        return Motion.clamp01(value)
       }
 
       function smoothUnit(value) {
-        var x = clampUnit(value)
-        return x * x * (3 - 2 * x)
+        return Motion.smoothstep(value)
       }
 
       function paintProjectionSeam(ctx, t) {
@@ -1841,9 +1829,10 @@ Flickable {
         var targetLeft = root.gridOriginXFor(root.projection)
         var sourceRight = sourceLeft + root.gridWidthFor(root.morphFromProjection)
         var targetRight = targetLeft + root.gridWidthFor(root.projection)
+        var seam = Motion.seamChannels(t)
         var left = sourceLeft + (targetLeft - sourceLeft) * t
         var right = sourceRight + (targetRight - sourceRight) * t
-        var seamX = left + (right - left) * t
+        var seamX = left + (right - left) * seam.position
 
         // The two resolutions never overlap: superimposing 52 and 12 columns
         // creates a moire fan even when every cell is stationary. A hard
@@ -1866,7 +1855,7 @@ Flickable {
 
         // Mark the local change in resolution without implying that a week
         // has one spatial destination inside a calendar month.
-        var seamAlpha = Math.sin(Math.PI * t) * 0.22
+        var seamAlpha = seam.mark
         ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
           root.foreground.b, seamAlpha)
         ctx.fillRect(seamX, root.gridOriginY() - Style.space(2),
@@ -1913,18 +1902,13 @@ Flickable {
       }
 
       function paintDateOverlapMorph(ctx, t) {
-        var arrivalEnd = 0.40
-        var resolveStart = 0.60
         var geometryProgress = root.morphGeometryProgress()
 
-        var sourceSettled = 1 - smoothUnit(t / 0.30)
-        var targetSettled = smoothUnit((t - 0.70) / 0.30)
-        var interference
-        if (t < arrivalEnd) interference = smoothUnit(t / arrivalEnd)
-        else if (t <= resolveStart) interference = 1
-        else interference = 1 - smoothUnit((t - resolveStart) / (1 - resolveStart))
-        var wireOpacity = 0.09 * interference
-        var fragmentOpacity = 0.66 * interference
+        var channels = Motion.lensChannels(t)
+        var sourceSettled = channels.source
+        var targetSettled = channels.target
+        var wireOpacity = channels.wire
+        var fragmentOpacity = channels.fragment
 
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
           sourceSettled, -1, false, true)
@@ -2241,8 +2225,9 @@ Flickable {
           root.morphFromCells, dateKey).position
         var targetLabel = morphLabelForDateInProjection(root.projection,
           root.cells, dateKey).position
-        var sourceOpacity = 1 - smoothUnit(progress / 0.44)
-        var targetOpacity = smoothUnit((progress - 0.56) / 0.44)
+        var labels = Motion.morphLabelChannels(progress)
+        var sourceOpacity = labels.source
+        var targetOpacity = labels.target
         return [
           { rect: sourceRect, label: sourceLabel, color: color,
             opacity: sourceOpacity, current: current },
