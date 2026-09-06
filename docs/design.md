@@ -100,6 +100,45 @@ birth-anchored interval remains there (`20–26 AUG 2026`). The inspected
 axes. Past, present, and future are not repeated in text because the cells and
 legend already encode that state.
 
+## One predetermined clock
+
+Space is derived from the week. Time is derived the same way, from one shaping
+primitive and a table of edges, in `Motion.js`.
+
+A transition is a pure function of where it is on its own clock. Nothing about
+a frame depends on how the clock arrived there, which is what makes a
+transition something that can be held still, measured, and reasoned about
+rather than only watched. Every curve in a morph is a `ramp` between two
+edges, so a motion is read as a shape instead of reconstructed from constants
+scattered across the painters that use them.
+
+This is not tidiness. Constants that must interlock, but sit in different
+functions, drift apart silently. Holding the exact-overlap lens at fixed times
+and measuring the grid's ink showed the cost: it dipped about 10% below the
+settled grid at `t=0.25` and `t=0.75`, because the source finished leaving at
+`0.30` while the interference did not arrive at full strength until `0.40`,
+and symmetrically at the far end. Nobody chose that trough. It was the gap
+between two numbers that no line of code claimed were related.
+
+The lens now states the relation instead of restating the numbers: the
+interference is defined as whatever the two settled projections are not
+carrying. Ink is conserved by construction rather than by tuning, the grid is
+whole at every instant, and the two treatments differ only in whether the
+resolutions are superimposed — never in how much of the grid is present.
+
+The same law governs the axis. A cell denotes a definite range of dates at
+every instant of a morph; what a morph changes is the granularity of its name,
+never whether it has one. So a tick's two readings are complements of a single
+crossover rather than two windows with a gap between them, and while the lens
+holds both lattices superimposed both readings are present at half strength.
+An axis that goes quiet mid-exchange is not declining to pick a winner. It is
+claiming the view has stopped knowing what it points at, at exactly the moment
+the grid beneath it is saying the opposite.
+
+The travelling seam, measured the same way, was already flat to ±0.2% at every
+instant, which is its own design met exactly: two resolutions never
+superimposed, each side at full strength, so nothing can dim.
+
 ## One predetermined lattice
 
 Every horizontal coordinate is derived from the week, top down, and both

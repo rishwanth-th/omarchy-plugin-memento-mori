@@ -420,6 +420,8 @@ and tactile as Months before the behavior is promoted.
 
 ## Workstream 5 — Hover-guide motion
 
+**Tracked in DAZ-298.**
+
 Hover should draw the foreground coordinate guides from the axes toward the
 inspected cell over a short, cancellable interval. The present accent and its
 guides remain stationary.
@@ -436,6 +438,8 @@ retained spatial connection belongs to deliberate pinning.
 - Hover makes the present appear to move.
 
 ## Workstream 6 — Viewport movement
+
+**Tracked in DAZ-299.**
 
 Wheel and keyboard navigation may slide by one exact life-year row using a
 short, cancellable transition and a restrained edge response. It retains
@@ -469,16 +473,30 @@ point; it cannot become an independent particle layer.
 
 ## Evaluation order
 
+Reordered on 2026-09-06. The original order ran 5, 6, 7, 8 because workstream
+8 looked like the largest and therefore the last. That was backwards.
+
+Workstream 5 computes guide positions from the lattice, workstream 6 computes
+viewport stops from it, and workstream 7 emits light from an existing seam. If
+the lattice becomes a function evaluated at a resolution, and the seam becomes
+one limiting case of a resolution field, then all three have their
+*specifications* changed, not merely their code. Workstream 8 is upstream of
+them, and taking it later means answering the same questions twice.
+
 1. Weeks ↔ Months semantic morph — complete.
 2. LIFE entrance — complete.
 3. Temporal-distance pin — complete.
 4. Grid rhythm and contextual spacing — complete.
-5. Hover-guide motion.
-6. Viewport movement.
-7. Transition light treatment.
-8. Continuous temporal zoom — queued, see below.
+5. Motion substrate — in progress, DAZ-296. The time half of the lattice.
+6. Continuous temporal zoom — next, DAZ-297. Redefines the lattice itself.
+7. Hover-guide motion — DAZ-298, after the lattice settles.
+8. Viewport movement — DAZ-299, after the lattice settles.
+9. Transition light treatment — DAZ-276, parked; its premise is a seam, and
+   whether a seam still exists is decided by 6.
 
 ## Workstream 8 — continuous temporal zoom
+
+**Tracked in DAZ-297.**
 
 ### Intent
 
@@ -497,11 +515,136 @@ viewport, hit-testing and pin identity all need to hold across four
 resolutions rather than two. It should begin from the stable base this
 workstream produced, not extend it in place.
 
+### The transition is already the zoom
+
+The three transition treatments that were on the table — collapsing weeks into
+their containing month, a travelling band of intermediate resolution, and a
+fold anchored on the quarters — are not three ideas. They are three readings
+of one object, and naming it settles all of them.
+
+Let resolution be a number. A column at resolution `p` holds `k = 52/p` weeks;
+`p = 52` is Weeks, `p = 12` is Months, and the week stays the atom throughout.
+Then a projection morph is not a transition *between* two renderings. It is
+**motion along `p`**, with fixed endpoints and no gesture. Continuous zoom is
+the same motion with the endpoints released.
+
+Read that way:
+
+- **Containment collapse** is not a treatment. It is what intermediate `p`
+  looks like — as `k` grows, the gaps inside a group close and the group's
+  boundary emerges, because a month is a container of weeks and nothing else.
+- **The travelling band** is `p` varying across the row as well as over time:
+  `p(x, t)` rather than `p(t)`. Today's travelling seam is `p(x, t)` as a step
+  function, and today's overlap lens is `p` uniform in `x` with the two
+  endpoints superimposed instead of a value between them. One field contains
+  both as limiting cases.
+- **The quarter fold** is not a choice either, but it is not free — see below.
+
+### What a resolution sweep does to the moire, measured
+
+The beat is not a midpoint effect that a transition passes through. It is a
+landscape over `p`, and the endpoints are not its most interesting points.
+
+A column boundary that lands mid-week cuts the atom; the pattern of those cuts
+is the interference. Counting them across a 52-week row:
+
+| resolution | weeks/column | boundaries cutting a week | distinct phases |
+|---|---|---|---|
+| 52 | 1.000 | 0 | 1 |
+| 40 | 1.300 | 36 | 10 |
+| 32 | 1.625 | 28 | 8 |
+| 26 | 2.000 | 0 | 1 |
+| 20 | 2.600 | 16 | 5 |
+| 13 | 4.000 | 0 | 1 |
+| 12 | 4.333 | 8 | 3 |
+
+`p` of 52, 26 and 13 are commensurate with the row and the beat vanishes
+entirely; the lattice locks and goes still. Everything between them beats, and
+`p = 40` is far richer than either endpoint the current design ever visits.
+A sweep therefore passes through quiet nodes and loud regions, which is a real
+structure to move through rather than an effect to apply.
+
+### The constraint a sweep must respect
+
+Quarters are the lattice's one exact cross-projection anchor: 13 weeks and 3
+months divide the row identically, so a quarter channel cannot shift. A naive
+sweep destroys it. Weeks 13, 26 and 39 land on a column edge only when `p` is
+divisible by 4 — eleven resolutions in the whole range:
+
+```
+52  48  44  40  36  32  28  24  20  16  12
+```
+
+Both current endpoints happen to be in that set, which is why today's design
+holds together. Continuity does not inherit that for free.
+
+This gives the zoom a detent structure that is derived rather than chosen: the
+eleven quarter-preserving resolutions are where the view may come to rest, and
+between them the quarter boundary genuinely is not a column edge and must be
+drawn as something that crosses a cell, or not drawn at all. Whether the zoom
+snaps to those detents or passes through them freely is the first question to
+answer, and it is a question about meaning, not about feel.
+
+### Substrate
+
+Two resolutions can be painted as two lattices. A continuum cannot: the grid
+has to be a function evaluated at whatever resolution the gesture asks for,
+which is the same shift `Motion.js` already made for time. The whole view
+wants to become a pure function of one state vector — resolution, viewport
+origin, hover, pin, wall-clock — with no frame depending on how that state was
+reached.
+
+Whether that function is evaluated on the CPU into a Canvas or on the GPU as a
+fragment shader is the first real decision, and the platform allows either.
+Verified on 2026-09-06 against Quickshell and this machine rather than
+assumed: Quickshell builds QtQuick on an OpenGL/Vulkan RHI backend for its
+Wayland layer-shell windows and places no restriction on QtQuick types;
+`ShaderEffect` with precompiled `.qsb` shaders is already used inside
+Quickshell itself, by `ClippingRectangle`, whose shaders are built with
+`qt6_add_shaders`. `qt6-shadertools 6.11.2` and `/usr/lib/qt6/bin/qsb` are
+installed here.
+
+The prize is specific. Sampling a continuous lattice per pixel produces the
+52-against-12 beat as a true sampling artefact of the zoom itself, at any
+intermediate resolution, rather than as a midpoint effect the CPU composites
+between two fixed grids. The moire the lens shows today would stop being a
+transition and become a property of the surface.
+
+The cost is equally specific, and is why this is not a small step: it replaces
+the Canvas painting model, adds a shader build step to a plugin that currently
+has none, and moves hit-testing and label layout onto geometry the CPU no
+longer enumerates. Nothing about it should start before the discrete case is
+settled.
+
 ### Reject if
 
 - Zoom makes any single resolution worse than the discrete toggle made it.
 - The lattice stops being derivable from one atom.
 - Exact date, pin identity, or projection semantics drift across levels.
+- The GPU path buys texture at the cost of exact dates or crisp hairlines.
 
 Only one workstream may change runtime behavior at a time. Each one receives
 its own live review before the next begins.
+
+## Settled — should a cell read as nothing at the moment of exchange?
+
+No, and the reason is the same law that governs the grid's ink.
+
+The tick labels used to cross over on two separate windows with a gap between
+them, so from `0.44` to `0.56` of the geometry clock neither reading was
+drawn. Because the lens pins its geometry at exactly `0.5` for its whole
+plateau, that blank covered the entire hold — roughly 104ms of a 520ms morph
+with no label above the present cell.
+
+The case for the blank was that mid-exchange a cell has no single honest name.
+That is true and it is not the question. A cell denotes a definite range of
+dates at every instant of a morph; what a morph changes is the *granularity*
+of the name, never whether there is one. Going blank does not decline to pick
+a winner — it makes a different and false claim, that the view has stopped
+knowing what it is pointing at, at exactly the moment the grid beneath it is
+showing both lattices at once.
+
+So the target reading is now the complement of the source: a whole label is
+present at every instant, and while the lens holds both lattices superimposed
+both readings are present at half strength, at their own two positions. The
+axis says what the cells say.

@@ -277,6 +277,14 @@ Panel {
     lifeView.moveInspection(dx, dy)
   }
 
+  function holdMorph(time) {
+    lifeView.holdMorph(time)
+  }
+
+  function releaseMorph() {
+    lifeView.releaseMorph()
+  }
+
   function interactionState() {
     var morphPresentRect = lifeView.interpolatedMorphRect(
       Model.keyForDate(root.today))
