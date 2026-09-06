@@ -597,15 +597,33 @@ var RATE_UNITS = {
 // `columns` is how many of the unit fill one life-year row, which is the only
 // number the geometry needs.
 var PROJECTIONS = {
-  weeks:  { columns: 52, unit: "weeks",  singular: "WEEK",  letter: "W" },
-  months: { columns: 12, unit: "months", singular: "MONTH", letter: "M" },
-  books:  { columns: 20, unit: "books",  singular: "BOOK",  letter: "B" }
+  weeks:  { columns: 52, unit: "weeks",  singular: "WEEK",  letter: "W", frame: "year" },
+  months: { columns: 12, unit: "months", singular: "MONTH", letter: "M", frame: "year" },
+  books:  { columns: 20, unit: "books",  singular: "BOOK",  letter: "B", frame: "year" }
 }
 
 // Ordered fine to coarse: this is the ladder, and stepping along it is the
 // zoom. Weeks and books belong to different hierarchies and only meet at the
 // day, which is why they sit next to each other here without nesting.
 var PROJECTION_LADDER = ["weeks", "books", "months"]
+
+// The frame a rung is read against: what a row is, what groups it, and the
+// division below that group which the horizontal axis marks.
+//
+// This is deliberately not the cell. The axis is a reference frame rather
+// than a picture of the cells, so it stays put while the cells resolve
+// beneath it — but it is a frame for *this* rung, not a fixed twelve. All
+// three rungs so far share a year folded into quarters, which is the only
+// reason a hardcoded twelve has looked right; a rung whose row is a month
+// would have had twelve month landmarks drawn across thirty days.
+var FRAMES = {
+  year: { fold: "year", group: "quarter", groupsPerFold: 4,
+          mark: "month", marksPerFold: 12 }
+}
+
+function frameFor(mode) {
+  return FRAMES[projection(mode).frame || "year"]
+}
 
 function projection(mode) {
   return PROJECTIONS[mode] || PROJECTIONS.weeks
@@ -801,6 +819,8 @@ if (typeof module !== "undefined") {
     projectionCells: projectionCells,
     rateUnit: rateUnit,
     projection: projection,
+    frameFor: frameFor,
+    FRAMES: FRAMES,
     projectionColumns: projectionColumns,
     stepProjection: stepProjection,
     PROJECTIONS: PROJECTIONS,
