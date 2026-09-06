@@ -1789,6 +1789,27 @@ Flickable {
       width: parent.width
       height: root.compactCanvasHeight
 
+      // A small bright mark at the exact day, standing slightly clear of the
+      // cell's own weight so it reads as a position rather than as an edge.
+      function paintPresentPoint(ctx, rect, frontier, alpha) {
+        var size = Math.max(Style.spacing.hairline * 2,
+          Math.min(rect.height * 0.52, root.cellHeight() * 0.52))
+        var x = rect.x + Math.max(size / 2,
+          Math.min(rect.width - size / 2, frontier))
+        var y = rect.y + rect.height / 2
+        var accent = Color.accent
+        // A quiet halo first, so the point separates from the fill it sits on
+        // without needing to be larger than a cell can hold.
+        ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b, alpha * 0.30)
+        ctx.beginPath()
+        ctx.arc(x, y, size, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = Qt.rgba(1, 1, 1, alpha * 0.92)
+        ctx.beginPath()
+        ctx.arc(x, y, size / 2, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
       function paintCell(ctx, cell, rect, opacity, hovered, pinned,
                          keyboardFocused, suppressPresent) {
         if (!cell || !rect || opacity <= 0) return
@@ -1824,6 +1845,13 @@ Flickable {
             ctx.fillRect(rect.x + frontier, rect.y,
               rect.width - frontier, rect.height)
           }
+          // Now is a point, not a cell. Everything behind it is the trail it
+          // has already left, and the cell it happens to be crossing is a
+          // container rather than a location — at a coarser rung the same
+          // instant sits in a wider container without moving. So the mark
+          // goes where the day actually is, and the fill behind it becomes
+          // the consequence rather than the statement.
+          paintPresentPoint(ctx, rect, frontier, alpha)
         } else {
           ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
             root.foreground.b, 0.22 * alpha)
