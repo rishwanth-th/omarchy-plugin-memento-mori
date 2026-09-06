@@ -420,6 +420,8 @@ and tactile as Months before the behavior is promoted.
 
 ## Workstream 5 — Hover-guide motion
 
+**Tracked in DAZ-298.**
+
 Hover should draw the foreground coordinate guides from the axes toward the
 inspected cell over a short, cancellable interval. The present accent and its
 guides remain stationary.
@@ -436,6 +438,8 @@ retained spatial connection belongs to deliberate pinning.
 - Hover makes the present appear to move.
 
 ## Workstream 6 — Viewport movement
+
+**Tracked in DAZ-299.**
 
 Wheel and keyboard navigation may slide by one exact life-year row using a
 short, cancellable transition and a restrained edge response. It retains
@@ -479,6 +483,8 @@ point; it cannot become an independent particle layer.
 8. Continuous temporal zoom — queued, see below.
 
 ## Workstream 8 — continuous temporal zoom
+
+**Tracked in DAZ-297.**
 
 ### Intent
 

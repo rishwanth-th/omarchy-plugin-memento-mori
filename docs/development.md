@@ -172,5 +172,34 @@ of eye:
 omarchy-shell rishwanth.memento-mori toggleProjection
 omarchy-shell rishwanth.memento-mori toggleAnimation
 omarchy-shell rishwanth.memento-mori moveInspection <dx> <dy>
+omarchy-shell rishwanth.memento-mori holdMorph <0..1>   # freeze the morph
+omarchy-shell rishwanth.memento-mori releaseMorph
 omarchy-shell rishwanth.memento-mori interactionState   # read-only probe
 ```
+
+`holdMorph` freezes the projection morph at one point on its clock, starting a
+toggle if none is running. Because a transition is a pure function of its own
+clock (`Motion.js`), a held frame is exactly the frame that instant produces,
+so it can be screenshotted and measured rather than caught by luck. This is
+what turned "the lens feels dim in the middle" into a number: ink held at
+`t=0.25` measured 9.7% below the settled grid.
+
+## Capturing frames
+
+Use `grim` directly:
+
+```bash
+grim /path/to/frame.png
+```
+
+**Do not use `omarchy capture screenshot`** for scripted review. It starts a
+hyprpicker full-screen freeze and removes it only from an `EXIT` trap, so an
+invocation that hangs or is killed leaves a frozen overlay covering the
+desktop that no click dismisses — indistinguishable from a compositor crash,
+and it took a Hyprland restart to clear on 2026-09-06.
+
+Two more things that cost time. Screenshots are full-screen, so crop strictly
+*inside* the panel before comparing frames or whatever is on the desktop
+behind it dominates the diff. And measure with `compare -metric AE`: a
+`-colorspace Gray` conversion introduces float error around 0.07/255, which
+looks like a difference and is not one.
