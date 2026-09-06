@@ -488,140 +488,140 @@ them, and taking it later means answering the same questions twice.
 3. Temporal-distance pin — complete.
 4. Grid rhythm and contextual spacing — complete.
 5. Motion substrate — in progress, DAZ-296. The time half of the lattice.
-6. Continuous temporal zoom — next, DAZ-297. Redefines the lattice itself.
+6. The unit ladder — next, DAZ-297. Redefines the lattice itself.
 7. Hover-guide motion — DAZ-298, after the lattice settles.
 8. Viewport movement — DAZ-299, after the lattice settles.
 9. Transition light treatment — DAZ-276, parked; its premise is a seam, and
    whether a seam still exists is decided by 6.
 
-## Workstream 8 — continuous temporal zoom
+## Workstream 8 — the unit ladder
 
 **Tracked in DAZ-297.**
 
 ### Intent
 
-Replace, or sit alongside, the discrete `P` projection toggle with a
-continuous zoom: outward through weeks, months and years, inward toward days.
-Resolution becomes a gesture over one timeline rather than a switch between
-two renderings of it.
+Stop treating resolution as a switch between two renderings and make it a
+parameter: the unit the grid is counted in. Weeks and Months become two
+entries in a ladder rather than two hardcoded modes, and moving along that
+ladder is the zoom.
 
-### Why it is a separate workstream
+### Why a unit and not a resolution
 
-Everything in workstreams 1-4 assumes two fixed resolutions over a 52-week
-row. The shared lattice, the travelling seam, pin identity, hit-testing and
-both axes are all derived from that row. Days are roughly 365 per year, so the
-row stops being 52 cells and the lattice has to be re-derived at every level;
-viewport, hit-testing and pin identity all need to hold across four
-resolutions rather than two. It should begin from the stable base this
-workstream produced, not extend it in place.
+An earlier version of this workstream proposed a continuous resolution `p`,
+with columns holding `52/p` weeks. The arithmetic worked and the idea was
+empty: `p = 37` is well defined and means nothing, and this is an object whose
+whole claim is that a life is easier to hold in units a person can feel.
 
-### The transition is already the zoom
+A unit length is the same number seen from the other end, and it has a
+referent. Measured against a 4,000-week horizon at 1,306 weeks lived:
 
-The three transition treatments that were on the table — collapsing weeks into
-their containing month, a travelling band of intermediate resolution, and a
-fold anchored on the quarters — are not three ideas. They are three readings
-of one object, and naming it settles all of them.
-
-Let resolution be a number. A column at resolution `p` holds `k = 52/p` weeks;
-`p = 52` is Weeks, `p = 12` is Months, and the week stays the atom throughout.
-Then a projection morph is not a transition *between* two renderings. It is
-**motion along `p`**, with fixed endpoints and no gesture. Continuous zoom is
-the same motion with the endpoints released.
-
-Read that way:
-
-- **Containment collapse** is not a treatment. It is what intermediate `p`
-  looks like — as `k` grows, the gaps inside a group close and the group's
-  boundary emerges, because a month is a container of weeks and nothing else.
-- **The travelling band** is `p` varying across the row as well as over time:
-  `p(x, t)` rather than `p(t)`. Today's travelling seam is `p(x, t)` as a step
-  function, and today's overlap lens is `p` uniform in `x` with the two
-  endpoints superimposed instead of a value between them. One field contains
-  both as limiting cases.
-- **The quarter fold** is not a choice either, but it is not free — see below.
-
-### What a resolution sweep does to the moire, measured
-
-The beat is not a midpoint effect that a transition passes through. It is a
-landscape over `p`, and the endpoints are not its most interesting points.
-
-A column boundary that lands mid-week cuts the atom; the pattern of those cuts
-is the interference. Counting them across a 52-week row:
-
-| resolution | weeks/column | boundaries cutting a week | distinct phases |
+| unit | whole life | lived | remaining |
 |---|---|---|---|
-| 52 | 1.000 | 0 | 1 |
-| 40 | 1.300 | 36 | 10 |
-| 32 | 1.625 | 28 | 8 |
-| 26 | 2.000 | 0 | 1 |
-| 20 | 2.600 | 16 | 5 |
-| 13 | 4.000 | 0 | 1 |
-| 12 | 4.333 | 8 | 3 |
+| sleeps | 28,000 | 9,142 | 18,858 |
+| weeks | 4,000 | 1,306 | 2,694 |
+| books, at 20 a year | 1,533 | 501 | 1,033 |
+| moons | 948 | 310 | 639 |
+| visits home, at 3 a year | 230 | 75 | 155 |
+| summers | 77 | 25 | 52 |
 
-`p` of 52, 26 and 13 are commensurate with the row and the beat vanishes
-entirely; the lattice locks and goes still. Everything between them beats, and
-`p = 40` is far richer than either endpoint the current design ever visits.
-A sweep therefore passes through quiet nodes and loud regions, which is a real
-structure to move through rather than an effect to apply.
+`52 summers remaining` does something `2,694 weeks remaining` does not, and it
+is the same fact.
 
-### The constraint a sweep must respect
+### A unit is a length and a name, separately
 
-Quarters are the lattice's one exact cross-projection anchor: 13 weeks and 3
-months divide the row identically, so a quarter channel cannot shift. A naive
-sweep destroys it. Weeks 13, 26 and 39 land on a column edge only when `p` is
-divisible by 4 — eleven resolutions in the whole range:
+Summer and year are both 365.24 days. Paycheck and month are both 30.44.
+Season and quarter are both 91.31. The geometry comes from the length and the
+meaning does not come from it at all, so the ladder is not derivable from
+arithmetic and should not be generated.
 
-```
-52  48  44  40  36  32  28  24  20  16  12
-```
+### Base unit, default unit, and the floor
 
-Both current endpoints happen to be in that set, which is why today's design
-holds together. Continuity does not inherit that for free.
+Three different things, previously conflated as "the week".
 
-This gives the zoom a detent structure that is derived rather than chosen: the
-eleven quarter-preserving resolutions are where the view may come to rest, and
-between them the quarter boundary genuinely is not a column edge and must be
-drawn as something that crosses a cell, or not drawn at all. Whether the zoom
-snaps to those detents or passes through them freely is the first question to
-answer, and it is a question about meaning, not about feel.
+**The base unit is the day.** It is the atom of the arithmetic; every
+coordinate derives from it. The week was only ever the atom because both
+projections happened to be whole weeks or week-quantised months, which is an
+artefact of the `4,000 weeks` framing rather than a fact about time.
 
-### Substrate
+**The default unit is the week.** It is where the view rests, and this is
+forced rather than preferred. With one year to a row at the measured grid
+width, a cell falls below three pixels once the unit drops under **3.34
+days**; the week sits 2.1x above that floor and is the first named unit that
+clears it.
 
-Two resolutions can be painted as two lattices. A continuum cannot: the grid
-has to be a function evaluated at whatever resolution the gesture asks for,
-which is the same shift `Motion.js` already made for time. The whole view
-wants to become a pure function of one state vector — resolution, viewport
-origin, hover, pin, wall-clock — with no frame depending on how that state was
-reached.
+| unit | days | cells per row | cell width |
+|---|---|---|---|
+| sleep | 1.00 | 365 | 0.20px |
+| 3-day | 3.00 | 122 | 2.60px |
+| week | 7.00 | 52 | 7.39px |
+| book, at 20 a year | 18.26 | 20 | 20.90px |
+| month | 30.44 | 12 | 35.50px |
+| quarter | 91.31 | 4 | 108.50px |
 
-Whether that function is evaluated on the CPU into a Canvas or on the GPU as a
-fragment shader is the first real decision, and the platform allows either.
-Verified on 2026-09-06 against Quickshell and this machine rather than
-assumed: Quickshell builds QtQuick on an OpenGL/Vulkan RHI backend for its
-Wayland layer-shell windows and places no restriction on QtQuick types;
-`ShaderEffect` with precompiled `.qsb` shaders is already used inside
-Quickshell itself, by `ClippingRectangle`, whose shaders are built with
-`qt6_add_shaders`. `qt6-shadertools 6.11.2` and `/usr/lib/qt6/bin/qsb` are
-installed here.
+**So a unit can be countable without being renderable.** Sleeps are a true and
+striking reading — 18,858 remaining — and cannot be a zoom level while a row
+holds a whole year. The ladder that can be drawn runs from the week upward;
+everything shorter is a sentence, not a grid. This is also the answer to
+zooming in: the view does not go below its default, because below the default
+the grid stops being one.
 
-The prize is specific. Sampling a continuous lattice per pixel produces the
-52-against-12 beat as a true sampling artefact of the zoom itself, at any
-intermediate resolution, rather than as a midpoint effect the CPU composites
-between two fixed grids. The moire the lens shows today would stop being a
-transition and become a property of the surface.
+### Two kinds of unit
 
-The cost is equally specific, and is why this is not a small step: it replaces
-the Canvas painting model, adds a shader build step to a plugin that currently
-has none, and moves hit-testing and label layout onto geometry the CPU no
-longer enumerates. Nothing about it should start before the discrete case is
-settled.
+**Calendar units** — week, month, quarter, year — have exact boundaries. A
+month begins on a specific day and the grid should land on it.
+
+**Rate units** — books at 20 a year, visits home at 3 a year — do not. Nobody
+finishes their 501st book on a particular Tuesday. Their boundaries fall at
+fractional day positions, and that is honest: the unit is a rate, and drawing
+it as though it had an event would be the lie.
+
+### What this does to the moire
+
+It rescues it. Under the abstract resolution proposal the beat was
+interference between an arbitrary grouping and the calendar — a pattern about
+nothing. Under units it is the real incommensurability between how a life is
+lived and how the calendar counts it. A book does not fit in a week and never
+will; 2.609 weeks per book is exactly that fact, drawn. Most meaningful units
+beat against the week, and the ones that do not — fortnight, four-week period
+— are the ones that feel least like anything.
+
+### What this does to the semantic gaps
+
+Quarters were the calendar's one exact cross-projection anchor and were
+therefore the only gap spent as real space. Under units that generalises: a
+gap belongs to the unit being shown rather than to the lattice, and each unit
+declares its own natural boundary. The quarter stops being a special case in
+the geometry and becomes a property of the calendar units.
+
+### No shader
+
+The earlier substrate note argued for evaluating the lattice per pixel on the
+GPU, so that intermediate resolutions came free. With a named ladder there are
+no intermediate resolutions to render — only transitions between adjacent
+units, which the existing morph already does, and which stay well above the
+three-pixel floor throughout. `ShaderEffect` remains available and verified,
+and is not needed. Reach for it only if something later demands a resolution
+the Canvas cannot draw.
+
+### Guards
+
+- **A unit must be time passed through, not output produced.** Summers,
+  sleeps, moons, visits home are passages. Commits, emails, workouts are
+  performance, and counting a life in them turns a memento mori into a
+  dashboard — the same gamification the motion contract already refuses.
+- **Prefer a stated rate to a live repository.** Reading an actual book count
+  from a service makes the number move with this month's reading and invites
+  improving it. "About twenty a year" is less truthful about the month and
+  more truthful about the life.
 
 ### Reject if
 
-- Zoom makes any single resolution worse than the discrete toggle made it.
-- The lattice stops being derivable from one atom.
-- Exact date, pin identity, or projection semantics drift across levels.
-- The GPU path buys texture at the cost of exact dates or crisp hairlines.
+- The ladder makes any single unit worse to read than the discrete toggle
+  made Weeks and Months.
+- Exact date, pin identity, or projection semantics drift across units.
+- Calendar units stop landing on their real boundaries.
+- Units become a novelty generator rather than a small considered set.
+- The default stops being the week without a measured reason.
 
 Only one workstream may change runtime behavior at a time. Each one receives
 its own live review before the next begins.
