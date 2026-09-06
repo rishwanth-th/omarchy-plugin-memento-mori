@@ -100,6 +100,31 @@ birth-anchored interval remains there (`20–26 AUG 2026`). The inspected
 axes. Past, present, and future are not repeated in text because the cells and
 legend already encode that state.
 
+## Area is not a quantity here
+
+The grid has two directions and only one axis. It is a line folded: sideways
+reads time within a fold, downwards reads which fold. Both are time, at
+different grains — a step sideways is a week, a step down is a year.
+
+So a cell's area is not a measurement of anything. Its width stands for a
+duration; its height stands for nothing at all, because the row's height is
+how tall a row is. Multiplying them gives a number with no referent, and any
+design that starts from area is measuring the drawing rather than the
+lattice.
+
+The constraints come first and the drawing expresses them, never the reverse.
+A reach stated as a fraction of the width, or as a count of rows, is a
+quantity of the picture: it means a different span of time at every rung whose
+row is not a year, and it will look right until one is not. Stated in weeks
+and years it is the same reach whatever is being drawn.
+
+This also settles what looks like an inconsistency and is not. The overlap
+fold reaches about eighteen weeks sideways and four and a half years
+downwards — round on the screen and thirteen to one in absolute time. That
+anisotropy is what folding a line into a grid means, and correcting it would
+flatten the fold into a band a third of a row tall. The grain differs by
+direction because the fold put it there.
+
 ## One predetermined clock
 
 Space is derived from the week. Time is derived the same way, from one shaping

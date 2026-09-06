@@ -67,10 +67,20 @@ Flickable {
   property real pinPressY: 0
   property string pinRetargetFromDateKey: ""
   property real pinRetargetProgress: 1
-  // How far the overlap fold reaches from the present, as a fraction of the
-  // grid's width and as a count of life-year rows.
-  property real foldReachX: 0.34
-  property real foldReachRows: 4.5
+  // How far the overlap fold reaches from the present, stated in time.
+  //
+  // Not as a fraction of the width and a count of rows, which are quantities
+  // of the drawing rather than of the lattice. A fraction of the width means
+  // a different duration at every rung whose row is not a year, and rows are
+  // only a stand-in for years while the fold happens to be one.
+  //
+  // The two numbers differ by a factor of thirteen and should: a row is a
+  // life-year, so downwards is time at a coarser grain than sideways. That
+  // anisotropy is what folding a line into a grid means. Making the reach
+  // round in absolute time would flatten the fold to a band a third of a row
+  // tall, which is not a fold.
+  property real foldReachWeeks: 18
+  property real foldReachYears: 4.5
   property real foldLiftRatio: 0.30
   // How far the cursor draws out at the fastest point of a morph.
   property real cursorStretch: 0.34
@@ -1125,8 +1135,11 @@ Flickable {
     return {
       x: rect.x + rect.width / 2,
       y: rect.y + rect.height / 2,
-      radiusX: Math.max(1, gridWidthFor(projection) * foldReachX),
-      radiusY: Math.max(1, (cellHeight() + rowGap()) * foldReachRows)
+      // Time converted into the drawing, rather than the drawing standing in
+      // for time. Identical today, because every rung's row is a year.
+      radiusX: Math.max(1, gridWidthFor(projection)
+        * foldReachWeeks / Model.projectionColumns("weeks")),
+      radiusY: Math.max(1, (cellHeight() + rowGap()) * foldReachYears)
     }
   }
 
