@@ -126,6 +126,18 @@ carrying. Ink is conserved by construction rather than by tuning, the grid is
 whole at every instant, and the two treatments differ only in whether the
 resolutions are superimposed — never in how much of the grid is present.
 
+Conservation is a claim about the whole surface, and it has to be true at
+every point of it rather than only in the total. The lens learned that twice.
+Its beat is drawn by stroking both lattices, and painting them across the
+entire grid at even strength made a full field of even ink, which reads flat
+however bright it is — depth is figure against ground, and there was no ground
+left. Restricting the stroke to the present then opened a hole in the far
+field, because that full field had quietly been carrying a tenth of the grid's
+weight: what looked like a mark laid over the surface was holding it up. The
+fragments now reproduce the settled grid by themselves, so the stroke is pure
+addition where the fold is and absent where it is not, and the grid is whole
+in both senses at once.
+
 The same law governs the axis. A cell denotes a definite range of dates at
 every instant of a morph; what a morph changes is the granularity of its name,
 never whether it has one. So a tick's two readings are complements of a single
