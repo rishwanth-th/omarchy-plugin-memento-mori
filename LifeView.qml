@@ -860,7 +860,7 @@ Flickable {
   }
 
   function setProjection(value) {
-    if (value !== "weeks" && value !== "months") return
+    if (!Model.PROJECTIONS[value]) return
     if (projection === value) return
 
     if (entranceAnimating) cancelEntrance()
