@@ -57,13 +57,30 @@ test("geometry never travels backwards", () => {
   }
 })
 
-test("the lens holds its rects still exactly while the interference is full", () => {
-  // The hold is the flat top of the interference window, not a second set of
-  // constants that could drift away from it.
+test("the rects travel without ever stalling mid-morph", () => {
+  // Conservation governs how much of the grid is present. It must not also
+  // govern pace: the rects used to be pinned for 40% of the lens's clock, on
+  // the ink's own edges, which read as arrival-hurry, stop, hurry. A morph
+  // moves throughout, so its speed is never zero except at the two ends.
+  for (const usesLens of [false, true]) {
+    const step = 1 / (SAMPLES - 1)
+    for (let i = 1; i < SAMPLES; i++) {
+      const t = i * step
+      if (t < 0.05 || t > 0.95) continue
+      const speed = (Motion.morphGeometry(t, usesLens)
+        - Motion.morphGeometry(t - step, usesLens)) / step
+      assert.ok(speed > 0.05, `rects stalled at t=${t.toFixed(3)}`)
+    }
+  }
+})
+
+test("both treatments move with the same character", () => {
+  // They were shaped in different places — the seam by the QML animation's
+  // easing curve, the lens by edges in the table — and so moved differently
+  // for no stated reason.
   eachTime((t) => {
-    if (Motion.lensChannels(t).interference < 1) return
-    assert.ok(Math.abs(Motion.morphGeometry(t, true) - 0.5) < 1e-12,
-      `rects moved during the hold at t=${t}`)
+    assert.equal(Motion.morphGeometry(t, false), Motion.morphGeometry(t, true))
+    assert.equal(Motion.seamChannels(t).position, Motion.morphGeometry(t, false))
   })
 })
 

@@ -46,13 +46,11 @@ function ramp(time, start, end) {
 // the moire IS the transition rather than a decoration over it.
 var PROJECTION_MORPH = {
   seam: {
-    duration: 360,
-    // The seam is the only moving thing, so its clock is the eased one and
-    // its position is read straight off it.
+    duration: 420,
     markOpacity: 0.22
   },
   lens: {
-    duration: 520,
+    duration: 640,
     // Edges, in clock order. Everything the lens paints is one of these.
     //
     // Two edges, and everything else follows from them. The interference is
@@ -76,18 +74,23 @@ var PROJECTION_MORPH = {
   }
 }
 
-// How far the geometry has travelled from source rect to target rect. The
-// seam moves rects not at all — each side stays at its own projection's fixed
-// geometry — so its geometry clock is its own clock. The lens carries rects
-// halfway, holds them superimposed while the interference is at full
-// strength, then carries them the rest of the way; it shares the two edges of
-// the interference window, because the hold IS the window's flat top.
+// How far the geometry has travelled from source rect to target rect: one
+// unbroken ease across the whole clock, identical for both treatments.
+//
+// Rects used to be carried halfway, frozen while the interference was at full
+// strength, then carried the rest of the way, on the same edges the ink hands
+// off across. That coupling was a mistake. Conservation is a law about how
+// much of the grid is present; pace is a question about how fast things move,
+// and binding the second to the first spent 40% of the morph with nothing
+// moving at all and paid for it with rects going half again as fast on either
+// side — arrival late and hurried, a stop, then another hurry.
+//
+// Nothing was bought by the stillness. The two lattices whose beat is the
+// point are drawn as wireframes at their own fixed positions, so the
+// interference does not depend on the fragments holding still. They can
+// travel through it.
 function morphGeometry(time, usesLens) {
-  var t = clamp01(time)
-  if (!usesLens) return t
-  var lens = PROJECTION_MORPH.lens
-  return 0.5 * ramp(t, lens.sourceOut[0], lens.sourceOut[1])
-    + 0.5 * ramp(t, lens.targetIn[0], lens.targetIn[1])
+  return smoothstep(time)
 }
 
 // What each channel of the lens weighs at this instant.
@@ -128,10 +131,16 @@ function morphLabelChannels(geometryProgress) {
 // The seam's own reading: where the cut is, and how strongly it is marked.
 // The mark is present only while the cut is travelling, and absent at both
 // ends where there is nothing to mark.
+//
+// The cut travels on the same ease the rects do. The two treatments used to
+// be shaped in different places — the seam by the QML animation's easing
+// curve, the lens by edges in this table — which is why they moved with
+// different characters for no stated reason. Both are shaped here now, and
+// the animation driving them runs linear.
 function seamChannels(time) {
   var t = clamp01(time)
   return {
-    position: t,
+    position: smoothstep(t),
     mark: Math.sin(Math.PI * t) * PROJECTION_MORPH.seam.markOpacity
   }
 }

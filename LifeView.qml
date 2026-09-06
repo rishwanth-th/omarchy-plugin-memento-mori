@@ -1462,7 +1462,9 @@ Flickable {
     from: 0
     to: 1
     duration: root.projectionMorphDuration
-    easing.type: root.morphUsesDateOverlap ? Easing.Linear : Easing.InOutCubic
+    // Linear on purpose: every curve a morph has is shaped in Motion.js, so
+    // the two treatments cannot drift into different characters again.
+    easing.type: Easing.Linear
     onFinished: root.clearProjectionMorph()
   }
 
