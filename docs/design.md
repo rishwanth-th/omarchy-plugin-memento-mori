@@ -126,6 +126,15 @@ carrying. Ink is conserved by construction rather than by tuning, the grid is
 whole at every instant, and the two treatments differ only in whether the
 resolutions are superimposed — never in how much of the grid is present.
 
+The same law governs the axis. A cell denotes a definite range of dates at
+every instant of a morph; what a morph changes is the granularity of its name,
+never whether it has one. So a tick's two readings are complements of a single
+crossover rather than two windows with a gap between them, and while the lens
+holds both lattices superimposed both readings are present at half strength.
+An axis that goes quiet mid-exchange is not declining to pick a winner. It is
+claiming the view has stopped knowing what it points at, at exactly the moment
+the grid beneath it is saying the opposite.
+
 The travelling seam, measured the same way, was already flat to ±0.2% at every
 instant, which is its own design met exactly: two resolutions never
 superimposed, each side at full strength, so nothing can dim.
