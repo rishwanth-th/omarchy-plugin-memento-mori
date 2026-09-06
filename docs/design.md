@@ -108,9 +108,9 @@ primitive and a table of edges, in `Motion.js`.
 A transition is a pure function of where it is on its own clock. Nothing about
 a frame depends on how the clock arrived there, which is what makes a
 transition something that can be held still, measured, and reasoned about
-rather than only watched. Every curve in a morph is a `ramp` between two edges
-or a `window` between four, so a motion is read as a shape instead of
-reconstructed from constants scattered across the painters that use them.
+rather than only watched. Every curve in a morph is a `ramp` between two
+edges, so a motion is read as a shape instead of reconstructed from constants
+scattered across the painters that use them.
 
 This is not tidiness. Constants that must interlock, but sit in different
 functions, drift apart silently. Holding the exact-overlap lens at fixed times
@@ -120,9 +120,15 @@ settled grid at `t=0.25` and `t=0.75`, because the source finished leaving at
 and symmetrically at the far end. Nobody chose that trough. It was the gap
 between two numbers that no line of code claimed were related.
 
-The travelling seam, measured the same way, is flat to ±0.2% at every instant
-— which is exactly its design: two resolutions never superimposed, each side
-at full strength, so nothing can dim.
+The lens now states the relation instead of restating the numbers: the
+interference is defined as whatever the two settled projections are not
+carrying. Ink is conserved by construction rather than by tuning, the grid is
+whole at every instant, and the two treatments differ only in whether the
+resolutions are superimposed — never in how much of the grid is present.
+
+The travelling seam, measured the same way, was already flat to ±0.2% at every
+instant, which is its own design met exactly: two resolutions never
+superimposed, each side at full strength, so nothing can dim.
 
 ## One predetermined lattice
 

@@ -20,14 +20,6 @@ test("the shaping primitive is flat outside its edges and smooth between", () =>
   assert.equal(Motion.smoothstep(NaN), 0)
 })
 
-test("the trapezoid window holds at full strength between its inner edges", () => {
-  assert.equal(Motion.window(0, 0, 0.4, 0.6, 1), 0)
-  assert.equal(Motion.window(0.4, 0, 0.4, 0.6, 1), 1)
-  assert.equal(Motion.window(0.5, 0, 0.4, 0.6, 1), 1)
-  assert.equal(Motion.window(0.6, 0, 0.4, 0.6, 1), 1)
-  assert.equal(Motion.window(1, 0, 0.4, 0.6, 1), 0)
-})
-
 test("every channel stays inside its own ink budget", () => {
   const lens = Motion.PROJECTION_MORPH.lens
   eachTime((t) => {
@@ -113,7 +105,7 @@ test("neither label reading is drawn across the crossover gap", () => {
 // source ink ends at 0.30 while the interference does not reach full strength
 // until 0.40 — and symmetrically at the far end. The channels have to hand
 // off to each other, so what leaves must be replaced by what arrives.
-test("the lens hands off its ink without a trough", { skip: "step 2" }, () => {
+test("the lens hands off its ink without a trough", () => {
   const lens = Motion.PROJECTION_MORPH.lens
   eachTime((t) => {
     const c = Motion.lensChannels(t)

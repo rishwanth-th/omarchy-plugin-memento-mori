@@ -31,13 +31,6 @@ function ramp(time, start, end) {
   return smoothstep((time - start) / (end - start))
 }
 
-// Rises across [a, b], holds, falls across [c, d]. The trapezoid is the
-// product of its two edges rather than a piecewise branch, so it has no
-// seams to keep consistent.
-function window(time, a, b, c, d) {
-  return ramp(time, a, b) * (1 - ramp(time, c, d))
-}
-
 // ---- The projection morph, as data.
 //
 // Two treatments answer the same question — what happens to a week when the
@@ -61,14 +54,20 @@ var PROJECTION_MORPH = {
   lens: {
     duration: 520,
     // Edges, in clock order. Everything the lens paints is one of these.
+    //
+    // Two edges, and everything else follows from them. The interference is
+    // not a third window with its own timings: it is exactly what the two
+    // settled projections are not carrying, so the lens can never be showing
+    // less than a whole grid.
     sourceOut: [0, 0.30],
     targetIn: [0.70, 1],
-    interference: [0, 0.40, 0.60, 1],
     labelOut: [0, 0.44],
     labelIn: [0.56, 1],
     // Ink densities, not timings: how strongly a channel paints when it is
     // fully present. Fragments cover the same area as the grid but at higher
-    // density, so they reach the grid's weight below full opacity.
+    // density, so they reach the grid's weight below full opacity. Measured,
+    // by holding the morph on its plateau where the fragments carry the whole
+    // image: 0.66 there reads within 0.4% of the settled grid.
     fragmentInk: 0.66,
     wireInk: 0.09
   }
@@ -83,19 +82,24 @@ var PROJECTION_MORPH = {
 function morphGeometry(time, usesLens) {
   var t = clamp01(time)
   if (!usesLens) return t
-  var edge = PROJECTION_MORPH.lens.interference
-  return 0.5 * ramp(t, edge[0], edge[1]) + 0.5 * ramp(t, edge[2], edge[3])
+  var lens = PROJECTION_MORPH.lens
+  return 0.5 * ramp(t, lens.sourceOut[0], lens.sourceOut[1])
+    + 0.5 * ramp(t, lens.targetIn[0], lens.targetIn[1])
 }
 
 // What each channel of the lens weighs at this instant.
 function lensChannels(time) {
   var t = clamp01(time)
   var lens = PROJECTION_MORPH.lens
-  var interference = window(t, lens.interference[0], lens.interference[1],
-    lens.interference[2], lens.interference[3])
+  var source = 1 - ramp(t, lens.sourceOut[0], lens.sourceOut[1])
+  var target = ramp(t, lens.targetIn[0], lens.targetIn[1])
+  // What neither settled projection is carrying, the interference carries.
+  // The grid is therefore whole at every instant: the two treatments differ
+  // in whether the resolutions are superimposed, never in how much is there.
+  var interference = 1 - source - target
   return {
-    source: 1 - ramp(t, lens.sourceOut[0], lens.sourceOut[1]),
-    target: ramp(t, lens.targetIn[0], lens.targetIn[1]),
+    source: source,
+    target: target,
     fragment: lens.fragmentInk * interference,
     wire: lens.wireInk * interference,
     interference: interference
@@ -133,7 +137,6 @@ if (typeof module !== "undefined") {
     clamp01: clamp01,
     smoothstep: smoothstep,
     ramp: ramp,
-    window: window,
     morphGeometry: morphGeometry,
     lensChannels: lensChannels,
     morphLabelChannels: morphLabelChannels,
