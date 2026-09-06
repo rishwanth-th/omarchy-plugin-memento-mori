@@ -61,8 +61,11 @@ var PROJECTION_MORPH = {
     // less than a whole grid.
     sourceOut: [0, 0.30],
     targetIn: [0.70, 1],
-    labelOut: [0, 0.44],
-    labelIn: [0.56, 1],
+    // One interval, not two windows. A cell always denotes a definite range
+    // of dates; what a morph changes is the granularity of its name, never
+    // whether it has one. So the two readings are complements of a single
+    // crossover and always sum to a whole label.
+    labelCrossover: [0.44, 0.56],
     // Ink densities, not timings: how strongly a channel paints when it is
     // fully present. Fragments cover the same area as the grid but at higher
     // density, so they reach the grid's weight below full opacity. Measured,
@@ -106,15 +109,20 @@ function lensChannels(time) {
   }
 }
 
-// The two readings of a tick's label cross over near the middle, on their own
-// wider edges, so a label is never half-present at the moment its rect moves.
+// A tick's two readings name the same instant at two granularities, so they
+// hand off to each other exactly as the grid's ink does: the target is the
+// complement of the source, and a whole label is present at every moment.
+//
+// While the lens holds both lattices superimposed, both readings are
+// therefore present at half strength, at their own two positions. That is the
+// same claim the cells are making underneath them — this instant is being
+// read two ways at once — rather than the axis going quiet while the grid
+// says otherwise.
 function morphLabelChannels(geometryProgress) {
   var p = clamp01(geometryProgress)
-  var lens = PROJECTION_MORPH.lens
-  return {
-    source: 1 - ramp(p, lens.labelOut[0], lens.labelOut[1]),
-    target: ramp(p, lens.labelIn[0], lens.labelIn[1])
-  }
+  var crossover = PROJECTION_MORPH.lens.labelCrossover
+  var target = ramp(p, crossover[0], crossover[1])
+  return { source: 1 - target, target: target }
 }
 
 // The seam's own reading: where the cut is, and how strongly it is marked.

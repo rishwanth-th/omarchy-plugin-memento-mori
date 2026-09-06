@@ -78,25 +78,24 @@ test("the seam is marked only while it is travelling", () => {
   assert.ok(Motion.seamChannels(0.5).mark > invisible)
 })
 
-// Recorded, not endorsed. Neither reading is drawn between these edges, and
-// because the lens holds its geometry at exactly 0.5 for its whole plateau,
-// that blank covers the entire hold rather than passing through it. Whether a
-// cell mid-exchange should read as nothing is a design question that predates
-// this file; the test exists so the answer cannot change by accident.
-test("neither label reading is drawn across the crossover gap", () => {
-  const lens = Motion.PROJECTION_MORPH.lens
-  const blankStart = lens.labelOut[1]
-  const blankEnd = lens.labelIn[0]
-  assert.ok(blankStart <= blankEnd)
-  const middle = Motion.morphLabelChannels((blankStart + blankEnd) / 2)
-  assert.ok(middle.source < 1e-12)
-  assert.ok(middle.target < 1e-12)
-  assert.equal(Motion.morphGeometry(0.5, true), 0.5)
+// The same conservation the grid's ink obeys. A cell denotes a definite range
+// of dates at every instant of a morph, so it is never nameless; only the
+// granularity of the name changes. An axis that goes blank while the grid
+// underneath is showing both lattices is the ink trough again, in a channel
+// where it reads as the view losing its nerve rather than as dimming.
+test("a whole label is present at every instant", () => {
   eachTime((p) => {
     const l = Motion.morphLabelChannels(p)
-    if (p < blankStart || p > blankEnd)
-      assert.ok(l.source + l.target > 0, `both readings absent at p=${p}`)
+    assert.ok(Math.abs(l.source + l.target - 1) < 1e-12,
+      `label budget was ${(l.source + l.target).toFixed(4)} at p=${p}`)
   })
+  assert.equal(Motion.morphLabelChannels(0).source, 1)
+  assert.equal(Motion.morphLabelChannels(1).target, 1)
+  // The lens pins its geometry at exactly 0.5 for its whole hold, so this is
+  // the reading that stands for that entire stretch: both, at half strength.
+  const held = Motion.morphLabelChannels(Motion.morphGeometry(0.5, true))
+  assert.ok(Math.abs(held.source - 0.5) < 1e-12)
+  assert.ok(Math.abs(held.target - 0.5) < 1e-12)
 })
 
 // The measured defect this substrate exists to make impossible. Holding the
