@@ -1786,10 +1786,27 @@ Flickable {
           // Calendar already establishes the global present. LIFE adds its
           // local coordinate, so the cell resolves from quiet to exact rather
           // than replaying time from birth.
+          //
+          // The cell is a container of days, and which day it is inside that
+          // container is exactly the precision a coarser rung would otherwise
+          // throw away. So the frontier is drawn where it actually falls
+          // rather than at the cell's edge: the same instant is three days
+          // into a week and fourteen into a month, and both readings are
+          // true. Zooming out costs reach, not truth.
           var presentAlpha = 0.35 + 0.65 * root.entranceFocusProgress
+          var elapsed = Model.cellElapsedFraction(cell, root.today)
+          var frontier = Math.round(rect.width * elapsed)
           ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b,
             alpha * presentAlpha)
-          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+          ctx.fillRect(rect.x, rect.y, frontier, rect.height)
+          if (frontier < rect.width) {
+            // The rest of the cell has not happened. It is still the present
+            // cell, so it keeps the accent, quietly.
+            ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b,
+              alpha * presentAlpha * 0.26)
+            ctx.fillRect(rect.x + frontier, rect.y,
+              rect.width - frontier, rect.height)
+          }
         } else {
           ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
             root.foreground.b, 0.22 * alpha)

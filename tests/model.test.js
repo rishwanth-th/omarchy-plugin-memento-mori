@@ -324,3 +324,32 @@ test("an unknown mode is still the week grid", () => {
   assert.equal(unknown.length, weeks.length)
   assert.equal(unknown[0].startKey, weeks[0].startKey)
 })
+
+test("the day frontier inside the present cell survives every rung", () => {
+  const today = localDate(2026, 9, 6)
+  const readings = {}
+  for (const mode of ["weeks", "books", "months"]) {
+    const cells = Model.projectionCells(mode, "2001-08-23", today, 4000)
+    const current = cells.find((c) => c.status === "current")
+    assert.ok(current, `${mode} should have a present cell`)
+    const fraction = Model.cellElapsedFraction(current, today)
+    assert.ok(fraction >= 0 && fraction < 1)
+    const start = new Date(current.startKey + "T12:00:00")
+    const span = Math.round(
+      (new Date(current.endKey + "T12:00:00") - start) / 86400000) + 1
+    readings[mode] = Math.round(fraction * span)
+  }
+  // The same instant, counted at three resolutions. Books and months both
+  // start on the birthday of the month, so both read fourteen days in.
+  assert.equal(readings.weeks, 3)
+  assert.equal(readings.books, 14)
+  assert.equal(readings.months, 14)
+})
+
+test("a lived cell is whole and a future cell is empty", () => {
+  const today = localDate(2026, 9, 6)
+  const cells = Model.projectionCells("weeks", "2001-08-23", today, 4000)
+  const current = cells.findIndex((c) => c.status === "current")
+  assert.equal(Model.cellElapsedFraction(cells[current - 1], today), 1)
+  assert.equal(Model.cellElapsedFraction(cells[current + 1], today), 0)
+})

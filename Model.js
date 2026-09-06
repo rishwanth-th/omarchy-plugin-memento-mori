@@ -717,6 +717,28 @@ function projectionCells(mode, birthKey, today, horizonValue) {
   return cells
 }
 
+// How far through the present cell today has got, as a fraction of the cell.
+//
+// A cell is a container of days, and which day it is inside that container is
+// exactly the precision a coarser rung would otherwise throw away. At weeks a
+// third of the way in is two days; at books it is six; at months nine. The
+// same instant, read at whatever resolution is being shown, so zooming out
+// costs reach rather than truth.
+//
+// Counted in whole elapsed days over whole days in the cell, because a day is
+// the atom: the frontier moves once a day at every rung, not smoothly.
+function cellElapsedFraction(cell, today) {
+  if (!cell || cell.status !== "current") return cell && cell.status === "lived" ? 1 : 0
+  var start = dateFromKey(cell.startKey)
+  var end = dateFromKey(cell.endKey)
+  var now = today instanceof Date ? today : new Date()
+  if (!start || !end) return 0
+  var span = utcDayNumber(end) - utcDayNumber(start) + 1
+  if (span <= 0) return 0
+  var elapsed = utcDayNumber(now) - utcDayNumber(start)
+  return Math.max(0, Math.min(1, elapsed / span))
+}
+
 // Place the current row a little above the middle of a bounded viewport.
 // That keeps enough history for orientation while leaving more of the finite
 // future visible. The result is always clamped at birth and at the horizon.
@@ -817,6 +839,7 @@ if (typeof module !== "undefined") {
     lifeProgressForDate: lifeProgressForDate,
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,
+    cellElapsedFraction: cellElapsedFraction,
     rateUnit: rateUnit,
     projection: projection,
     frameFor: frameFor,
