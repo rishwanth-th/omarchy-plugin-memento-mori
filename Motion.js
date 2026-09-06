@@ -65,18 +65,25 @@ var PROJECTION_MORPH = {
     // crossover and always sum to a whole label.
     labelCrossover: [0.44, 0.56],
     // Ink densities, not timings: how strongly a channel paints when it is
-    // fully present. Fragments cover the same area as the grid but at higher
-    // density, so they reach the grid's weight below full opacity. Measured,
-    // by holding the morph on its plateau where the fragments carry the whole
-    // image: 0.66 there reads within 0.4% of the settled grid.
-    fragmentInk: 0.66,
+    // fully present.
+    //
+    // The fragments have to reproduce the settled grid by themselves. That
+    // was not true before the fold became local: at 0.66 the plateau measured
+    // within 0.4% of the settled grid only because a full-field wireframe was
+    // making up the rest, which made the wire load-bearing ink rather than
+    // the mark it looks like. Restricting the wire to the present then opened
+    // a 10% hole in the far field — the same trough as before, wearing a
+    // different hat.
+    //
+    // Calibrated by holding the plateau, where the fragments carry the whole
+    // image alone: 0.66 reads 9.9% under the settled grid, 0.80 reads 4.9%
+    // under, and 0.93 lands on it within 0.005%.
+    fragmentInk: 0.93,
     // The two lattices are stroked across every visible cell, so this is a
-    // full field of hairlines rather than a local mark, so this value decides
-    // how far above the grid that field sits. Measured at the midpoint
-    // against the settled ends, within one capture run each: 0.09 rides
-    // +0.63 of a level above the grid and reads as a hovering sheet, 0.06
-    // sinks to -0.69 and reads as sunken, and the layer comes out flush near
-    // 0.075. It should sit just proud, not float and not submerge.
+    // mark rather than a field now that it is restricted to the present, so
+    // it is pure addition where the fold is and absent everywhere else. The
+    // grid it rises from is carried entirely by the fragments, which is what
+    // lets this read as relief instead of as a sheet.
     wireInk: 0.08
   }
 }

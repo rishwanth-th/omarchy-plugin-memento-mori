@@ -67,6 +67,10 @@ Flickable {
   property real pinPressY: 0
   property string pinRetargetFromDateKey: ""
   property real pinRetargetProgress: 1
+  // How far the overlap fold reaches from the present, as a fraction of the
+  // grid's width and as a count of life-year rows.
+  property real foldReachX: 0.34
+  property real foldReachRows: 4.5
   property bool gapRhythmEnabled: true
   property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
   property int structurePaintCount: 0
@@ -1054,6 +1058,30 @@ Flickable {
         geometry.endX, geometry.endY) <= tolerance
   }
 
+  // Where the fold is centred: the present cell, followed through the morph
+  // so the raised region does not drift while the rects travel. Null when the
+  // present is scrolled out of view, which leaves the wireframe unattenuated
+  // rather than pinning the fold to an arbitrary edge.
+  function foldFocus() {
+    var rect = interpolatedMorphRect(Model.keyForDate(today))
+    if (!rect || !rect.visible) return null
+    return {
+      x: rect.x + rect.width / 2,
+      y: rect.y + rect.height / 2,
+      radiusX: Math.max(1, gridWidthFor(projection) * foldReachX),
+      radiusY: Math.max(1, (cellHeight() + rowGap()) * foldReachRows)
+    }
+  }
+
+  // One at the present, nothing past the reach, smooth between. The reach is
+  // wider than it is tall because a row is a life-year: a few rows already
+  // spans years, while the same span across the row is only weeks.
+  function foldFalloff(focus, x, y) {
+    var dx = (x - focus.x) / focus.radiusX
+    var dy = (y - focus.y) / focus.radiusY
+    return 1 - Motion.smoothstep(Math.sqrt(dx * dx + dy * dy))
+  }
+
   function visibleRectsFor(mode, intervalCells) {
     var rects = []
     var first = firstVisibleIndexFor(mode)
@@ -1864,13 +1892,35 @@ Flickable {
           Style.spacing.hairline, root.gridHeight() + Style.space(4))
       }
 
-      function paintProjectionWireframe(ctx, rects, opacity) {
+      // The two lattices, stroked where the fold is happening.
+      //
+      // Painting them across the whole grid at even strength is a full field
+      // of hairlines, and a full field of even ink reads flat however bright
+      // it is: measured, it lifted the grid's floor and cut its contrast by
+      // about a fifth everywhere at once. Depth is figure against ground, so
+      // the beat has to be somewhere rather than everywhere.
+      //
+      // It belongs at the present. The exchange between weeks and months is a
+      // question about now — which calendar is reading this moment — and the
+      // far future has no stake in it. So the wireframe falls off with
+      // temporal distance from the present cell, leaving a raised fold there
+      // against an untouched grid elsewhere.
+      //
+      // Only the wireframe is attenuated. The fragments carry the grid's ink
+      // through the midpoint and must stay whole everywhere, or the far field
+      // would empty out at exactly the moment both settled projections are
+      // gone.
+      function paintProjectionWireframe(ctx, rects, opacity, focus) {
         if (!rects || opacity <= 0) return
-        ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-          root.foreground.b, opacity)
         ctx.lineWidth = Style.spacing.hairline
+        var colour = root.foreground
         for (var index = 0; index < rects.length; index++) {
           var rect = rects[index]
+          var strength = opacity
+          if (focus) strength *= root.foldFalloff(focus,
+            rect.x + rect.width / 2, rect.y + rect.height / 2)
+          if (strength <= 0.002) continue
+          ctx.strokeStyle = Qt.rgba(colour.r, colour.g, colour.b, strength)
           ctx.strokeRect(rect.x + 0.5, rect.y + 0.5,
             Math.max(0, rect.width - 1), Math.max(0, rect.height - 1))
         }
@@ -1918,8 +1968,9 @@ Flickable {
         // At the midpoint the two exact sampling grids coexist only as quiet
         // outlines. Their beat pattern is real 52-week versus calendar-month
         // interference, not an independently drawn decorative texture.
-        paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity)
-        paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity)
+        var focus = root.foldFocus()
+        paintProjectionWireframe(ctx, root.morphSourceRects, wireOpacity, focus)
+        paintProjectionWireframe(ctx, root.morphTargetRects, wireOpacity, focus)
 
         for (var i = 0; i < root.morphGeometry.length; i++) {
           var geometry = root.morphGeometry[i]
