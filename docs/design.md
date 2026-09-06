@@ -100,6 +100,30 @@ birth-anchored interval remains there (`20–26 AUG 2026`). The inspected
 axes. Past, present, and future are not repeated in text because the cells and
 legend already encode that state.
 
+## One predetermined clock
+
+Space is derived from the week. Time is derived the same way, from one shaping
+primitive and a table of edges, in `Motion.js`.
+
+A transition is a pure function of where it is on its own clock. Nothing about
+a frame depends on how the clock arrived there, which is what makes a
+transition something that can be held still, measured, and reasoned about
+rather than only watched. Every curve in a morph is a `ramp` between two edges
+or a `window` between four, so a motion is read as a shape instead of
+reconstructed from constants scattered across the painters that use them.
+
+This is not tidiness. Constants that must interlock, but sit in different
+functions, drift apart silently. Holding the exact-overlap lens at fixed times
+and measuring the grid's ink showed the cost: it dipped about 10% below the
+settled grid at `t=0.25` and `t=0.75`, because the source finished leaving at
+`0.30` while the interference did not arrive at full strength until `0.40`,
+and symmetrically at the far end. Nobody chose that trough. It was the gap
+between two numbers that no line of code claimed were related.
+
+The travelling seam, measured the same way, is flat to ±0.2% at every instant
+— which is exactly its design: two resolutions never superimposed, each side
+at full strength, so nothing can dim.
+
 ## One predetermined lattice
 
 Every horizontal coordinate is derived from the week, top down, and both

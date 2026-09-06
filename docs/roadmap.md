@@ -497,11 +497,59 @@ viewport, hit-testing and pin identity all need to hold across four
 resolutions rather than two. It should begin from the stable base this
 workstream produced, not extend it in place.
 
+### Substrate
+
+Two resolutions can be painted as two lattices. A continuum cannot: the grid
+has to be a function evaluated at whatever resolution the gesture asks for,
+which is the same shift `Motion.js` already made for time. The whole view
+wants to become a pure function of one state vector — resolution, viewport
+origin, hover, pin, wall-clock — with no frame depending on how that state was
+reached.
+
+Whether that function is evaluated on the CPU into a Canvas or on the GPU as a
+fragment shader is the first real decision, and the platform allows either.
+Verified on 2026-09-06 against Quickshell and this machine rather than
+assumed: Quickshell builds QtQuick on an OpenGL/Vulkan RHI backend for its
+Wayland layer-shell windows and places no restriction on QtQuick types;
+`ShaderEffect` with precompiled `.qsb` shaders is already used inside
+Quickshell itself, by `ClippingRectangle`, whose shaders are built with
+`qt6_add_shaders`. `qt6-shadertools 6.11.2` and `/usr/lib/qt6/bin/qsb` are
+installed here.
+
+The prize is specific. Sampling a continuous lattice per pixel produces the
+52-against-12 beat as a true sampling artefact of the zoom itself, at any
+intermediate resolution, rather than as a midpoint effect the CPU composites
+between two fixed grids. The moire the lens shows today would stop being a
+transition and become a property of the surface.
+
+The cost is equally specific, and is why this is not a small step: it replaces
+the Canvas painting model, adds a shader build step to a plugin that currently
+has none, and moves hit-testing and label layout onto geometry the CPU no
+longer enumerates. Nothing about it should start before the discrete case is
+settled.
+
 ### Reject if
 
 - Zoom makes any single resolution worse than the discrete toggle made it.
 - The lattice stops being derivable from one atom.
 - Exact date, pin identity, or projection semantics drift across levels.
+- The GPU path buys texture at the cost of exact dates or crisp hairlines.
 
 Only one workstream may change runtime behavior at a time. Each one receives
 its own live review before the next begins.
+
+## Open questions carried forward
+
+### Should a cell read as nothing at the moment of exchange?
+
+The horizontal tick labels cross over on their own edges, `0.44` and `0.56` of
+the geometry clock, and neither reading is drawn between them. Because the
+lens holds its geometry at exactly `0.5` for its whole plateau, that blank
+covers the entire hold rather than passing through it — roughly 104ms of a
+520ms morph with no label above the present cell.
+
+This may well be right: mid-exchange a cell genuinely has no single honest
+name, and showing one would pick a winner the geometry has not picked. It is
+recorded here because it was never a stated decision, only a pair of
+constants, and `tests/motion.test.js` now pins it so the answer cannot change
+by accident.
