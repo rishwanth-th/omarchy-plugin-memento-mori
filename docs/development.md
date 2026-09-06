@@ -136,11 +136,19 @@ Never conclude anything from a rescan alone.
 Everything above is version-bound, so it should not outlive the bugs. The two
 constraints are independent and can lift separately:
 
-- **Plugin QML is never re-read in-process** (omacom/omarchy#6981). Lifts when
-  a release ships the `reloadPlugins()` fix — omacom/omarchy#8766 replaces the
-  dead `Qt.clearComponentCache` guard with `Quickshell.reload(false)`. Once it
-  lands, `omarchy-shell shell rescanPlugins` may be enough and the restart in
-  `sync-live.sh` can go.
+- **Plugin QML is never re-read in-process** (omacom/omarchy#6981). Two
+  competing fixes are open, and which lands changes what we do:
+  - omacom/omarchy#8766 replaces the dead guard with `Quickshell.reload(false)`
+    — in-process, covers all four load sites, gated on
+    quickshell-mirror/quickshell#956. If it lands, the restart in
+    `sync-live.sh` can become a `rescanPlugins`.
+  - omacom/omarchy#9606 keeps the restart but makes it automatic, shelling out
+    to `omarchy-restart-shell` when the cache cannot be cleared. If it lands,
+    our explicit restart becomes redundant rather than wrong — `omarchy plugin
+    update` alone would trigger it.
+
+  Upstream triage notes no route is a *targeted* reload: every option rebuilds
+  the whole shell, so the only choice is in-process or by restart.
 - **`Quickshell.reload(false)` is unsafe here** (quickshell-mirror/quickshell#956).
   Lifts when a packaged quickshell carries teardown fix `2d3b3e9`. Until then
   the fast path crashes on the `IpcHandler` teardown boundary this plugin sits on.
