@@ -717,6 +717,21 @@ Flickable {
     dateOverlapEnabled = !dateOverlapEnabled
   }
 
+  // Freeze the projection morph at one point on its clock. A transition is a
+  // function of (state, time), so holding time makes any frame of it an exact
+  // screenshot rather than a lucky capture. Starts a toggle if none is
+  // running. Review-only.
+  function holdMorph(time) {
+    if (!projectionMorphing) toggleProjection()
+    if (!projectionMorphing) return
+    if (projectionMorphAnimation.running) projectionMorphAnimation.stop()
+    morphProgress = Math.max(0, Math.min(1, time))
+  }
+
+  function releaseMorph() {
+    finishProjectionMorph()
+  }
+
   function toggleGapRhythm() {
     gapRhythmEnabled = !gapRhythmEnabled
   }

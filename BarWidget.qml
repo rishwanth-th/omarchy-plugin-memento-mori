@@ -156,6 +156,12 @@ BarWidget {
     function moveInspection(dx: int, dy: int): void {
       if (panelLoader.item) panelLoader.item.moveInspection(dx, dy)
     }
+    function holdMorph(time: real): void {
+      if (panelLoader.item) panelLoader.item.holdMorph(time)
+    }
+    function releaseMorph(): void {
+      if (panelLoader.item) panelLoader.item.releaseMorph()
+    }
     function showLife(): void { root.showLife() }
     function showCalendar(): void { root.showCalendar() }
     function interactionState(): string {
