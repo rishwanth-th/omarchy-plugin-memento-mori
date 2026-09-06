@@ -156,10 +156,29 @@ superimposed, each side at full strength, so nothing can dim.
 Every horizontal coordinate is derived from the week, top down, and both
 projections read the same lattice. The week is the atom and is always the same
 width, because a week is always seven days. A life-month is a container of
-four or five of them, so its Months column is literally the weeks it contains
-and is genuinely wider or narrower. The unevenness is information rather than
-a cost: it is the column width finally meaning something. Quarters hold 13
-weeks and 3 months in every case, so they stay even.
+four or five of them, so its Months column is the weeks it contains and is
+wider or narrower. Quarters hold 13 weeks and 3 months in every case, so they
+stay even.
+
+**Correction, 2026-09-06.** This section used to end the paragraph above by
+claiming the unevenness is information rather than a cost — the column width
+finally meaning something. It does not mean anything, and the arithmetic says
+so. A column's width comes from `round(m * 52 / 12)`, which spaces twelve
+boundaries evenly across fifty-two weeks and depends only on the column's
+*index*. The cells it draws are real calendar months of 28 to 31 days, and
+nothing connects the two. Measured against a birth date of 2001-08-23, the
+column spanning 30 days is drawn 35 days wide while the column spanning 31
+days is drawn 28 — a shorter month drawn wider than a longer one, and the
+worst column off by a full week.
+
+So the width is uneven, and its unevenness is an artefact of dividing 52 by
+12 rather than a fact about months. The claim was right about what the grid
+*should* say. It was wrong about what this grid says, and it went unchallenged
+because both numbers are plausible and neither was ever compared to the other.
+
+Making the width true is one of the things the day atom buys, and it is
+pursued in Workstream 8 rather than patched here: a month drawn at its real
+length is only possible once the atom is smaller than a week.
 
 Because every coordinate counts weeks, a boundary lands on the same pixel in
 Weeks and in Months by construction, not by tuning. This is forced, and the
