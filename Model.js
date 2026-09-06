@@ -633,14 +633,24 @@ function projectionColumns(mode) {
   return projection(mode).columns
 }
 
-// The next rung up or down, stopping at the ends rather than wrapping, so
-// zooming has a floor and a ceiling the way a scale does.
+// The next rung up or down, stopping at the ends rather than wrapping, so a
+// held zoom has a floor and a ceiling the way a scale does.
 function stepProjection(mode, direction) {
   var at = PROJECTION_LADDER.indexOf(mode)
   if (at < 0) at = 0
   var next = at + (direction < 0 ? -1 : 1)
   if (next < 0 || next >= PROJECTION_LADDER.length) return mode
   return PROJECTION_LADDER[next]
+}
+
+// One key walking a ladder has to wrap, or it has nowhere to go once it
+// reaches an end. Stepping and cycling are different gestures and were
+// briefly the same function: deriving the direction from the current rung
+// made the walk bounce between the top two forever and never come back.
+function cycleProjection(mode) {
+  var at = PROJECTION_LADDER.indexOf(mode)
+  if (at < 0) at = 0
+  return PROJECTION_LADDER[(at + 1) % PROJECTION_LADDER.length]
 }
 
 // Where a rate unit's nth edge falls, in whole days from birth. The rounding
@@ -846,6 +856,7 @@ if (typeof module !== "undefined") {
     FRAMES: FRAMES,
     projectionColumns: projectionColumns,
     stepProjection: stepProjection,
+    cycleProjection: cycleProjection,
     PROJECTIONS: PROJECTIONS,
     PROJECTION_LADDER: PROJECTION_LADDER,
     rateUnitDayOffset: rateUnitDayOffset,

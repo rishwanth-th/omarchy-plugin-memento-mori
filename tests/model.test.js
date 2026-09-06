@@ -353,3 +353,34 @@ test("a lived cell is whole and a future cell is empty", () => {
   assert.equal(Model.cellElapsedFraction(cells[current - 1], today), 1)
   assert.equal(Model.cellElapsedFraction(cells[current + 1], today), 0)
 })
+
+test("one key reaches every rung; held zoom stops at the ends", () => {
+  // A single key cannot hold a direction, so it wraps - otherwise it walks to
+  // an end and has nowhere to go. Deriving the direction from the current
+  // rung instead made P bounce between the top two forever, never returning
+  // to weeks, which is what this pins.
+  const visited = new Set()
+  let mode = "weeks"
+  for (let press = 0; press < Model.PROJECTION_LADDER.length; press++) {
+    mode = Model.cycleProjection(mode)
+    visited.add(mode)
+  }
+  assert.equal(visited.size, Model.PROJECTION_LADDER.length)
+  assert.equal(mode, "weeks", "the cycle should come back round")
+
+  // Held zoom is the other gesture: it has a direction, so it has ends.
+  const finest = Model.PROJECTION_LADDER[0]
+  const coarsest = Model.PROJECTION_LADDER[Model.PROJECTION_LADDER.length - 1]
+  assert.equal(Model.stepProjection(finest, -1), finest)
+  assert.equal(Model.stepProjection(coarsest, 1), coarsest)
+  assert.equal(Model.stepProjection(finest, 1), Model.PROJECTION_LADDER[1])
+})
+
+test("every rung divides the quarter it is grouped by", () => {
+  // The grouping is drawn as real space, so a boundary that fell mid-cell
+  // would be a gap inside a cell. This is the constraint on adding a rung:
+  // columns must divide by four.
+  for (const mode of Model.PROJECTION_LADDER)
+    assert.equal(Model.projectionColumns(mode) % 4, 0,
+      `${mode} does not divide the quarter`)
+})

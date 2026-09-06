@@ -919,8 +919,10 @@ Flickable {
     setProjection(Model.stepProjection(projection, direction))
   }
 
+  // One key cannot hold a direction, so it wraps: every rung is reachable by
+  // pressing again. Held zoom in and out are separate and stop at the ends.
   function toggleProjection() {
-    zoomProjection(projection === "months" ? -1 : 1)
+    setProjection(Model.cycleProjection(projection))
   }
 
   function firstVisibleIndexFor(mode) {
