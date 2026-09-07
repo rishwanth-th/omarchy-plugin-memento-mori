@@ -366,11 +366,10 @@ function projectionReadout(cell, mode, today) {
 function projectionReadoutParts(cell, mode, today) {
   if (!cell) return ""
   var date = compactDateRangeParts(cell.startKey, cell.endKey)
-  var monthMode = mode === "months"
-  var span = monthMode ? 12 : 52
+  var span = projectionColumns(mode)
   var offset = Math.max(0, Math.floor(Number(cell.index) || 0))
   var age = Math.floor(offset / span)
-  var position = (monthMode ? "MONTH " : "WEEK ") + (offset % span + 1)
+  var position = projection(mode).singular + " " + (offset % span + 1)
   var statuses = { lived: "PAST", current: "PRESENT", future: "FUTURE" }
   return {
     date: date.date,
@@ -391,7 +390,7 @@ function projectionStats(cells, mode) {
   return {
     lived: lived,
     remaining: Math.max(0, intervals.length - lived),
-    unit: mode === "months" ? "months" : "weeks"
+    unit: projection(mode).unit
   }
 }
 
@@ -441,7 +440,7 @@ function projectionDelta(cells, mode, dateKey) {
 
   var signedCount = targetIndex - presentIndex
   var count = Math.abs(signedCount)
-  var singular = mode === "months" ? "MONTH" : "WEEK"
+  var singular = projection(mode).singular
   var unit = count === 1 ? singular : singular + "S"
   var direction = signedCount < 0 ? "BEFORE NOW" : "AFTER NOW"
   return {
@@ -478,14 +477,14 @@ function projectionRulerDelta(cells, mode, dateKey) {
       totalLabel: ""
     }
 
-  var columnCount = mode === "months" ? 12 : 52
+  var columnCount = projectionColumns(mode)
   var presentColumn = presentIndex % columnCount
   var targetColumn = targetIndex % columnCount
   var horizontalCount = targetColumn - presentColumn
   var verticalCount = Math.floor(targetIndex / columnCount)
     - Math.floor(presentIndex / columnCount)
   var totalCount = targetIndex - presentIndex
-  var horizontalUnit = mode === "months" ? "M" : "W"
+  var horizontalUnit = projection(mode).letter
   function magnitudeLabel(value, unit) {
     if (value === 0) return ""
     return Math.abs(value) + unit
@@ -581,6 +580,40 @@ function projectionOverlapSegments(sourceCells, targetCells,
   }
 
   return segments
+}
+
+// What a projection is, in one place rather than as a two-valued string
+// tested wherever something needs to know. `columns` is how many of the unit
+// fill one life-year row, which is the only number the geometry asks for.
+//
+// This states an assumption the code was already making everywhere and never
+// wrote down. It is not a step toward making the grid configurable: the value
+// here came from deciding, not from parameterising, and the lattice is
+// predetermined on purpose.
+var PROJECTIONS = {
+  weeks:  { columns: 52, unit: "weeks",  singular: "WEEK",  letter: "W", frame: "year" },
+  months: { columns: 12, unit: "months", singular: "MONTH", letter: "M", frame: "year" }
+}
+
+// The frame a projection is read against: what a row is, what groups it, and
+// the division below that group which the horizontal axis marks. Both
+// projections share a year folded into quarters, which is the only reason a
+// hardcoded twelve has ever looked right.
+var FRAMES = {
+  year: { fold: "year", group: "quarter", groupsPerFold: 4,
+          mark: "month", marksPerFold: 12 }
+}
+
+function projection(mode) {
+  return PROJECTIONS[mode] || PROJECTIONS.weeks
+}
+
+function projectionColumns(mode) {
+  return projection(mode).columns
+}
+
+function frameFor(mode) {
+  return FRAMES[projection(mode).frame] || FRAMES.year
 }
 
 function projectionCells(mode, birthKey, today, horizonValue) {
@@ -732,6 +765,11 @@ if (typeof module !== "undefined") {
     lifeProgressForDate: lifeProgressForDate,
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,
+    projection: projection,
+    projectionColumns: projectionColumns,
+    frameFor: frameFor,
+    PROJECTIONS: PROJECTIONS,
+    FRAMES: FRAMES,
     temporalViewportStart: temporalViewportStart,
     monthGrid: monthGrid,
     stepMonth: stepMonth,

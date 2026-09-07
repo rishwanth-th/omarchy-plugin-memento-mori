@@ -1218,28 +1218,27 @@ Flickable {
     return index >= 0 && index < cells.length ? cells[index] : null
   }
 
+  // Read off the projection's frame rather than assumed. Both projections
+  // share a year folded into quarters, so this produces the same twelve
+  // landmarks with a major at each quarter that were previously written out
+  // twice, in two branches that did the same thing.
   function axisMarks() {
+    var frame = Model.frameFor(projection)
+    var perGroup = Math.max(1, Math.round(frame.marksPerFold / frame.groupsPerFold))
     var marks = []
-    if (projection === "weeks") {
-      // The twelve proportional landmarks now sit inside the visible 4/5-week
-      // life-month groups. Exact calendar intervals remain in inspection.
-      for (var month = 0; month < 12; month++) {
-        marks.push({ position: month,
-          label: String(month + 1), major: (month + 1) % 3 === 0 })
-      }
-    } else {
-      for (var exactMonth = 0; exactMonth < 12; exactMonth++)
-        marks.push({ position: exactMonth, label: String(exactMonth + 1),
-          major: (exactMonth + 1) % 3 === 0 })
-    }
+    for (var mark = 0; mark < frame.marksPerFold; mark++)
+      marks.push({ position: mark, label: String(mark + 1),
+        major: (mark + 1) % perGroup === 0 })
     return marks
   }
 
   function axisMarkX(position) {
-    // The twelve-part horizontal scale is the shared reference frame, not a
-    // child of either rendered projection. Its landmarks therefore remain
-    // stationary while Weeks and Months resolve beneath them.
-    return gridWidth() * (Math.max(0, Math.min(11, position)) + 0.5) / 12
+    // The horizontal scale is a reference frame rather than a picture of the
+    // cells, so its landmarks stay put while a projection resolves beneath
+    // them. It is the frame's own division, though, not a fixed twelve — the
+    // number was right only because both projections fold a year.
+    var count = Math.max(1, Model.frameFor(projection).marksPerFold)
+    return gridWidth() * (Math.max(0, Math.min(count - 1, position)) + 0.5) / count
   }
 
   function horizontalAxisContains(x, y) {
