@@ -72,8 +72,6 @@ Flickable {
   property real foldReachX: 0.34
   property real foldReachRows: 4.5
   property real foldLiftRatio: 0.30
-  // How far the cut leans, as rows of fall across the whole grid width.
-  property real seamLeanRows: 7
   property bool gapRhythmEnabled: true
   property real gapRhythmProgress: gapRhythmEnabled ? 1 : 0
   property int structurePaintCount: 0
@@ -1957,27 +1955,6 @@ Flickable {
         return Motion.smoothstep(value)
       }
 
-      // The cut travels as a slanted line rather than an upright one, so it
-      // crosses the grid in two directions at once and arrives at the bottom
-      // after it arrives at the top. An upright edge sweeping sideways is a
-      // wipe; a leaning one that lands late is a cut.
-      //
-      // The lean is stated in the grid's own terms — so many rows of fall
-      // across the whole width — rather than as an angle in pixels, so it
-      // holds whatever the panel is sized to.
-      function seamLeanPixels() {
-        return (root.cellHeight() + root.rowGap()) * root.seamLeanRows
-      }
-
-      // Where the cut crosses a given height. Travel is widened by the lean
-      // so that the top edge has left the grid only once the bottom edge has
-      // too, and neither side is left half-drawn at either end.
-      function seamXAt(y, headX) {
-        var span = Math.max(1, root.gridHeight())
-        var fromTop = (y - root.gridOriginY()) / span
-        return headX + seamLeanPixels() * (fromTop - 0.5)
-      }
-
       function paintProjectionSeam(ctx, t) {
         var sourceLeft = root.gridOriginXFor(root.morphFromProjection)
         var targetLeft = root.gridOriginXFor(root.projection)
@@ -1986,57 +1963,54 @@ Flickable {
         var seam = Motion.seamChannels(t)
         var left = sourceLeft + (targetLeft - sourceLeft) * t
         var right = sourceRight + (targetRight - sourceRight) * t
-        var lean = seamLeanPixels()
-        var headX = (left - lean / 2) + ((right + lean / 2) - (left - lean / 2))
-          * seam.position
-
-        var topX = seamXAt(0, headX)
-        var bottomX = seamXAt(height, headX)
+        var seamX = left + (right - left) * seam.position
 
         // The two resolutions never overlap: superimposing 52 and 12 columns
         // creates a moire fan even when every cell is stationary. A hard
-        // travelling cut keeps both sides at full strength, so neither the
+        // travelling seam keeps both sides at full strength, so neither the
         // structure nor its semantic gaps ever dim or appear to drift.
         ctx.save()
         ctx.beginPath()
-        ctx.moveTo(-1, 0)
-        ctx.lineTo(topX, 0)
-        ctx.lineTo(bottomX, height)
-        ctx.lineTo(-1, height)
-        ctx.closePath()
+        ctx.rect(0, 0, Math.max(0, seamX), height)
         ctx.clip()
         paintProjection(ctx, root.projection, root.cells, 1, -1, false, true)
         ctx.restore()
 
         ctx.save()
         ctx.beginPath()
-        ctx.moveTo(topX, 0)
-        ctx.lineTo(width + 1, 0)
-        ctx.lineTo(width + 1, height)
-        ctx.lineTo(bottomX, height)
-        ctx.closePath()
+        ctx.rect(seamX, 0, Math.max(0, width - seamX), height)
         ctx.clip()
         paintProjection(ctx, root.morphFromProjection, root.morphFromCells,
           1, -1, false, true)
         ctx.restore()
 
         // Mark the local change in resolution without implying that a week
-        // has one spatial destination inside a calendar month. The mark leans
-        // with the cut, because it is the cut.
+        // has one spatial destination inside a calendar month.
         var seamAlpha = seam.mark
-        if (seamAlpha > 0.002) {
-          var top = root.gridOriginY() - Style.space(2)
-          var bottom = root.gridOriginY() + root.gridHeight() + Style.space(2)
-          ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
-            root.foreground.b, seamAlpha)
-          ctx.lineWidth = Style.spacing.hairline
-          ctx.beginPath()
-          ctx.moveTo(seamXAt(top, headX), top)
-          ctx.lineTo(seamXAt(bottom, headX), bottom)
-          ctx.stroke()
-        }
+        ctx.fillStyle = Qt.rgba(root.foreground.r, root.foreground.g,
+          root.foreground.b, seamAlpha)
+        ctx.fillRect(seamX, root.gridOriginY() - Style.space(2),
+          Style.spacing.hairline, root.gridHeight() + Style.space(4))
       }
 
+      // The two lattices, stroked where the fold is happening.
+      //
+      // Painting them across the whole grid at even strength is a full field
+      // of hairlines, and a full field of even ink reads flat however bright
+      // it is: measured, it lifted the grid's floor and cut its contrast by
+      // about a fifth everywhere at once. Depth is figure against ground, so
+      // the beat has to be somewhere rather than everywhere.
+      //
+      // It belongs at the present. The exchange between weeks and months is a
+      // question about now — which calendar is reading this moment — and the
+      // far future has no stake in it. So the wireframe falls off with
+      // temporal distance from the present cell, leaving a raised fold there
+      // against an untouched grid elsewhere.
+      //
+      // Only the wireframe is attenuated. The fragments carry the grid's ink
+      // through the midpoint and must stay whole everywhere, or the far field
+      // would empty out at exactly the moment both settled projections are
+      // gone.
       function paintProjectionWireframe(ctx, rects, opacity, focus, lift) {
         if (!rects || opacity <= 0) return
         ctx.lineWidth = Style.spacing.hairline
