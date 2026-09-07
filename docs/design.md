@@ -155,30 +155,37 @@ superimposed, each side at full strength, so nothing can dim.
 
 Every horizontal coordinate is derived from the week, top down, and both
 projections read the same lattice. The week is the atom and is always the same
-width, because a week is always seven days. A life-month is a container of
-four or five of them, so its Months column is the weeks it contains and is
-wider or narrower. Quarters hold 13 weeks and 3 months in every case, so they
-stay even.
+width, because a week is always seven days. A life-month is as wide as the month is long,
+so its column is genuinely wider or narrower and the unevenness is the
+duration. Quarters hold 13 weeks and 3 months in every case.
 
-**Correction, 2026-09-06.** This section used to end the paragraph above by
-claiming the unevenness is information rather than a cost — the column width
-finally meaning something. It does not mean anything, and the arithmetic says
-so. A column's width comes from `round(m * 52 / 12)`, which spaces twelve
-boundaries evenly across fifty-two weeks and depends only on the column's
-*index*. The cells it draws are real calendar months of 28 to 31 days, and
-nothing connects the two. Measured against a birth date of 2001-08-23, the
-column spanning 30 days is drawn 35 days wide while the column spanning 31
-days is drawn 28 — a shorter month drawn wider than a longer one, and the
-worst column off by a full week.
+**Corrected, 2026-09-06/07.** The paragraph above used to end by claiming the
+unevenness is information rather than a cost — the column width finally
+meaning something. For a long time it was not true. A column's width came from
+`round(m * 52 / 12)`, which spaces twelve boundaries evenly across fifty-two
+weeks and depends only on the column's *index*, while the cells it draws are
+real months of 28 to 31 days. Nothing connected the two. Measured against a
+birth date of 2001-08-23, the column spanning 30 days was drawn 35 days wide
+and the column spanning 31 days was drawn 28 — a shorter month drawn wider
+than a longer one, the worst off by a full week, and the correlation between
+width and duration was **0.068**.
 
-So the width is uneven, and its unevenness is an artefact of dividing 52 by
-12 rather than a fact about months. The claim was right about what the grid
-*should* say. It was wrong about what this grid says, and it went unchallenged
-because both numbers are plausible and neither was ever compared to the other.
+A column is now as wide as its month is long, anchored to the birth day
+because the columns are, and averaged over a leap cycle so February does not
+flicker between years. The correlation is **1.000**. February is finally the
+narrowest column.
 
-Making the width true is one of the things the day atom buys, and it is
-pursued in Workstream 8 rather than patched here: a month drawn at its real
-length is only possible once the atom is smaller than a week.
+The claim is therefore true now, and quieter than it was: the widest and
+narrowest columns differ by 3.0px where the old 4-and-5-week pattern differed
+by 8.0px. That beat was strong and meant nothing.
+
+The price is the exact cross-projection coincidence. A Months boundary no
+longer lands on a Weeks boundary, and quarters move by at most **1.37 days**
+between the two views where they used to agree to the pixel. That coincidence
+was purchased by the widths being false, which is too much to pay for it — a
+grid that lines up perfectly while misreporting what it measures is lining up
+about nothing. The row is still the same width in either projection, so a
+projection change never resizes the grid.
 
 Because every coordinate counts weeks, a boundary lands on the same pixel in
 Weeks and in Months by construction, not by tuning. This is forced, and the
