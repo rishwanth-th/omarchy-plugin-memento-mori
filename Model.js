@@ -607,6 +607,28 @@ function monthColumnDays(birthKey, today) {
   return days
 }
 
+// Units defined as a count per year rather than by the calendar. They tile
+// the year by construction, which is what lets them sit in the existing
+// quarter/year frame without any of it being re-derived: twenty books to a
+// year is five to a quarter, exactly.
+var DAYS_PER_YEAR = 365.2425
+
+var RATE_UNITS = {
+  books:     { perYear: 20, label: "Book",     unit: "books" },
+  paychecks: { perYear: 24, label: "Paycheck", unit: "paychecks" }
+}
+
+// Where a rate unit's nth edge falls, in whole days from birth. The rounding
+// is applied to the running total rather than to each length, so the lengths
+// vary by a day while the edges never drift from the year they divide.
+function rateUnitDayOffset(rate, index) {
+  return Math.round(index * DAYS_PER_YEAR / rate.perYear)
+}
+
+function rateUnit(mode) {
+  return RATE_UNITS[mode] || null
+}
+
 // What a projection is, in one place rather than as a two-valued string
 // tested wherever something needs to know. `columns` is how many of the unit
 // fill one life-year row, which is the only number the geometry asks for.
@@ -616,8 +638,35 @@ function monthColumnDays(birthKey, today) {
 // here came from deciding, not from parameterising, and the lattice is
 // predetermined on purpose.
 var PROJECTIONS = {
-  weeks:  { columns: 52, unit: "weeks",  singular: "WEEK",  letter: "W", frame: "year" },
-  months: { columns: 12, unit: "months", singular: "MONTH", letter: "M", frame: "year" }
+  weeks:     { columns: 52, unit: "weeks",     singular: "WEEK",     letter: "W", frame: "year" },
+  paychecks: { columns: 24, unit: "paychecks", singular: "PAYCHECK", letter: "P", frame: "year" },
+  books:     { columns: 20, unit: "books",     singular: "BOOK",     letter: "B", frame: "year" },
+  months:    { columns: 12, unit: "months",    singular: "MONTH",    letter: "M", frame: "year" },
+  seasons:   { columns:  4, unit: "seasons",   singular: "SEASON",   letter: "S", frame: "year" }
+}
+
+// Ordered fine to coarse: this is the ladder, and stepping along it is the
+// zoom. Every rung's column count divides by four, because the quarter is
+// drawn as real space and a grouping boundary that fell mid-cell would be a
+// gap inside a cell.
+var PROJECTION_LADDER = ["weeks", "paychecks", "books", "months", "seasons"]
+
+// The next rung up or down, stopping at the ends rather than wrapping, so a
+// held zoom has a floor and a ceiling the way a scale does.
+function stepProjection(mode, direction) {
+  var at = PROJECTION_LADDER.indexOf(mode)
+  if (at < 0) at = 0
+  var next = at + (direction < 0 ? -1 : 1)
+  if (next < 0 || next >= PROJECTION_LADDER.length) return mode
+  return PROJECTION_LADDER[next]
+}
+
+// One key walking a ladder has to wrap, or it has nowhere to go once it
+// reaches an end. Stepping and cycling are different gestures.
+function cycleProjection(mode) {
+  var at = PROJECTION_LADDER.indexOf(mode)
+  if (at < 0) at = 0
+  return PROJECTION_LADDER[(at + 1) % PROJECTION_LADDER.length]
 }
 
 // The frame a projection is read against: what a row is, what groups it, and
@@ -656,7 +705,13 @@ function projectionCells(mode, birthKey, today, horizonValue) {
     var end
     var primary
 
-    if (mode === "months") {
+    if (mode === "seasons") {
+      start = addCalendarMonths(birth, index * 3)
+      if (utcDayNumber(start) > utcDayNumber(horizonEnd)) break
+      end = addDays(addCalendarMonths(birth, index * 3 + 3), -1)
+      if (utcDayNumber(end) > utcDayNumber(horizonEnd)) end = horizonEnd
+      primary = "Year " + (Math.floor(index / 4) + 1) + " · Season " + (index % 4 + 1)
+    } else if (mode === "months") {
       start = addCalendarMonths(birth, index)
       if (utcDayNumber(start) > utcDayNumber(horizonEnd)) break
       end = addDays(addCalendarMonths(birth, index + 1), -1)
@@ -668,6 +723,19 @@ function projectionCells(mode, birthKey, today, horizonValue) {
       end = addDays(addCalendarYears(birth, index + 1), -1)
       if (utcDayNumber(end) > utcDayNumber(horizonEnd)) end = horizonEnd
       primary = "Year " + (index + 1)
+    } else if (RATE_UNITS[mode]) {
+      // A rate unit has no exact boundary — nobody finishes their five
+      // hundredth book on a particular Tuesday — so its edges are placed by
+      // rounding an exact fraction of the year. Rounding the cumulative
+      // position rather than the length keeps the count landing on the year:
+      // twenty books is one year to the day, with no drift across a life.
+      var rate = RATE_UNITS[mode]
+      start = addDays(birth, rateUnitDayOffset(rate, index))
+      if (utcDayNumber(start) > utcDayNumber(horizonEnd)) break
+      end = addDays(birth, rateUnitDayOffset(rate, index + 1) - 1)
+      if (utcDayNumber(end) > utcDayNumber(horizonEnd)) end = horizonEnd
+      primary = "Year " + (Math.floor(index / rate.perYear) + 1) + " · "
+        + rate.label + " " + (index % rate.perYear + 1)
     } else {
       if (index >= horizonWeeks) break
       start = addDays(birth, index * 7)
@@ -688,6 +756,24 @@ function projectionCells(mode, birthKey, today, horizonValue) {
   }
 
   return cells
+}
+
+// How far through the present cell today has got, as a fraction of the cell.
+//
+// A cell is a container of days, and which day it is inside that container is
+// exactly the precision a coarser rung would otherwise throw away. The same
+// instant is three days into a week and fourteen into a month, and both are
+// true, so zooming out costs reach rather than truth.
+function cellElapsedFraction(cell, today) {
+  if (!cell || cell.status !== "current")
+    return cell && cell.status === "lived" ? 1 : 0
+  var start = dateFromKey(cell.startKey)
+  var end = dateFromKey(cell.endKey)
+  var now = today instanceof Date ? today : new Date()
+  if (!start || !end) return 0
+  var span = utcDayNumber(end) - utcDayNumber(start) + 1
+  if (span <= 0) return 0
+  return Math.max(0, Math.min(1, (utcDayNumber(now) - utcDayNumber(start)) / span))
 }
 
 // Place the current row a little above the middle of a bounded viewport.
@@ -792,6 +878,13 @@ if (typeof module !== "undefined") {
     projectionCells: projectionCells,
     monthColumnDays: monthColumnDays,
     projection: projection,
+    rateUnit: rateUnit,
+    rateUnitDayOffset: rateUnitDayOffset,
+    stepProjection: stepProjection,
+    cycleProjection: cycleProjection,
+    cellElapsedFraction: cellElapsedFraction,
+    RATE_UNITS: RATE_UNITS,
+    PROJECTION_LADDER: PROJECTION_LADDER,
     projectionColumns: projectionColumns,
     frameFor: frameFor,
     PROJECTIONS: PROJECTIONS,

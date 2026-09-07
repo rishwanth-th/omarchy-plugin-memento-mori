@@ -184,6 +184,13 @@ Flickable {
       + 40 * columnGapFor("months")
   }
 
+  // A rate unit divides the row evenly, so its columns are one width and its
+  // groupings are exact. Seasons are calendar quarters and divide it evenly
+  // too, three real months at a time.
+  function isEvenProjection(mode) {
+    return Model.rateUnit(mode) !== null || mode === "seasons"
+  }
+
   function columnsFor(mode) {
     return mode === "months" ? 12 : 52
   }
@@ -290,6 +297,10 @@ Flickable {
   }
 
   function quarterBoundaryCountBefore(mode, column) {
+    if (isEvenProjection(mode)) {
+      var perQuarter = columnsFor(mode) / 4
+      return Math.max(0, Math.min(3, Math.floor(column / perQuarter)))
+    }
     return Math.max(0, Math.min(3, Math.floor(
       monthsBeforeColumn(mode, column) / 3)))
   }
@@ -355,6 +366,12 @@ Flickable {
   // projections, where they used to coincide to the pixel. That coincidence
   // was bought by the widths being false, which is too high a price for it.
   function cellWidthForColumn(mode, column) {
+    if (isEvenProjection(mode)) {
+      var boundaries = columnsFor(mode) - 1
+      var spent = (boundaries - 3) * columnGapFor(mode) + 3 * semanticColumnGap()
+      return Math.max(Style.space(1),
+        (gridWidthFor(mode) - spent) / columnsFor(mode))
+    }
     if (mode !== "months") return weekCellSize()
     var index = Math.max(0, Math.min(11, column))
     return monthColumnSpan() * monthColumnDays[index] / monthColumnDaysTotal
@@ -384,6 +401,13 @@ Flickable {
   }
 
   function columnOffsetFor(mode, column) {
+    if (isEvenProjection(mode)) {
+      var index = Math.max(0, Math.min(columnsFor(mode), column))
+      var quarters = quarterBoundaryCountBefore(mode, index)
+      return index * cellWidthForColumn(mode, 0)
+        + (index - quarters) * columnGapFor(mode)
+        + quarters * semanticColumnGap()
+    }
     if (mode === "months") {
       // Summed rather than closed-form, because the widths are durations now
       // and durations do not divide the row evenly. Twelve terms.
@@ -418,9 +442,10 @@ Flickable {
       + ordinaryCount * rowGap()
   }
 
+  // Every rung draws the same envelope, so a zoom changes what the row is
+  // divided into and never how wide it is.
   function gridWidthFor(mode) {
-    // 52 weeks plus the row's whole gap budget, in either projection.
-    return 52 * weekCellSize() + totalColumnGapFor(mode)
+    return 52 * weekCellSize() + totalColumnGapFor("weeks")
   }
 
   function gridWidth() {
@@ -864,7 +889,7 @@ Flickable {
   }
 
   function setProjection(value) {
-    if (value !== "weeks" && value !== "months") return
+    if (!Model.PROJECTIONS[value]) return
     if (projection === value) return
 
     if (entranceAnimating) cancelEntrance()
@@ -885,7 +910,12 @@ Flickable {
     morphFromCells = sourceCells
     morphInspectionDateKey = sourceInspectionDateKey
 
-    if (dateOverlapEnabled) {
+    // The overlap lens needs the two projections to share cell boundaries,
+    // which only holds inside one hierarchy. A rate unit meets the week at
+    // the day and nowhere above it, so there are no exact fragments to draw
+    // and the travelling seam carries that step instead.
+    if (dateOverlapEnabled && !isEvenProjection(projection)
+        && !isEvenProjection(sourceProjection)) {
       var sourceColumns = columnsFor(sourceProjection)
       var targetColumns = columnsFor(projection)
       var sourceFirst = Math.max(0,
@@ -912,8 +942,15 @@ Flickable {
     projectionMorphAnimation.start()
   }
 
+  // Zoom, not a swap. One key cannot hold a direction, so P wraps and every
+  // rung is reachable by pressing again; held zoom keeps a direction and
+  // therefore keeps its ends.
+  function zoomProjection(direction) {
+    setProjection(Model.stepProjection(projection, direction))
+  }
+
   function toggleProjection() {
-    setProjection(projection === "weeks" ? "months" : "weeks")
+    setProjection(Model.cycleProjection(projection))
   }
 
   function firstVisibleIndexFor(mode) {
@@ -1777,13 +1814,25 @@ Flickable {
             root.foreground.b, 0.34 * alpha)
           ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
         } else if (cell.status === "current" && suppressPresent !== true) {
+          var elapsed = Model.cellElapsedFraction(cell, root.today)
           // Calendar already establishes the global present. LIFE adds its
           // local coordinate, so the cell resolves from quiet to exact rather
           // than replaying time from birth.
+          // The cell is a container of days, and which day it is inside that
+          // container is the precision a coarser rung would otherwise throw
+          // away. The frontier is drawn where it falls, so zooming out costs
+          // reach rather than truth.
           var presentAlpha = 0.35 + 0.65 * root.entranceFocusProgress
+          var frontier = Math.round(rect.width * elapsed)
           ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b,
             alpha * presentAlpha)
-          ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+          ctx.fillRect(rect.x, rect.y, frontier, rect.height)
+          if (frontier < rect.width) {
+            ctx.fillStyle = Qt.rgba(accent.r, accent.g, accent.b,
+              alpha * presentAlpha * 0.26)
+            ctx.fillRect(rect.x + frontier, rect.y,
+              rect.width - frontier, rect.height)
+          }
         } else {
           ctx.strokeStyle = Qt.rgba(root.foreground.r, root.foreground.g,
             root.foreground.b, 0.22 * alpha)

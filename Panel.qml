@@ -269,6 +269,10 @@ Panel {
     lifeView.toggleProjection()
   }
 
+  function zoomProjection(direction) {
+    lifeView.zoomProjection(direction)
+  }
+
   function toggleAnimationStyle() {
     lifeView.toggleAnimationStyle()
   }
@@ -428,6 +432,8 @@ Panel {
           if (t === "t" || t === "T") lifeView.resetToNow(true)
           else if (t === "m" || t === "M") root.showCalendar()
           else if (t === "p" || t === "P") lifeView.toggleProjection()
+          else if (t === "+" || t === "=") lifeView.zoomProjection(-1)
+          else if (t === "-" || t === "_") lifeView.zoomProjection(1)
           else if (t === "a" || t === "A") lifeView.toggleAnimationStyle()
           else if (t === "g" || t === "G") lifeView.toggleGapRhythm()
           return
