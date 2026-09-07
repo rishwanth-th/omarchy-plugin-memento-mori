@@ -487,16 +487,94 @@ them, and taking it later means answering the same questions twice.
 2. LIFE entrance — complete.
 3. Temporal-distance pin — complete.
 4. Grid rhythm and contextual spacing — complete.
-5. Motion substrate — in progress, DAZ-296. The time half of the lattice.
-6. The unit ladder — next, DAZ-297. Redefines the lattice itself.
-7. Hover-guide motion — DAZ-298, after the lattice settles.
-8. Viewport movement — DAZ-299, after the lattice settles.
-9. Transition light treatment — DAZ-276, parked; its premise is a seam, and
-   whether a seam still exists is decided by 6.
+5. Motion substrate — complete, DAZ-296. The time half of the lattice.
+6. The unit ladder — **not pursued**, DAZ-297. Explored and stopped on live
+   review; see below. The reordering it caused is reverted with it.
+7. Hover-guide motion — next, DAZ-298.
+8. Viewport movement — DAZ-299.
+9. Transition light treatment — DAZ-276. Its premise is a landing point to
+   emit from, and the overlap fold is now one.
 
 ## Workstream 8 — the unit ladder
 
-**Tracked in DAZ-297.**
+**Not pursued. Explored 2026-09-06/07 and stopped on live review; the working
+branch is `experiment/unit-lattice` and `main` does not contain it.**
+
+The idea was sound and the object got worse. Both are worth recording.
+
+### Why it was stopped
+
+It was built far enough to use: a unit table in days, a ladder of rungs, books
+as a real third projection at twenty a year, `P` walking the ladder, the
+horizontal frame derived rather than hardcoded, and the day frontier drawn
+inside the present cell. All of it works and is tested.
+
+Reviewed live, the grid had lost what made it worth looking at. Three rungs
+with ratios 2.60, 1.67 and 4.33 is not a scale, it is three settings; two of
+the three steps were carried by the travelling seam, which is a wipe and reads
+as nothing happening; and the one step that still had the moire was the
+wrap-around from the coarsest rung back to the finest — the ladder's best
+moment was its accident. Marking the present as a point with its trail behind
+it, which follows from the same reasoning and is arguably more correct, read
+as jagged rather than as motion.
+
+The honest summary is that the ladder bought generality the object did not
+want. Two projections that mean something beat five that merely differ.
+
+### What it found, which stands
+
+- **There are two hierarchies, and they meet only at the day.** The calendar
+  chain nests day, month, quarter, year, five years; the week chain nests day,
+  week, fortnight. `week -> month` is 4.348 and never resolves. A zoom step
+  within a chain can merge cells cleanly; a step across chains cannot, and
+  that is why the Weeks/Months exchange needs interference rather than
+  containment. The one morph already built is the hard case.
+- **A rung must divide the quarter**, because the quarter is drawn as real
+  space. Only column counts divisible by four fit: 52, 20, 12 do; a fortnight
+  at 26 does not. This is what limits the ladder, and it comes from the
+  grouping being hardcoded rather than derived.
+- **A rate unit tiles by construction.** Twenty books a year is five to a
+  quarter exactly, and rounding the running total rather than each length
+  keeps every year edge exact — zero drift over a life, against the week
+  grid's 96 days.
+- **Area is not a quantity here.** Recorded in [design.md](design.md).
+
+### Two defects it uncovered, both still open
+
+- **A Months column's width means nothing.** It comes from
+  `round(m * 52 / 12)`, the column's index, while the cells are real months of
+  28 to 31 days. Correlation between drawn width and real duration is
+  **0.068**. Corrected in [design.md](design.md); the code is unchanged.
+- **The age axis drifts.** A row is 52 weeks, 364 days, against a year's
+  365.2425. Row 25 begins 31 days before the 25th birthday and row 77 begins
+  96 days early.
+
+### The narrow fix, not yet done
+
+Draw each month at its true fraction of the row. Correlation goes to 1.000,
+the outer rectangle, week column alignment and the quarter channels are all
+kept, and the quarter edge moves at most 1.5 days between the two views. This
+gets the whole of the first defect for almost none of the cost, and it needs
+no change to what a row is.
+
+The alternative — making a row a real life-year — was costed and refused. It
+would fix both defects, and it breaks week column alignment (the offset cycles
+0 to 6 days, up to a full cell between adjacent rows) and the quarter channels
+(a quarter is 13.04 weeks, so its edge falls mid-cell). That spends the grid's
+symmetry, which is not a tidiness property here: reading down a column is how
+the thing works.
+
+### Two errors made while exploring it
+
+Recorded because both were confidently stated and one influenced a decision.
+
+- A claimed diagonal of fourteen columns over a life, from multiplying a
+  per-row drift without wrapping at a week. The offset is `days mod 7`; it
+  cycles and cannot exceed one cell. There is no sweeping diagonal.
+- The cost of a real-year row was first given as "a ragged first and last
+  cell", which is most of the way to wrong. It is the loss of column
+  alignment and of the quarter channels.
+
 
 ### Intent
 
