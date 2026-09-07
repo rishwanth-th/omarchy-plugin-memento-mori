@@ -279,3 +279,35 @@ test("the temporal viewport favors the future and clamps at both ends", () => {
   assert.equal(Model.temporalViewportStart(76, 77, 24), 53)
   assert.equal(Model.temporalViewportStart(3, 8, 24), 0)
 })
+
+test("a month column is as long as the month it draws", () => {
+  const today = localDate(2026, 9, 6)
+  const days = Model.monthColumnDays("2001-08-23", today)
+  assert.equal(days.length, 12)
+  // Anchored to the birth day, so these are 23rd-to-23rd spans, and February
+  // is averaged over a leap cycle rather than flickering between years.
+  assert.equal(days[0], 31)
+  assert.equal(days[1], 30)
+  assert.equal(days[6], 28.25)
+  assert.ok(Math.abs(days.reduce((a, b) => a + b, 0) - 365.25) < 1e-9)
+
+  // The defect this replaces: width came from round(m * 52 / 12), the
+  // column's index, and correlated 0.068 with the duration it stood for.
+  const drawnByIndex = (m) =>
+    Math.round((m + 1) * 52 / 12) - Math.round(m * 52 / 12)
+  let anyDisagreement = false
+  for (let m = 0; m < 12; m++)
+    if (Math.abs(drawnByIndex(m) * 7 - days[m]) > 2) anyDisagreement = true
+  assert.ok(anyDisagreement, "the old widths should differ from the real ones")
+})
+
+test("month columns divide the row without drift", () => {
+  const today = localDate(2026, 9, 6)
+  for (const birth of ["2001-08-23", "1990-01-31", "1975-02-28", "2004-02-29"]) {
+    const days = Model.monthColumnDays(birth, today)
+    const total = days.reduce((a, b) => a + b, 0)
+    assert.ok(Math.abs(total - 365.25) < 1e-9,
+      `${birth} came to ${total} days`)
+    for (const span of days) assert.ok(span >= 28 && span <= 31)
+  }
+})

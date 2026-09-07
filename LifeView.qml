@@ -165,6 +165,25 @@ Flickable {
     requestStructurePaint()
   }
 
+  // The twelve month-columns' real durations, cached because painting asks
+  // for a column width thousands of times a frame and the answer only changes
+  // when the birth date does.
+  readonly property var monthColumnDays: Model.monthColumnDays(birthKey, today)
+  readonly property real monthColumnDaysTotal: {
+    var total = 0
+    for (var i = 0; i < monthColumnDays.length; i++) total += monthColumnDays[i]
+    return total > 0 ? total : 1
+  }
+
+  // The space the twelve columns divide between them: the row's cells plus
+  // the forty week gaps a Months row still spends inside its columns. The
+  // eleven gaps between columns are spent outside it, so the row comes to the
+  // same width either way and a projection change never resizes the grid.
+  function monthColumnSpanForProgress(progress) {
+    return 52 * weekCellSizeForProgress(progress)
+      + 40 * columnGapFor("months")
+  }
+
   function columnsFor(mode) {
     return mode === "months" ? 12 : 52
   }
@@ -322,12 +341,27 @@ Flickable {
     return weekCellSizeForProgress(1)
   }
 
-  // A Months column is exactly the weeks it contains, so the two projections
-  // cannot disagree about where it ends.
+  // A Months column is as wide as the month is long.
+  //
+  // It used to be the whole number of weeks that `round(m * 52 / 12)` puts in
+  // it, which depends only on the column's index and not at all on the month
+  // it draws. The correlation between a column's width and the duration it
+  // stood for was 0.068: a thirty-day column was drawn wider than a
+  // thirty-one-day one, and the worst was off by a full week. The unevenness
+  // was real and meant nothing.
+  //
+  // The cost is that a Months boundary no longer lands exactly on a Weeks
+  // boundary. Quarters move by at most a day and a half between the two
+  // projections, where they used to coincide to the pixel. That coincidence
+  // was bought by the widths being false, which is too high a price for it.
   function cellWidthForColumn(mode, column) {
     if (mode !== "months") return weekCellSize()
-    var weeks = weeksInMonth(column)
-    return weeks * weekCellSize() + (weeks - 1) * columnGapFor(mode)
+    var index = Math.max(0, Math.min(11, column))
+    return monthColumnSpan() * monthColumnDays[index] / monthColumnDaysTotal
+  }
+
+  function monthColumnSpan() {
+    return monthColumnSpanForProgress(gapRhythmProgress)
   }
 
   // Representative width, for stride pacing and label clearance only. Never
@@ -350,6 +384,17 @@ Flickable {
   }
 
   function columnOffsetFor(mode, column) {
+    if (mode === "months") {
+      // Summed rather than closed-form, because the widths are durations now
+      // and durations do not divide the row evenly. Twelve terms.
+      var stop = Math.max(0, Math.min(12, column))
+      var offset = 0
+      for (var i = 0; i < stop; i++) {
+        offset += cellWidthForColumn(mode, i)
+        offset += (i + 1) % 3 === 0 ? semanticColumnGap() : lifeMonthColumnGap()
+      }
+      return offset
+    }
     // Counted in weeks, so Weeks and Months evaluate to the same coordinate
     // at every shared boundary.
     var weeks = weeksBeforeColumn(mode, column)

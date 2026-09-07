@@ -582,6 +582,31 @@ function projectionOverlapSegments(sourceCells, targetCells,
   return segments
 }
 
+// How long each of the twelve month-columns actually is, in days, for a given
+// birth date.
+//
+// The columns are anchored to the birth day rather than to January, so their
+// lengths depend on where in the month a life started: a life beginning on
+// the 23rd has columns running the 23rd to the 23rd. Averaged over a leap
+// cycle so February does not make the grid flicker between years, which puts
+// every column within a quarter day of its true long-run length.
+function monthColumnDays(birthKey, today) {
+  var normalized = parseBirthDate(birthKey, today instanceof Date ? today : new Date())
+  if (normalized === "") normalized = "2000-01-01"
+  var birth = dateFromKey(normalized)
+  var days = []
+  for (var column = 0; column < 12; column++) {
+    var total = 0
+    for (var cycle = 0; cycle < 4; cycle++) {
+      var from = addCalendarMonths(birth, cycle * 12 + column)
+      var to = addCalendarMonths(birth, cycle * 12 + column + 1)
+      total += utcDayNumber(to) - utcDayNumber(from)
+    }
+    days.push(total / 4)
+  }
+  return days
+}
+
 // What a projection is, in one place rather than as a two-valued string
 // tested wherever something needs to know. `columns` is how many of the unit
 // fill one life-year row, which is the only number the geometry asks for.
@@ -765,6 +790,7 @@ if (typeof module !== "undefined") {
     lifeProgressForDate: lifeProgressForDate,
     projectionOverlapSegments: projectionOverlapSegments,
     projectionCells: projectionCells,
+    monthColumnDays: monthColumnDays,
     projection: projection,
     projectionColumns: projectionColumns,
     frameFor: frameFor,
