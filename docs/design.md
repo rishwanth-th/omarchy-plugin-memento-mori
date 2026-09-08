@@ -151,6 +151,40 @@ The travelling seam, measured the same way, was already flat to ±0.2% at every
 instant, which is its own design met exactly: two resolutions never
 superimposed, each side at full strength, so nothing can dim.
 
+## Two worlds, and which one this grid is in
+
+A world is a chain of units where each level holds a whole number of the level
+below. There are two, and they share the day and meet nowhere above it.
+
+```
+week world      day -7-> week -13-> 13-week -4-> 52-week    uniform lengths
+calendar world  day ---> month -3-> quarter -4-> year       lengths vary, 28-31
+```
+
+**The grid is week-world throughout.** Its cell is a week, its group is
+thirteen weeks, its row is fifty-two weeks. All three nest exactly and every
+length is uniform. The geometry is coherent and always was.
+
+Only the vertical axis label is not. `Age 25` names a calendar year, and a
+calendar year is 365.2425 days against the row's 364. That difference, 1.2425
+days a row, is the entire ninety-six-day drift across a life. It is a
+labelling mismatch rather than a geometry defect, and the fix is to say what
+the row is rather than to change what it is. Making the row a real life-year
+was costed and refused: it breaks column alignment and the quarter channels,
+which is a high price for a problem the geometry does not have.
+
+This also names what the Months projection is. It puts calendar-world cells
+into a week-world row, so twelve real months of 365.25 days are scaled into
+364, and a month boundary no longer lands on a week boundary. That is not a
+flaw to remove. It is the subject: the two worlds do not fit, and the grid
+saying so is the point. The quarter reads as thirteen weeks and as three
+months at once only because 91 and 91.31 nearly coincide — a near-miss between
+worlds, not a shared unit.
+
+And it says what the moire is. Not an effect laid over the exchange but the
+exchange itself: two worlds superimposed, beating because they are
+incommensurable. Which is why it carries more than anything else here does.
+
 ## One predetermined lattice
 
 Every horizontal coordinate is derived from the week, top down, and both
